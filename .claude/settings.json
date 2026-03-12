@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(adb devices:*)",
+      "Bash(npx expo-doctor:*)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 20272 //F)",
+      "Bash(adb reverse:*)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(adb shell:*)",
+      "Bash(adb kill-server:*)",
+      "Bash(adb start-server:*)",
+      "Bash(adb wait-for-device:*)",
+      "Bash(adb logcat:*)"
+    ]
+  }
+}

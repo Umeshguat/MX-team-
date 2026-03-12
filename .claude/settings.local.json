@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"E:/project_after_1_ dec_2025/salesmens\" && npx create-expo-app@latest . --template blank 2>&1)",
+      "Bash(cd \"E:/project_after_1_ dec_2025/salesmens\" && npx create-expo-app@latest . --template blank --yes 2>&1)",
+      "Read(//e/project_after_1_ dec_2025/**)",
+      "Bash(npx create-expo-app@latest salesmens-app --template blank)",
+      "Bash(cp -r \"E:/project_after_1_ dec_2025/salesmens-app/\"* \"E:/project_after_1_ dec_2025/salesmens/\" && cp \"E:/project_after_1_ dec_2025/salesmens-app/\".* \"E:/project_after_1_ dec_2025/salesmens/\" 2>/dev/null; rm -rf \"E:/project_after_1_ dec_2025/salesmens-app\")",
+      "Bash(cp \"E:/project_after_1_ dec_2025/salesmens-app/package.json\" \"E:/project_after_1_ dec_2025/salesmens/\" && cp \"E:/project_after_1_ dec_2025/salesmens-app/package-lock.json\" \"E:/project_after_1_ dec_2025/salesmens/\" && rm -rf \"E:/project_after_1_ dec_2025/salesmens-app\")",
+      "Bash(rm -rf .expo)",
+      "Bash(npx expo:*)"
+    ]
+  }
+}
