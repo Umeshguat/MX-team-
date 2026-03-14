@@ -13,8 +13,9 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 
-export default function DashboardScreen({ user, onLogout }) {
+export default function DashboardScreen({ user, onLogout, vendors, onVendorsChange, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits }) {
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState(null);
   const [checkOutTime, setCheckOutTime] = useState(null);
@@ -28,11 +29,21 @@ export default function DashboardScreen({ user, onLogout }) {
   const [workingTown, setWorkingTown] = useState('');
   const [route, setRoute] = useState('');
 
+  const [selfieImage, setSelfieImage] = useState(null);
+  const [outOfTown, setOutOfTown] = useState(false);
+  const [stayBillImage, setStayBillImage] = useState(null);
+  const [stayBillAmount, setStayBillAmount] = useState('');
+  const [foodBillImage, setFoodBillImage] = useState(null);
+  const [foodBillAmount, setFoodBillAmount] = useState('');
+  const [otherBillImage, setOtherBillImage] = useState(null);
+  const [otherBillAmount, setOtherBillAmount] = useState('');
+  const [otherBillDescription, setOtherBillDescription] = useState('');
+
   const [showVendorModal, setShowVendorModal] = useState(false);
   const [vendorName, setVendorName] = useState('');
+  const [vendorMobile, setVendorMobile] = useState('');
   const [vendorSelfie, setVendorSelfie] = useState(null);
   const [isOnboarded, setIsOnboarded] = useState(null);
-  const [vendors, setVendors] = useState([]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -47,6 +58,10 @@ export default function DashboardScreen({ user, onLogout }) {
       second: '2-digit',
       hour12: true,
     });
+  };
+
+  const getImageFile = (uri, prefix) => {
+    return { uri: uri, name: prefix + '_' + Date.now() + '.jpg', type: 'image/jpeg' };
   };
 
   const formatDate = (date) => {
@@ -97,9 +112,65 @@ export default function DashboardScreen({ user, onLogout }) {
     setHqName('');
     setWorkingTown('');
     setRoute('');
+    setSelfieImage(null);
+    setOutOfTown(false);
+    setStayBillImage(null);
+    setStayBillAmount('');
+    setFoodBillImage(null);
+    setFoodBillAmount('');
+    setOtherBillImage(null);
+    setOtherBillAmount('');
+    setOtherBillDescription('');
   };
 
-  const submitModal = () => {
+  const takeSelfie = async () => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission needed', 'Camera permission is required');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.8 });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelfieImage(result.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Could not open camera');
+    }
+  };
+
+  const pickSelfie = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 0.8 });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelfieImage(result.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Could not open gallery');
+    }
+  };
+
+  const takeBillPhoto = async (setter) => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) { Alert.alert('Permission needed', 'Camera permission is required'); return; }
+      const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.8 });
+      if (!result.canceled && result.assets && result.assets.length > 0) { setter(result.assets[0].uri); }
+    } catch (e) { Alert.alert('Error', 'Could not open camera'); }
+  };
+
+  const pickBillImage = async (setter) => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 0.8 });
+      if (!result.canceled && result.assets && result.assets.length > 0) { setter(result.assets[0].uri); }
+    } catch (e) { Alert.alert('Error', 'Could not open gallery'); }
+  };
+
+  const submitModal = async () => {
+    if (modalType === 'checkin' && !selfieImage) {
+      Alert.alert('Error', 'Please take a selfie for check-in');
+      return;
+    }
     if (!kmImage) {
       Alert.alert('Error', 'Please upload KM image');
       return;
@@ -108,16 +179,109 @@ export default function DashboardScreen({ user, onLogout }) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-    if (modalType === 'checkin') {
-      setCheckedIn(true);
-      setCheckInTime(new Date());
-      setCheckOutTime(null);
-    } else {
-      setCheckedIn(false);
-      setCheckOutTime(new Date());
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Location permission is required');
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({});
+      const lat = location.coords.latitude.toString();
+      const lng = location.coords.longitude.toString();
+
+      const token = user && user.token ? user.token : '';
+      const apiUrl = modalType === 'checkin'
+        ? 'http://192.168.1.2:5000/api/attendance/check-in'
+        : 'http://192.168.1.2:5000/api/attendance/check-out';
+
+      const formData = new FormData();
+      formData.append('headquarter_name', hqName.trim());
+      formData.append('working_town', workingTown.trim());
+      formData.append('route', route.trim());
+      formData.append('total_km', kmReading.trim());
+      formData.append('latitude', lat);
+      formData.append('longitude', lng);
+
+      formData.append('km_image', getImageFile(kmImage, 'km'));
+
+      if (selfieImage) {
+        formData.append('selfie', getImageFile(selfieImage, 'selfie'));
+      }
+
+      if (outOfTown) {
+        formData.append('out_of_town', 'true');
+        if (stayBillAmount.trim()) formData.append('stay_bill_amount', stayBillAmount.trim());
+        if (stayBillImage) {
+          formData.append('stay_bill_image', getImageFile(stayBillImage, 'stay'));
+        }
+        if (foodBillAmount.trim()) formData.append('food_bill_amount', foodBillAmount.trim());
+        if (foodBillImage) {
+          formData.append('food_bill_image', getImageFile(foodBillImage, 'food'));
+        }
+        if (otherBillDescription.trim()) formData.append('other_bill_description', otherBillDescription.trim());
+        if (otherBillAmount.trim()) formData.append('other_bill_amount', otherBillAmount.trim());
+        if (otherBillImage) {
+          formData.append('other_bill_image', getImageFile(otherBillImage, 'other'));
+        }
+      } else {
+        formData.append('out_of_town', 'false');
+      }
+
+      console.log('=== ' + modalType.toUpperCase() + ' PAYLOAD ===');
+      console.log('headquarter_name:', hqName.trim());
+      console.log('working_town:', workingTown.trim());
+      console.log('route:', route.trim());
+      console.log('total_km:', kmReading.trim());
+      console.log('latitude:', lat);
+      console.log('longitude:', lng);
+      console.log('km_image:', kmImage ? 'attached' : 'none');
+      console.log('selfie:', selfieImage ? 'attached' : 'none');
+      console.log('out_of_town:', outOfTown ? 'true' : 'false');
+      if (outOfTown) {
+        console.log('stay_bill_amount:', stayBillAmount.trim());
+        console.log('stay_bill_image:', stayBillImage ? 'attached' : 'none');
+        console.log('food_bill_amount:', foodBillAmount.trim());
+        console.log('food_bill_image:', foodBillImage ? 'attached' : 'none');
+        console.log('other_bill_description:', otherBillDescription.trim());
+        console.log('other_bill_amount:', otherBillAmount.trim());
+        console.log('other_bill_image:', otherBillImage ? 'attached' : 'none');
+      }
+      console.log('API URL:', apiUrl);
+      console.log('========================');
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+        },
+        body: formData,
+      });
+
+      const responseText = await response.text();
+      console.log(modalType + ' API Status:', response.status);
+      console.log(modalType + ' API Response:', responseText);
+
+      if (!response.ok) {
+        throw new Error('Server error: ' + response.status + ' - ' + responseText);
+      }
+
+      if (modalType === 'checkin') {
+        setCheckedIn(true);
+        setCheckInTime(new Date());
+        setCheckOutTime(null);
+        Alert.alert('Success', 'Checked in successfully!');
+      } else {
+        setCheckedIn(false);
+        setCheckOutTime(new Date());
+        Alert.alert('Success', 'Checked out successfully!');
+      }
+      setShowModal(false);
+      resetModalFields();
+    } catch (e) {
+      console.log(modalType + ' error:', e);
+      Alert.alert('Error', 'Failed to ' + modalType + ': ' + e.message);
     }
-    setShowModal(false);
-    resetModalFields();
   };
 
   const pickVendorSelfie = async () => {
@@ -153,7 +317,7 @@ export default function DashboardScreen({ user, onLogout }) {
     }
   };
 
-  const submitVendor = () => {
+  const submitVendor = async () => {
     if (!vendorName.trim()) {
       Alert.alert('Error', 'Please enter vendor name');
       return;
@@ -166,17 +330,67 @@ export default function DashboardScreen({ user, onLogout }) {
       Alert.alert('Error', 'Please select onboard status');
       return;
     }
-    setVendors([...vendors, {
-      name: vendorName.trim(),
-      selfie: vendorSelfie,
-      onboarded: isOnboarded,
-      time: new Date(),
-    }]);
-    setVendorName('');
-    setVendorSelfie(null);
-    setIsOnboarded(null);
-    setShowVendorModal(false);
-    Alert.alert('Success', 'Vendor visit recorded!');
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Location permission is required');
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({});
+      const lat = location.coords.latitude.toString();
+      const lng = location.coords.longitude.toString();
+      const addressGps = lat + ', ' + lng;
+      const today = new Date();
+      const visitDate = today.getFullYear() + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getDate()).padStart(2, '0');
+      const onBoardValue = isOnboarded === 'yes' ? 'true' : 'false';
+
+      const formData = new FormData();
+      formData.append('vendor_name', vendorName.trim());
+      formData.append('vendor_mobile', vendorMobile.trim());
+      formData.append('address_gps', addressGps);
+      formData.append('latitude', lat);
+      formData.append('longitude', lng);
+      formData.append('on_board', onBoardValue);
+      formData.append('visit_date', visitDate);
+
+      formData.append('selfie_with_vendor', getImageFile(vendorSelfie, 'vendor_selfie'));
+
+      const response = await fetch('http://192.168.1.2:5000/api/vendor-visits', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + (user && user.token ? user.token : ''),
+        },
+        body: formData,
+      });
+
+      const responseText = await response.text();
+      console.log('API Status:', response.status);
+      console.log('API Response:', responseText);
+
+      if (!response.ok) {
+        throw new Error('Server error: ' + response.status + ' - ' + responseText);
+      }
+
+      onVendorsChange([...(vendors || []), {
+        name: vendorName.trim(),
+        mobile: vendorMobile.trim(),
+        selfie: vendorSelfie,
+        onboarded: isOnboarded,
+        time: new Date(),
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+      }]);
+      setVendorName('');
+      setVendorMobile('');
+      setVendorSelfie(null);
+      setIsOnboarded(null);
+      setShowVendorModal(false);
+      Alert.alert('Success', 'Vendor visit recorded!');
+    } catch (e) {
+      console.log('Vendor submit error:', e);
+      Alert.alert('Error', 'Failed to submit vendor visit: ' + e.message);
+    }
   };
 
   const getWorkingHours = () => {
@@ -274,25 +488,34 @@ export default function DashboardScreen({ user, onLogout }) {
             <Text style={styles.actionText}>My Reports</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={styles.actionCard} onPress={onGoToAttendance}>
             <View style={[styles.actionIcon, { backgroundColor: '#fce4ec' }]}>
               <Text style={styles.actionEmoji}>📅</Text>
             </View>
             <Text style={styles.actionText}>Attendance</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={styles.actionCard} onPress={onGoToVisits}>
             <View style={[styles.actionIcon, { backgroundColor: '#e8f5e9' }]}>
               <Text style={styles.actionEmoji}>📍</Text>
             </View>
             <Text style={styles.actionText}>Visits</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={styles.actionCard} onPress={onGoToProfile}>
             <View style={[styles.actionIcon, { backgroundColor: '#fff3e0' }]}>
               <Text style={styles.actionEmoji}>👤</Text>
             </View>
             <Text style={styles.actionText}>Profile</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.actionCard} onPress={onGoToDailyAllowance}>
+            <View style={[styles.actionIcon, { backgroundColor: '#f3e5f5' }]}>
+              <Text style={styles.actionEmoji}>💰</Text>
+            </View>
+            <Text style={styles.actionText}>Allowance</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -314,6 +537,29 @@ export default function DashboardScreen({ user, onLogout }) {
                 <TouchableOpacity onPress={() => { setShowModal(false); resetModalFields(); }}>
                   <Text style={styles.modalClose}>✕</Text>
                 </TouchableOpacity>
+              </View>
+
+              <View>
+                <Text style={styles.modalLabel}>Selfie</Text>
+                {selfieImage ? (
+                  <View style={styles.imagePreviewWrapper}>
+                    <Image source={{ uri: selfieImage }} style={styles.imagePreview} />
+                    <TouchableOpacity style={styles.removeImageBtn} onPress={() => setSelfieImage(null)}>
+                      <Text style={styles.removeImageText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.uploadRow}>
+                    <TouchableOpacity style={styles.uploadBtn} onPress={takeSelfie}>
+                      <Text style={styles.uploadIcon}>🤳</Text>
+                      <Text style={styles.uploadText}>Take Selfie</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.uploadBtn} onPress={pickSelfie}>
+                      <Text style={styles.uploadIcon}>🖼</Text>
+                      <Text style={styles.uploadText}>Gallery</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
 
               <Text style={styles.modalLabel}>KM Image</Text>
@@ -375,6 +621,70 @@ export default function DashboardScreen({ user, onLogout }) {
               />
 
               <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setOutOfTown(!outOfTown)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, outOfTown && styles.checkboxChecked]}>
+                  {outOfTown ? <Text style={styles.checkboxTick}>✓</Text> : null}
+                </View>
+                <Text style={styles.checkboxLabel}>Out of Town</Text>
+              </TouchableOpacity>
+
+              {outOfTown ? (
+                <View style={styles.outOfTownSection}>
+                  <Text style={styles.outOfTownTitle}>Out of Town Expenses</Text>
+
+                  <Text style={styles.modalLabel}>Stay Bill Amount</Text>
+                  <TextInput style={styles.modalInput} placeholder="Enter stay bill amount" placeholderTextColor="#999" keyboardType="numeric" value={stayBillAmount} onChangeText={setStayBillAmount} />
+                  <Text style={styles.modalLabel}>Stay Bill Image</Text>
+                  {stayBillImage ? (
+                    <View style={styles.imagePreviewWrapper}>
+                      <Image source={{ uri: stayBillImage }} style={styles.imagePreview} />
+                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setStayBillImage(null)}><Text style={styles.removeImageText}>✕</Text></TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.uploadRow}>
+                      <TouchableOpacity style={styles.uploadBtn} onPress={() => takeBillPhoto(setStayBillImage)}><Text style={styles.uploadIcon}>📷</Text><Text style={styles.uploadText}>Camera</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.uploadBtn} onPress={() => pickBillImage(setStayBillImage)}><Text style={styles.uploadIcon}>🖼</Text><Text style={styles.uploadText}>Gallery</Text></TouchableOpacity>
+                    </View>
+                  )}
+
+                  <Text style={styles.modalLabel}>Food Bill Amount</Text>
+                  <TextInput style={styles.modalInput} placeholder="Enter food bill amount" placeholderTextColor="#999" keyboardType="numeric" value={foodBillAmount} onChangeText={setFoodBillAmount} />
+                  <Text style={styles.modalLabel}>Food Bill Image</Text>
+                  {foodBillImage ? (
+                    <View style={styles.imagePreviewWrapper}>
+                      <Image source={{ uri: foodBillImage }} style={styles.imagePreview} />
+                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setFoodBillImage(null)}><Text style={styles.removeImageText}>✕</Text></TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.uploadRow}>
+                      <TouchableOpacity style={styles.uploadBtn} onPress={() => takeBillPhoto(setFoodBillImage)}><Text style={styles.uploadIcon}>📷</Text><Text style={styles.uploadText}>Camera</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.uploadBtn} onPress={() => pickBillImage(setFoodBillImage)}><Text style={styles.uploadIcon}>🖼</Text><Text style={styles.uploadText}>Gallery</Text></TouchableOpacity>
+                    </View>
+                  )}
+
+                  <Text style={styles.modalLabel}>Other Expense Description</Text>
+                  <TextInput style={styles.modalInput} placeholder="Enter expense description" placeholderTextColor="#999" value={otherBillDescription} onChangeText={setOtherBillDescription} />
+                  <Text style={styles.modalLabel}>Other Expense Amount</Text>
+                  <TextInput style={styles.modalInput} placeholder="Enter other expense amount" placeholderTextColor="#999" keyboardType="numeric" value={otherBillAmount} onChangeText={setOtherBillAmount} />
+                  <Text style={styles.modalLabel}>Other Expense Image</Text>
+                  {otherBillImage ? (
+                    <View style={styles.imagePreviewWrapper}>
+                      <Image source={{ uri: otherBillImage }} style={styles.imagePreview} />
+                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setOtherBillImage(null)}><Text style={styles.removeImageText}>✕</Text></TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.uploadRow}>
+                      <TouchableOpacity style={styles.uploadBtn} onPress={() => takeBillPhoto(setOtherBillImage)}><Text style={styles.uploadIcon}>📷</Text><Text style={styles.uploadText}>Camera</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.uploadBtn} onPress={() => pickBillImage(setOtherBillImage)}><Text style={styles.uploadIcon}>🖼</Text><Text style={styles.uploadText}>Gallery</Text></TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ) : null}
+
+              <TouchableOpacity
                 style={[styles.modalSubmitBtn, modalType === 'checkout' && styles.modalSubmitBtnCheckout]}
                 onPress={submitModal}
                 activeOpacity={0.8}
@@ -393,14 +703,14 @@ export default function DashboardScreen({ user, onLogout }) {
         visible={showVendorModal}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => { setShowVendorModal(false); setVendorName(''); setVendorSelfie(null); setIsOnboarded(null); }}
+        onRequestClose={() => { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Visit Vendor</Text>
-                <TouchableOpacity onPress={() => { setShowVendorModal(false); setVendorName(''); setVendorSelfie(null); setIsOnboarded(null); }}>
+                <TouchableOpacity onPress={() => { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}>
                   <Text style={styles.modalClose}>✕</Text>
                 </TouchableOpacity>
               </View>
@@ -412,6 +722,16 @@ export default function DashboardScreen({ user, onLogout }) {
                 placeholderTextColor="#999"
                 value={vendorName}
                 onChangeText={setVendorName}
+              />
+
+              <Text style={styles.modalLabel}>Vendor Mobile</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Enter vendor mobile number"
+                placeholderTextColor="#999"
+                value={vendorMobile}
+                onChangeText={setVendorMobile}
+                keyboardType="phone-pad"
               />
 
               <Text style={styles.modalLabel}>Selfie with Vendor</Text>
@@ -807,6 +1127,50 @@ var styles = StyleSheet.create({
   },
   modalSubmitBtnCheckout: {
     backgroundColor: '#e53935',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkboxChecked: {
+    backgroundColor: '#1565c0',
+    borderColor: '#1565c0',
+  },
+  checkboxTick: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  outOfTownSection: {
+    backgroundColor: '#f9f9fb',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  outOfTownTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a1a2e',
+    marginBottom: 12,
   },
   vendorSubmitBtn: {
     backgroundColor: '#1565c0',

@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -15,9 +16,59 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
+  const [role, setRole] = useState('employee');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    onLoginSuccess({ email: email.trim() || 'user@mxteam.com', fullName: email.trim().split('@')[0] || 'User' });
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Please enter email and password');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch('http://192.168.1.2:5000/api/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password.trim(),
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const data = await response.json();
+
+      if (response.ok) {
+        onLoginSuccess({
+          _id: data._id,
+          email: data.email || email.trim(),
+          fullName: data.full_name || email.trim().split('@')[0],
+          role: data.role_name && data.role_name.toLowerCase() === 'employee' ? 'employee' : 'admin',
+          role_name: data.role_name || '',
+          designation: data.designation_name || '',
+          headquarter: data.headquarter_name || '',
+          phone: data.phone_number || '',
+          token: data.token,
+        });
+      } else {
+        Alert.alert('Login Failed', data.message || 'Invalid email or password');
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        Alert.alert('Timeout', 'Server took too long to respond. Please try again.');
+      } else {
+        Alert.alert('Error', 'Unable to connect to server. Check your network connection.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -75,6 +126,23 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
             </View>
           </View>
 
+          {/* Role Toggle */}
+          <Text style={styles.inputLabel}>Login As</Text>
+          <View style={styles.roleRow}>
+            <TouchableOpacity
+              style={[styles.roleBtn, role === 'employee' && styles.roleBtnActive]}
+              onPress={() => setRole('employee')}
+            >
+              <Text style={[styles.roleBtnText, role === 'employee' && styles.roleBtnTextActive]}>Employee</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.roleBtn, role === 'admin' && styles.roleBtnActiveAdmin]}
+              onPress={() => setRole('admin')}
+            >
+              <Text style={[styles.roleBtnText, role === 'admin' && styles.roleBtnTextActive]}>Manager</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Forgot Password */}
           <TouchableOpacity style={styles.forgotBtn} onPress={onGoToForgotPassword}>
             <Text style={styles.forgotText}>Forgot Password?</Text>
@@ -82,11 +150,16 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
 
           {/* Login Button */}
           <TouchableOpacity
-            style={styles.loginBtn}
+            style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
             onPress={handleLogin}
             activeOpacity={0.8}
+            disabled={loading}
           >
-            <Text style={styles.loginBtnText}>LOGIN</Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.loginBtnText}>LOGIN</Text>
+            )}
           </TouchableOpacity>
 
           {/* Divider */}
@@ -259,6 +332,37 @@ const styles = StyleSheet.create({
   signupLink: {
     color: '#e53935',
     fontSize: 14,
+    fontWeight: '700',
+  },
+  roleRow: {
+    flexDirection: 'row',
+    marginBottom: 18,
+  },
+  roleBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: '#f5f5f7',
+    marginHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#eee',
+  },
+  roleBtnActive: {
+    backgroundColor: '#e8f5e9',
+    borderColor: '#4caf50',
+  },
+  roleBtnActiveAdmin: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#1565c0',
+  },
+  roleBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#777',
+  },
+  roleBtnTextActive: {
+    color: '#333',
     fontWeight: '700',
   },
 });
