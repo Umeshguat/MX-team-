@@ -8,7 +8,16 @@
       "Bash(cp -r \"E:/project_after_1_ dec_2025/salesmens-app/\"* \"E:/project_after_1_ dec_2025/salesmens/\" && cp \"E:/project_after_1_ dec_2025/salesmens-app/\".* \"E:/project_after_1_ dec_2025/salesmens/\" 2>/dev/null; rm -rf \"E:/project_after_1_ dec_2025/salesmens-app\")",
       "Bash(cp \"E:/project_after_1_ dec_2025/salesmens-app/package.json\" \"E:/project_after_1_ dec_2025/salesmens/\" && cp \"E:/project_after_1_ dec_2025/salesmens-app/package-lock.json\" \"E:/project_after_1_ dec_2025/salesmens/\" && rm -rf \"E:/project_after_1_ dec_2025/salesmens-app\")",
       "Bash(rm -rf .expo)",
-      "Bash(npx expo:*)"
+      "Bash(npx expo:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(node -c src/screens/VendorMapScreen.js)",
+      "Bash(node -e \"require\\(''@babel/parser''\\).parse\\(require\\(''fs''\\).readFileSync\\(''src/screens/VendorMapScreen.js'',''utf8''\\), {sourceType:''module'', plugins:[''jsx'']}\\); console.log\\(''OK''\\)\")",
+      "Bash(ipconfig)",
+      "Bash(C:/Users/LENOVO/AppData/Local/Android/Sdk/emulator/emulator -list-avds)",
+      "Bash(wmic logicaldisk:*)",
+      "Bash(grep -v \"^$\")",
+      "Bash(emulator -list-avds)",
+      "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\salesmens\\\\src' -type f \\\\\\(-name *.js -o -name *.ts \\\\\\))"
     ]
   }
 }
