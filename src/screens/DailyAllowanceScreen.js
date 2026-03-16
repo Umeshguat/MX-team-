@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
   Dimensions,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -25,41 +26,6 @@ var DISTRICT_OPTIONS = [
   'Other District',
 ];
 
-function generateSampleHistory() {
-  var records = [];
-  var today = new Date();
-  for (var i = 0; i < 10; i++) {
-    var date = new Date(today);
-    date.setDate(date.getDate() - i);
-    var types = [];
-    if (Math.random() > 0.3) types.push('km');
-    if (Math.random() > 0.6) types.push('stay');
-    if (Math.random() > 0.4) types.push('food');
-    if (Math.random() > 0.7) types.push('fare');
-    if (types.length === 0) types.push('km');
-
-    var total = 0;
-    var details = {};
-    types.forEach(function(t) {
-      var amt = t === 'km' ? Math.floor(Math.random() * 150 + 20) :
-                t === 'stay' ? Math.floor(Math.random() * 800 + 500) :
-                t === 'food' ? Math.floor(Math.random() * 300 + 100) :
-                Math.floor(Math.random() * 500 + 100);
-      details[t] = amt;
-      total += amt;
-    });
-
-    records.push({
-      id: String(i),
-      date: date,
-      district: Math.random() > 0.5 ? 'Other District' : 'Same District',
-      details: details,
-      total: total,
-      status: i < 2 ? 'pending' : (Math.random() > 0.2 ? 'approved' : 'rejected'),
-    });
-  }
-  return records;
-}
 
 function formatDate(date) {
   return date.toLocaleDateString('en-US', {
@@ -80,7 +46,10 @@ function getStatusStyle(status) {
 
 export default function DailyAllowanceScreen({ user, onGoBack }) {
   var [showAddModal, setShowAddModal] = useState(false);
-  var [history] = useState(generateSampleHistory);
+  var [history, setHistory] = useState([]);
+  var [totalApproved, setTotalApproved] = useState(0);
+  var [totalPending, setTotalPending] = useState(0);
+  var [loading, setLoading] = useState(true);
 
   var [selectedDistrict, setSelectedDistrict] = useState('Same District');
   var [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
@@ -102,12 +71,54 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
     + (foodAmount ? Number(foodAmount) : 0)
     + (isOtherDistrict && fareAmount ? Number(fareAmount) : 0);
 
-  var totalApproved = 0;
-  var totalPending = 0;
-  history.forEach(function(r) {
-    if (r.status === 'approved') totalApproved += r.total;
-    if (r.status === 'pending') totalPending += r.total;
-  });
+  var fetchDailyAllowance = function() {
+    var token = user && user.token ? user.token : '';
+    setLoading(true);
+    fetch('http://192.168.1.2:5000/api/users/daily-allowance', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      },
+    })
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        if (data.status === 200) {
+          setTotalApproved(data.total_approved_amount || 0);
+          setTotalPending(data.total_pending_amount || 0);
+          var records = (data.dailyAllowances || []).map(function(item, index) {
+            var details = {};
+            var total = 0;
+            if (item.total_km_price > 0) { details.km = item.total_km_price; total += item.total_km_price; }
+            if (item.food > 0) { details.food = item.food; total += item.food; }
+            if (item.stay > 0) { details.stay = item.stay; total += item.stay; }
+            if (item.other > 0) { details.fare = item.other; total += item.other; }
+            if (item.daily > 0) { total += item.daily; }
+            return {
+              id: item._id || String(index),
+              date: new Date(item.date || item.createdAt),
+              district: item.total_km > 0 ? item.total_km + ' km' : '--',
+              details: details,
+              total: total,
+              status: item.status || 'pending',
+            };
+          });
+          setHistory(records);
+        } else {
+          Alert.alert('Error', data.message || 'Failed to fetch daily allowances');
+        }
+        setLoading(false);
+      })
+      .catch(function(error) {
+        console.error('Error fetching daily allowance:', error);
+        Alert.alert('Error', 'Failed to fetch daily allowances');
+        setLoading(false);
+      });
+  };
+
+  useEffect(function() {
+    fetchDailyAllowance();
+  }, []);
 
   var resetForm = function() {
     setSelectedDistrict('Same District');
@@ -136,6 +147,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
     Alert.alert('Success', 'Daily allowance submitted for approval!');
     setShowAddModal(false);
     resetForm();
+    fetchDailyAllowance();
   };
 
   var fullName = user && user.fullName ? user.fullName : 'Employee';
@@ -186,6 +198,12 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
         </View>
 
         <Text style={styles.sectionTitle}>Recent Claims</Text>
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#9c27b0" style={{ marginTop: 30 }} />
+        ) : history.length === 0 ? (
+          <Text style={{ textAlign: 'center', color: '#999', marginTop: 30, fontSize: 14 }}>No allowance records found</Text>
+        ) : null}
 
         {history.map(function(item) {
           var statusInfo = getStatusStyle(item.status);
