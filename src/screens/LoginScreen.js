@@ -16,7 +16,7 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
-  const [role, setRole] = useState('employee');
+
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -124,23 +124,6 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
                 <Text style={styles.eyeText}>{secureText ? '👁' : '🙈'}</Text>
               </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Role Toggle */}
-          <Text style={styles.inputLabel}>Login As</Text>
-          <View style={styles.roleRow}>
-            <TouchableOpacity
-              style={[styles.roleBtn, role === 'employee' && styles.roleBtnActive]}
-              onPress={() => setRole('employee')}
-            >
-              <Text style={[styles.roleBtnText, role === 'employee' && styles.roleBtnTextActive]}>Employee</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.roleBtn, role === 'admin' && styles.roleBtnActiveAdmin]}
-              onPress={() => setRole('admin')}
-            >
-              <Text style={[styles.roleBtnText, role === 'admin' && styles.roleBtnTextActive]}>Manager</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Forgot Password */}
@@ -332,37 +315,6 @@ const styles = StyleSheet.create({
   signupLink: {
     color: '#e53935',
     fontSize: 14,
-    fontWeight: '700',
-  },
-  roleRow: {
-    flexDirection: 'row',
-    marginBottom: 18,
-  },
-  roleBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 12,
-    backgroundColor: '#f5f5f7',
-    marginHorizontal: 4,
-    borderWidth: 2,
-    borderColor: '#eee',
-  },
-  roleBtnActive: {
-    backgroundColor: '#e8f5e9',
-    borderColor: '#4caf50',
-  },
-  roleBtnActiveAdmin: {
-    backgroundColor: '#e3f2fd',
-    borderColor: '#1565c0',
-  },
-  roleBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#777',
-  },
-  roleBtnTextActive: {
-    color: '#333',
     fontWeight: '700',
   },
 });
