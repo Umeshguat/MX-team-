@@ -119,7 +119,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
 
   var fetchDashboard = function() {
     var token = user && user.token ? user.token : '';
-    return fetch('http://192.168.1.2:5000/api/admin/dashboard', {
+    return fetch('http://192.168.1.2:5000/api/users/dashboard', {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer ' + token,
@@ -129,8 +129,22 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
       .then(function(response) { return response.text(); })
       .then(function(text) {
         console.log('Admin Dashboard API:', text);
-        var data = JSON.parse(text);
-        setDashboardData(data);
+        var result = JSON.parse(text);
+        if (result.status === 200 && result.data) {
+          setDashboardData(result.data);
+          setCheckedIn(result.data.check_in === true);
+          if (result.data.my_attendance) {
+            var att = result.data.my_attendance;
+            if (att.check_in_time) {
+              setCheckInTime(att.check_in_time);
+            }
+            if (att.check_out_time) {
+              setCheckOutTime(att.check_out_time);
+            }
+          }
+        } else {
+          setDashboardData(result);
+        }
       })
       .catch(function(err) {
         console.log('Admin Dashboard error:', err);
@@ -148,14 +162,14 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   }, []);
 
   var dd = dashboardData || {};
-  var employees = dd.employees || dd.users || dd.team || [];
-  var presentToday = dd.present_today || dd.presentToday || employees.filter(function(e) { return e.status === 'present'; }).length;
-  var absentToday = dd.absent_today || dd.absentToday || employees.filter(function(e) { return e.status === 'absent'; }).length;
-  var onLeaveToday = dd.on_leave_today || dd.onLeaveToday || employees.filter(function(e) { return e.status === 'leave'; }).length;
-  var halfDayToday = dd.half_day_today || dd.halfDayToday || employees.filter(function(e) { return e.status === 'half-day'; }).length;
-  var totalEmployees = dd.total_employees || dd.totalEmployees || employees.length;
-  var totalVendors = dd.total_vendor_visits || dd.totalVendorVisits || dd.total_vendors || 0;
-  var totalAllowance = dd.total_allowance || dd.totalAllowance || dd.total_daily_allowance || 0;
+  var employees = dd.employees_check_in || dd.employees || dd.users || dd.team || [];
+  var presentToday = dd.present_today || dd.presentToday || employees.length;
+  var absentToday = dd.absent_leave || dd.absent_today || dd.absentToday || 0;
+  var onLeaveToday = dd.on_leave_today || dd.onLeaveToday || 0;
+  var halfDayToday = dd.half_day_today || dd.halfDayToday || 0;
+  var totalEmployees = dd.total_employees || dd.totalEmployees || 0;
+  var totalVendors = dd.vendor_visits || dd.total_vendor_visits || dd.totalVendorVisits || 0;
+  var totalAllowance = dd.total_daily_allowance || dd.total_allowance || dd.totalAllowance || 0;
 
   var fullName = user && user.fullName ? user.fullName : 'Manager';
 
@@ -169,6 +183,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
 
   var formatTime = function(date) {
     if (!date) return '--:--';
+    if (typeof date === 'string') return date;
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -179,7 +194,11 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
 
   var getWorkingHours = function() {
     if (!checkInTime) return '0h 0m';
-    var end = checkOutTime || new Date();
+    if (dashboardData && dashboardData.my_attendance && dashboardData.my_attendance.hours) {
+      return dashboardData.my_attendance.hours;
+    }
+    if (typeof checkInTime === 'string') return '0h 0m';
+    var end = checkOutTime instanceof Date ? checkOutTime : new Date();
     var diff = Math.floor((end - checkInTime) / 1000);
     var hours = Math.floor(diff / 3600);
     var minutes = Math.floor((diff % 3600) / 60);
@@ -402,6 +421,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
       }
       setShowCheckModal(false);
       resetCheckFields();
+      fetchDashboard();
     } catch (e) {
       console.log(checkModalType + ' error:', e);
       Alert.alert('Error', 'Failed to ' + checkModalType + ': ' + e.message);
@@ -813,18 +833,21 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
             </View>
 
             <Text style={styles.sectionTitle}>Today's Employee Attendance</Text>
-            {employees.map(function(emp) {
+            {employees.map(function(emp, index) {
+              var empName = emp.full_name || emp.name || 'Employee';
+              var empCheckIn = emp.check_in_time || emp.checkIn || null;
+              var empStatus = emp.status ? emp.status.toLowerCase() : (empCheckIn ? 'present' : 'absent');
               return (
-                <View key={emp.id} style={styles.attendanceRow}>
+                <View key={emp._id || emp.id || index} style={styles.attendanceRow}>
                   <View style={styles.attendanceLeft}>
-                    <Text style={styles.attendanceName}>{emp.name}</Text>
+                    <Text style={styles.attendanceName}>{empName}</Text>
                     <Text style={styles.attendanceCheckIn}>
-                      {emp.checkIn ? 'Check In: ' + emp.checkIn : 'Not checked in'}
+                      {empCheckIn ? 'Check In: ' + empCheckIn : 'Not checked in'}
                     </Text>
                   </View>
-                  <View style={[styles.attendanceStatusBadge, { backgroundColor: getStatusBg(emp.status) }]}>
-                    <Text style={[styles.attendanceStatusText, { color: getStatusColor(emp.status) }]}>
-                      {getStatusLabel(emp.status)}
+                  <View style={[styles.attendanceStatusBadge, { backgroundColor: getStatusBg(empStatus) }]}>
+                    <Text style={[styles.attendanceStatusText, { color: getStatusColor(empStatus) }]}>
+                      {getStatusLabel(empStatus)}
                     </Text>
                   </View>
                 </View>

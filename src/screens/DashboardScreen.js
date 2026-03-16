@@ -20,6 +20,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   const [checkInTime, setCheckInTime] = useState(null);
   const [checkOutTime, setCheckOutTime] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [dashboardData, setDashboardData] = useState(null);
 
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('checkin');
@@ -45,13 +46,49 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   const [vendorSelfie, setVendorSelfie] = useState(null);
   const [isOnboarded, setIsOnboarded] = useState(null);
 
+  const fetchDashboard = async () => {
+    try {
+      const token = user && user.token ? user.token : '';
+      const response = await fetch('http://192.168.1.2:5000/api/users/dashboard', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json',
+        },
+      });
+      const text = await response.text();
+      console.log('Dashboard API:', text);
+      const result = JSON.parse(text);
+      if (result.status === 200 && result.data) {
+        setDashboardData(result.data);
+        setCheckedIn(result.data.check_in === true);
+        if (result.data.my_attendance) {
+          const att = result.data.my_attendance;
+          if (att.check_in_time) {
+            setCheckInTime(att.check_in_time);
+          }
+          if (att.check_out_time) {
+            setCheckOutTime(att.check_out_time);
+          }
+        }
+      }
+    } catch (e) {
+      console.log('Dashboard fetch error:', e);
+    }
+  };
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
   const formatTime = (date) => {
     if (!date) return '--:--';
+    if (typeof date === 'string') return date;
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -287,6 +324,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       }
       setShowModal(false);
       resetModalFields();
+      fetchDashboard();
     } catch (e) {
       console.log(modalType + ' error:', e);
       Alert.alert('Error', 'Failed to ' + modalType + ': ' + e.message);
@@ -415,7 +453,11 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
 
   const getWorkingHours = () => {
     if (!checkInTime) return '0h 0m';
-    const end = checkOutTime || new Date();
+    if (dashboardData && dashboardData.my_attendance && dashboardData.my_attendance.hours) {
+      return dashboardData.my_attendance.hours;
+    }
+    if (typeof checkInTime === 'string') return '0h 0m';
+    const end = checkOutTime instanceof Date ? checkOutTime : new Date();
     const diff = Math.floor((end - checkInTime) / 1000);
     const hours = Math.floor(diff / 3600);
     const minutes = Math.floor((diff % 3600) / 60);
