@@ -339,24 +339,40 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
       formData.append('latitude', lat);
       formData.append('longitude', lng);
 
-      formData.append('km_image', getImageFile(kmImage, 'km'));
+      if (checkModalType === 'checkin') {
+        formData.append('check_in_image', getImageFile(kmImage, 'km'));
+      } else {
+        formData.append('check_out_image', getImageFile(kmImage, 'km'));
+      }
 
       if (selfieImage) {
-        formData.append('selfie', getImageFile(selfieImage, 'selfie'));
+        formData.append('selfie_image', getImageFile(selfieImage, 'selfie'));
       }
 
       if (outOfTown) {
         formData.append('out_of_town', 'true');
         if (stayBillAmount.trim()) formData.append('stay_bill_amount', stayBillAmount.trim());
-        if (stayBillImage) formData.append('stay_bill_image', getImageFile(stayBillImage, 'stay'));
+        if (stayBillImage) formData.append('stay_image', getImageFile(stayBillImage, 'stay'));
         if (foodBillAmount.trim()) formData.append('food_bill_amount', foodBillAmount.trim());
-        if (foodBillImage) formData.append('food_bill_image', getImageFile(foodBillImage, 'food'));
+        if (foodBillImage) formData.append('food_image', getImageFile(foodBillImage, 'food'));
         if (otherBillDescription.trim()) formData.append('other_bill_description', otherBillDescription.trim());
         if (otherBillAmount.trim()) formData.append('other_bill_amount', otherBillAmount.trim());
-        if (otherBillImage) formData.append('other_bill_image', getImageFile(otherBillImage, 'other'));
+        if (otherBillImage) formData.append('other_image', getImageFile(otherBillImage, 'other'));
       } else {
         formData.append('out_of_town', 'false');
       }
+
+      console.log('=== ADMIN ' + checkModalType.toUpperCase() + ' PAYLOAD ===');
+      console.log('headquarter_name:', hqName.trim());
+      console.log('working_town:', workingTown.trim());
+      console.log('route:', route.trim());
+      console.log('total_km:', kmReading.trim());
+      console.log('latitude:', lat, 'longitude:', lng);
+      console.log('image file:', checkModalType === 'checkin' ? JSON.stringify(getImageFile(kmImage, 'km')) : JSON.stringify(getImageFile(kmImage, 'km')));
+      console.log('selfie_image file:', selfieImage ? JSON.stringify(getImageFile(selfieImage, 'selfie')) : 'none');
+      console.log('out_of_town:', outOfTown ? 'true' : 'false');
+      console.log('API URL:', apiUrl);
+      console.log('==============================');
 
       var response = await fetch(apiUrl, {
         method: 'POST',

@@ -252,20 +252,10 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       console.log('working_town:', workingTown.trim());
       console.log('route:', route.trim());
       console.log('total_km:', kmReading.trim());
-      console.log('latitude:', lat);
-      console.log('longitude:', lng);
-      console.log('km_image:', kmImage ? 'attached' : 'none');
-      console.log('selfie:', selfieImage ? 'attached' : 'none');
+      console.log('latitude:', lat, 'longitude:', lng);
+      console.log('image file:', modalType === 'checkin' ? JSON.stringify(getImageFile(kmImage, 'km')) : JSON.stringify(getImageFile(kmImage, 'km')));
+      console.log('selfie_image file:', selfieImage ? JSON.stringify(getImageFile(selfieImage, 'selfie')) : 'none');
       console.log('out_of_town:', outOfTown ? 'true' : 'false');
-      if (outOfTown) {
-        console.log('stay_bill_amount:', stayBillAmount.trim());
-        console.log('stay_bill_image:', stayBillImage ? 'attached' : 'none');
-        console.log('food_bill_amount:', foodBillAmount.trim());
-        console.log('food_bill_image:', foodBillImage ? 'attached' : 'none');
-        console.log('other_bill_description:', otherBillDescription.trim());
-        console.log('other_bill_amount:', otherBillAmount.trim());
-        console.log('other_bill_image:', otherBillImage ? 'attached' : 'none');
-      }
       console.log('API URL:', apiUrl);
       console.log('========================');
 
