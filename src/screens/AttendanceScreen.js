@@ -62,18 +62,21 @@ function parseRecords(data) {
   })() : []);
 
   return items.map(function(item) {
-    var dateStr = item.date || item.attendance_date || item.created_at || '';
+    var dateStr = item.date || item.check_in_time || item.attendance_date || item.created_at || '';
     var d = new Date(dateStr);
     var dayNum = isNaN(d.getTime()) ? '' : d.getDate();
     var dayName = isNaN(d.getTime()) ? '' : WEEKDAYS[d.getDay()];
 
-    var status = (item.status || '').toLowerCase();
-    if (!status || (status !== 'present' && status !== 'absent' && status !== 'half-day' && status !== 'leave' && status !== 'weekend')) {
-      status = 'present';
-    }
+    var rawStatus = (item.status || '').toLowerCase().trim();
+    var status = 'present';
+    if (rawStatus === 'absent') status = 'absent';
+    else if (rawStatus === 'half-day' || rawStatus === 'half day') status = 'half-day';
+    else if (rawStatus === 'leave' || rawStatus === 'on leave') status = 'leave';
+    else if (rawStatus === 'weekend') status = 'weekend';
+    else if (rawStatus === 'checked_in' || rawStatus === 'checked in' || rawStatus === 'present' || rawStatus === 'checked_out' || rawStatus === 'checked out') status = 'present';
 
-    var checkIn = item.start_time || item.check_in || item.checkIn || item.check_in_time || null;
-    var checkOut = item.end_time || item.check_out || item.checkOut || item.check_out_time || null;
+    var checkIn = item.start_time || item.check_in_time || item.check_in || item.checkIn || null;
+    var checkOut = item.end_time || item.check_out_time || item.check_out || item.checkOut || null;
 
     var hours = null;
     if (item.hours || item.working_hours || item.total_hours) {
@@ -122,7 +125,15 @@ export default function AttendanceScreen({ user, onGoBack }) {
       .then(function(text) {
         console.log('Attendance API Raw Response:', text);
         var data = JSON.parse(text);
-        var records = parseRecords(data);
+        var attendanceList = [];
+        if (data && data.attendance && Array.isArray(data.attendance)) {
+          attendanceList = data.attendance;
+        } else if (data && data.data && Array.isArray(data.data)) {
+          attendanceList = data.data;
+        } else if (Array.isArray(data)) {
+          attendanceList = data;
+        }
+        var records = parseRecords(attendanceList);
         setAllRecords(records);
       })
       .catch(function(err) {

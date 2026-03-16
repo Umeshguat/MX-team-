@@ -82,6 +82,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   var [activeTab, setActiveTab] = useState('overview');
   var [selectedEmployee, setSelectedEmployee] = useState(null);
   var [showEmployeeModal, setShowEmployeeModal] = useState(false);
+  var [attendanceWeek] = useState(generateAttendanceData);
 
   // Manager check-in/check-out state
   var [checkedIn, setCheckedIn] = useState(false);
