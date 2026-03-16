@@ -10,6 +10,7 @@ import {
   TextInput,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
@@ -82,6 +83,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   var [activeTab, setActiveTab] = useState('overview');
   var [selectedEmployee, setSelectedEmployee] = useState(null);
   var [showEmployeeModal, setShowEmployeeModal] = useState(false);
+  var [employeeDetailLoading, setEmployeeDetailLoading] = useState(false);
   var [attendanceWeek] = useState(generateAttendanceData);
 
   // Manager check-in/check-out state
@@ -209,6 +211,37 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   var openEmployee = function(emp) {
     setSelectedEmployee(emp);
     setShowEmployeeModal(true);
+    setEmployeeDetailLoading(true);
+    var token = user && user.token ? user.token : '';
+    var userId = (emp.user_id && typeof emp.user_id === 'object' ? emp.user_id._id : emp.user_id) || emp._id || emp.id || '';
+    console.log('Employee details fetch - userId:', userId, 'emp:', JSON.stringify(emp));
+    fetch('http://192.168.1.2:5000/api/users/details?user_id=' + userId, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      },
+    })
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        if (data.status === 200 && data.data) {
+          var empFullName = emp.full_name || emp.name || (emp.user_id && typeof emp.user_id === 'object' ? emp.user_id.full_name : '') || '';
+          setSelectedEmployee(Object.assign({}, emp, {
+            full_name: empFullName || data.data.full_name || 'Employee',
+            email: data.data.email || '',
+            headquarter_name: data.data.headquarter_name || emp.headquarter_name || emp.hq,
+            phone_number: data.data.phone_number || emp.phone_number || emp.phone,
+            check_in_time: data.data.check_in_time || emp.start_time || emp.checkIn,
+            vendor_visits: data.data.vendor_visits != null ? data.data.vendor_visits : (emp.vendor_visits || emp.vendors || 0),
+            total_allowance: data.data.total_allowance != null ? data.data.total_allowance : (emp.allowance || emp.daily_allowance || 0),
+          }));
+        }
+        setEmployeeDetailLoading(false);
+      })
+      .catch(function(error) {
+        console.error('Error fetching employee details:', error);
+        setEmployeeDetailLoading(false);
+      });
   };
 
   // Image picker functions
@@ -875,7 +908,9 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
                 </TouchableOpacity>
               </View>
 
-              {selectedEmployee ? (
+              {employeeDetailLoading ? (
+                <ActivityIndicator size="large" color="#9c27b0" style={{ marginTop: 40, marginBottom: 40 }} />
+              ) : selectedEmployee ? (
                 <View>
                   <View style={styles.modalProfile}>
                     <View style={styles.modalAvatar}>
@@ -913,19 +948,19 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
                     <Text style={styles.modalDetailIcon}>⏰</Text>
                     <View>
                       <Text style={styles.modalDetailLabel}>Check In Time</Text>
-                      <Text style={styles.modalDetailValue}>{selectedEmployee.start_time || selectedEmployee.checkIn || 'Not checked in'}</Text>
+                      <Text style={styles.modalDetailValue}>{selectedEmployee.check_in_time || selectedEmployee.start_time || selectedEmployee.checkIn || 'Not checked in'}</Text>
                     </View>
                   </View>
 
                   <View style={styles.modalStatsRow}>
                     <View style={[styles.modalStatCard, { backgroundColor: '#e8f5e9' }]}>
                       <Text style={styles.modalStatIcon}>🏪</Text>
-                      <Text style={[styles.modalStatValue, { color: '#4caf50' }]}>{selectedEmployee.vendor_visits || selectedEmployee.vendors || 0}</Text>
+                      <Text style={[styles.modalStatValue, { color: '#4caf50' }]}>{selectedEmployee.vendor_visits != null ? selectedEmployee.vendor_visits : (selectedEmployee.vendors || 0)}</Text>
                       <Text style={styles.modalStatLabel}>Vendor Visits</Text>
                     </View>
                     <View style={[styles.modalStatCard, { backgroundColor: '#f3e5f5' }]}>
                       <Text style={styles.modalStatIcon}>💰</Text>
-                      <Text style={[styles.modalStatValue, { color: '#9c27b0' }]}>₹{selectedEmployee.allowance || selectedEmployee.daily_allowance || 0}</Text>
+                      <Text style={[styles.modalStatValue, { color: '#9c27b0' }]}>₹{selectedEmployee.total_allowance != null ? selectedEmployee.total_allowance : (selectedEmployee.allowance || selectedEmployee.daily_allowance || 0)}</Text>
                       <Text style={styles.modalStatLabel}>Allowance</Text>
                     </View>
                   </View>
