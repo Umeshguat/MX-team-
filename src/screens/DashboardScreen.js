@@ -180,6 +180,21 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       return;
     }
 
+    console.log('=== CHECK-IN/OUT IMAGE FILES ===');
+    console.log('selfie_image URI:', selfieImage);
+    console.log('selfie_image file:', selfieImage ? JSON.stringify(getImageFile(selfieImage, 'selfie')) : 'none');
+    console.log('check_in/out_image URI:', kmImage);
+    console.log('check_in/out_image file:', kmImage ? JSON.stringify(getImageFile(kmImage, 'km')) : 'none');
+    if (outOfTown) {
+      console.log('stay_image URI:', stayBillImage);
+      console.log('stay_image file:', stayBillImage ? JSON.stringify(getImageFile(stayBillImage, 'stay')) : 'none');
+      console.log('food_image URI:', foodBillImage);
+      console.log('food_image file:', foodBillImage ? JSON.stringify(getImageFile(foodBillImage, 'food')) : 'none');
+      console.log('other_image URI:', otherBillImage);
+      console.log('other_image file:', otherBillImage ? JSON.stringify(getImageFile(otherBillImage, 'other')) : 'none');
+    }
+    console.log('================================');
+
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -203,26 +218,30 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       formData.append('latitude', lat);
       formData.append('longitude', lng);
 
-      formData.append('km_image', getImageFile(kmImage, 'km'));
+      if (modalType === 'checkin') {
+        formData.append('check_in_image', getImageFile(kmImage, 'km'));
+      } else {
+        formData.append('check_out_image', getImageFile(kmImage, 'km'));
+      }
 
       if (selfieImage) {
-        formData.append('selfie', getImageFile(selfieImage, 'selfie'));
+        formData.append('selfie_image', getImageFile(selfieImage, 'selfie'));
       }
 
       if (outOfTown) {
         formData.append('out_of_town', 'true');
         if (stayBillAmount.trim()) formData.append('stay_bill_amount', stayBillAmount.trim());
         if (stayBillImage) {
-          formData.append('stay_bill_image', getImageFile(stayBillImage, 'stay'));
+          formData.append('stay_image', getImageFile(stayBillImage, 'stay'));
         }
         if (foodBillAmount.trim()) formData.append('food_bill_amount', foodBillAmount.trim());
         if (foodBillImage) {
-          formData.append('food_bill_image', getImageFile(foodBillImage, 'food'));
+          formData.append('food_image', getImageFile(foodBillImage, 'food'));
         }
         if (otherBillDescription.trim()) formData.append('other_bill_description', otherBillDescription.trim());
         if (otherBillAmount.trim()) formData.append('other_bill_amount', otherBillAmount.trim());
         if (otherBillImage) {
-          formData.append('other_bill_image', getImageFile(otherBillImage, 'other'));
+          formData.append('other_image', getImageFile(otherBillImage, 'other'));
         }
       } else {
         formData.append('out_of_town', 'false');
@@ -355,6 +374,17 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       formData.append('visit_date', visitDate);
 
       formData.append('selfie_with_vendor', getImageFile(vendorSelfie, 'vendor_selfie'));
+
+      console.log('=== VENDOR VISIT PAYLOAD ===');
+      console.log('vendor_name:', vendorName.trim());
+      console.log('vendor_mobile:', vendorMobile.trim());
+      console.log('address_gps:', addressGps);
+      console.log('latitude:', lat);
+      console.log('longitude:', lng);
+      console.log('on_board:', onBoardValue);
+      console.log('visit_date:', visitDate);
+      console.log('selfie_with_vendor:', JSON.stringify(getImageFile(vendorSelfie, 'vendor_selfie')));
+      console.log('============================');
 
       const response = await fetch('http://192.168.1.2:5000/api/vendor-visits', {
         method: 'POST',
