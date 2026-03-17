@@ -2,6 +2,7 @@ package com.anonymous.salesmensapp
 
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -17,6 +18,8 @@ class MainActivity : ReactActivity() {
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
     super.onCreate(null)
+    // Allow screen capture/sharing - remove FLAG_SECURE so app is visible during screen share
+    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
   }
 
   /**
