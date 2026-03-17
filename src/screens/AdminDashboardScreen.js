@@ -16,6 +16,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import { WebView } from 'react-native-webview';
 
 var SAMPLE_EMPLOYEES = [
   { id: '1', name: 'Rahul Sharma', designation: 'Sales Executive', hq: 'Delhi', phone: '9876543210', status: 'present', checkIn: '09:15 AM', vendors: 4, allowance: 850 },
@@ -118,6 +119,11 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   var [vendorNote, setVendorNote] = useState('');
   var [vendorSelfie, setVendorSelfie] = useState(null);
   var [isOnboarded, setIsOnboarded] = useState(null);
+
+  var [showEmpVendorMap, setShowEmpVendorMap] = useState(false);
+  var [empVendorVisits, setEmpVendorVisits] = useState([]);
+  var [empVendorMapLoading, setEmpVendorMapLoading] = useState(false);
+  var [empVendorMapName, setEmpVendorMapName] = useState('');
 
   var [dashboardData, setDashboardData] = useState(null);
   var [dashboardLoading, setDashboardLoading] = useState(true);
@@ -244,6 +250,109 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
         console.error('Error fetching employee details:', error);
         setEmployeeDetailLoading(false);
       });
+  };
+
+  var openEmpVendorMap = function() {
+    if (!selectedEmployee) return;
+    var userId = (selectedEmployee.user_id && typeof selectedEmployee.user_id === 'object' ? selectedEmployee.user_id._id : selectedEmployee.user_id) || selectedEmployee._id || selectedEmployee.id || '';
+    var empName = selectedEmployee.full_name || selectedEmployee.name || 'Employee';
+    setEmpVendorMapName(empName);
+    setEmpVendorMapLoading(true);
+    setShowEmpVendorMap(true);
+    setEmpVendorVisits([]);
+    var token = user && user.token ? user.token : '';
+    fetch(`${BASE_URL}/api/vendor-visits/user/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      },
+    })
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        var visits = [];
+        if (Array.isArray(data)) {
+          visits = data;
+        } else if (data && typeof data === 'object') {
+          var keys = Object.keys(data);
+          for (var i = 0; i < keys.length; i++) {
+            if (Array.isArray(data[keys[i]])) {
+              visits = data[keys[i]];
+              break;
+            }
+          }
+        }
+        setEmpVendorVisits(visits);
+        setEmpVendorMapLoading(false);
+      })
+      .catch(function(err) {
+        console.log('Vendor visits fetch error:', err);
+        setEmpVendorMapLoading(false);
+        Alert.alert('Error', 'Failed to load vendor visits: ' + err.message);
+      });
+  };
+
+  var generateEmpVendorMapHTML = function(visits, name) {
+    var markers = visits.map(function(v, i) {
+      var lat = parseFloat(v.latitude) || 0;
+      var lng = parseFloat(v.longitude) || 0;
+      if (lat === 0 && lng === 0 && v.address_gps) {
+        var parts = v.address_gps.split(',');
+        if (parts.length >= 2) {
+          lat = parseFloat(parts[0].trim()) || 0;
+          lng = parseFloat(parts[1].trim()) || 0;
+        }
+      }
+      var isOnboarded = v.on_board === true || v.on_board === 'true' || v.is_onboarded === true || v.is_onboarded === 'true';
+      var color = isOnboarded ? '#4caf50' : '#ff9800';
+      var statusText = isOnboarded ? 'Onboarded' : 'Pending';
+      var vendorName = (v.vendor_name || 'Vendor ' + (i + 1)).replace(/'/g, '');
+      var note = (v.note || '').replace(/'/g, '');
+      var time = '';
+      try {
+        var d = new Date(v.visit_date || v.createdAt);
+        time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      } catch(e) { time = '--:--'; }
+      return { lat: lat, lng: lng, name: vendorName, color: color, statusText: statusText, time: time, note: note, index: i + 1 };
+    }).filter(function(m) { return m.lat !== 0 && m.lng !== 0; });
+
+    if (markers.length === 0) return null;
+
+    var centerLat = markers.reduce(function(s, m) { return s + m.lat; }, 0) / markers.length;
+    var centerLng = markers.reduce(function(s, m) { return s + m.lng; }, 0) / markers.length;
+
+    var markersJS = markers.map(function(m) {
+      var popup = '<div style="text-align:center;font-family:sans-serif">' +
+        '<b style="font-size:14px;color:#1a1a2e">#' + m.index + ' ' + m.name + '</b><br/>' +
+        '<span style="color:' + m.color + ';font-weight:bold;font-size:12px">' + m.statusText + '</span><br/>' +
+        '<span style="color:#666;font-size:11px">' + m.time + '</span>' +
+        (m.note ? '<br/><span style="color:#333;font-size:11px;font-style:italic">' + m.note + '</span>' : '') +
+        '<br/><span style="color:#999;font-size:10px">' + m.lat.toFixed(6) + ', ' + m.lng.toFixed(6) + '</span></div>';
+      return "L.circleMarker([" + m.lat + ", " + m.lng + "], {radius: 12, fillColor: '" + m.color + "', color: '#fff', weight: 3, opacity: 1, fillOpacity: 0.9}).addTo(map).bindPopup('" + popup.replace(/'/g, "\\'") + "');";
+    }).join("\n");
+
+    var routeLine = "";
+    if (markers.length > 1) {
+      var coords = markers.map(function(m) { return "[" + m.lat + ", " + m.lng + "]"; }).join(", ");
+      routeLine = "L.polyline([" + coords + "], {color: '#e53935', weight: 3, opacity: 0.6, dashArray: '8, 8'}).addTo(map);";
+    }
+
+    var labelsJS = markers.map(function(m) {
+      var iconHtml = "<div style='background:" + m.color + ";color:#fff;width:22px;height:22px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3)'>" + m.index + "</div>";
+      return "L.marker([" + m.lat + ", " + m.lng + "], {icon: L.divIcon({className: 'num-label', html: '" + iconHtml.replace(/'/g, "\\'") + "', iconSize: [22, 22], iconAnchor: [11, 30]})}).addTo(map);";
+    }).join("\n");
+
+    return '<!DOCTYPE html><html><head>' +
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />' +
+      '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />' +
+      '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>' +
+      '<style>body{margin:0;padding:0}#map{width:100%;height:100vh}.num-label{background:transparent!important;border:none!important}.leaflet-popup-content-wrapper{border-radius:12px}</style>' +
+      '</head><body><div id="map"></div><script>' +
+      'var map=L.map("map").setView([' + centerLat + ',' + centerLng + '],' + (markers.length > 1 ? '12' : '14') + ');' +
+      'L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"OpenStreetMap",maxZoom:19}).addTo(map);' +
+      markersJS + routeLine + labelsJS +
+      (markers.length > 1 ? 'map.fitBounds([' + markers.map(function(m) { return '[' + m.lat + ',' + m.lng + ']'; }).join(',') + '],{padding:[40,40]});' : '') +
+      '<\/script></body></html>';
   };
 
   // Image picker functions
@@ -957,11 +1066,12 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
                   </View>
 
                   <View style={styles.modalStatsRow}>
-                    <View style={[styles.modalStatCard, { backgroundColor: '#e8f5e9' }]}>
+                    <TouchableOpacity style={[styles.modalStatCard, { backgroundColor: '#e8f5e9' }]} onPress={openEmpVendorMap} activeOpacity={0.7}>
                       <Text style={styles.modalStatIcon}>🏪</Text>
                       <Text style={[styles.modalStatValue, { color: '#4caf50' }]}>{selectedEmployee.vendor_visits != null ? selectedEmployee.vendor_visits : (selectedEmployee.vendors || 0)}</Text>
                       <Text style={styles.modalStatLabel}>Vendor Visits</Text>
-                    </View>
+                      <Text style={{ fontSize: 10, color: '#4caf50', fontWeight: '600', marginTop: 4 }}>Tap to view map</Text>
+                    </TouchableOpacity>
                     <View style={[styles.modalStatCard, { backgroundColor: '#f3e5f5' }]}>
                       <Text style={styles.modalStatIcon}>💰</Text>
                       <Text style={[styles.modalStatValue, { color: '#9c27b0' }]}>₹{selectedEmployee.total_allowance != null ? selectedEmployee.total_allowance : (selectedEmployee.allowance || selectedEmployee.daily_allowance || 0)}</Text>
@@ -972,6 +1082,96 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
               ) : null}
             </ScrollView>
           </View>
+        </View>
+      </Modal>
+
+      {/* Employee Vendor Visits Map Modal */}
+      <Modal
+        visible={showEmpVendorMap}
+        animationType="slide"
+        onRequestClose={function() { setShowEmpVendorMap(false); }}
+      >
+        <View style={{ flex: 1, backgroundColor: '#f5f5f7' }}>
+          <View style={styles.empMapHeader}>
+            <View style={styles.circle1} />
+            <View style={styles.circle2} />
+            <View style={styles.empMapHeaderTop}>
+              <TouchableOpacity style={styles.empMapBackBtn} onPress={function() { setShowEmpVendorMap(false); }}>
+                <Text style={styles.empMapBackText}>← Back</Text>
+              </TouchableOpacity>
+              <Text style={styles.empMapTitle}>Vendor Map</Text>
+              <View style={{ width: 60 }} />
+            </View>
+            <Text style={styles.empMapSubtitle}>{empVendorMapName}'s Visits</Text>
+            <View style={styles.empMapStatsBar}>
+              <View style={styles.empMapStatItem}>
+                <Text style={styles.empMapStatCount}>{empVendorVisits.length}</Text>
+                <Text style={styles.empMapStatLabel}>Total</Text>
+              </View>
+              <View style={styles.empMapStatDivider} />
+              <View style={styles.empMapStatItem}>
+                <Text style={[styles.empMapStatCount, { color: '#4caf50' }]}>
+                  {empVendorVisits.filter(function(v) { return v.on_board === true || v.on_board === 'true' || v.is_onboarded === true || v.is_onboarded === 'true'; }).length}
+                </Text>
+                <Text style={styles.empMapStatLabel}>Onboarded</Text>
+              </View>
+              <View style={styles.empMapStatDivider} />
+              <View style={styles.empMapStatItem}>
+                <Text style={[styles.empMapStatCount, { color: '#ff9800' }]}>
+                  {empVendorVisits.filter(function(v) { return v.on_board === false || v.on_board === 'false' || v.is_onboarded === false || v.is_onboarded === 'false'; }).length}
+                </Text>
+                <Text style={styles.empMapStatLabel}>Pending</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={{ flex: 1, margin: 12, borderRadius: 20, overflow: 'hidden', backgroundColor: '#fff', elevation: 4 }}>
+            {empVendorMapLoading ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#4caf50" />
+                <Text style={{ marginTop: 12, fontSize: 14, color: '#999', fontWeight: '600' }}>Loading vendor visits...</Text>
+              </View>
+            ) : generateEmpVendorMapHTML(empVendorVisits, empVendorMapName) ? (
+              <WebView
+                originWhitelist={['*']}
+                source={{ html: generateEmpVendorMapHTML(empVendorVisits, empVendorMapName) }}
+                style={{ flex: 1, borderRadius: 20 }}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                startInLoadingState={true}
+                renderLoading={function() {
+                  return (
+                    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f7' }}>
+                      <Text style={{ fontSize: 16, fontWeight: '700', color: '#999' }}>Loading Map...</Text>
+                    </View>
+                  );
+                }}
+              />
+            ) : (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+                <Text style={{ fontSize: 50, marginBottom: 14 }}>🗺</Text>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: '#333', marginBottom: 8 }}>No Location Data</Text>
+                <Text style={{ fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 20 }}>No vendor visits with GPS data found for this employee</Text>
+              </View>
+            )}
+          </View>
+
+          {empVendorVisits.length > 0 && !empVendorMapLoading ? (
+            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#f0f0f0' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 12 }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#4caf50', marginRight: 6 }} />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#666' }}>Onboarded</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 12 }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#ff9800', marginRight: 6 }} />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#666' }}>Pending</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 12 }}>
+                <View style={{ width: 18, height: 2, backgroundColor: '#e53935', marginRight: 6 }} />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#666' }}>Route</Text>
+              </View>
+            </View>
+          ) : null}
         </View>
       </Modal>
 
@@ -1317,6 +1517,74 @@ var styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f7',
+  },
+  empMapHeader: {
+    backgroundColor: '#1a1a2e',
+    paddingTop: 50,
+    paddingBottom: 18,
+    paddingHorizontal: 25,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: 'hidden',
+    zIndex: 10,
+  },
+  empMapHeaderTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  empMapBackBtn: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  empMapBackText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  empMapTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  empMapSubtitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  empMapStatsBar: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  empMapStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  empMapStatCount: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  empMapStatLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  empMapStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginHorizontal: 12,
   },
   header: {
     backgroundColor: '#1a1a2e',
