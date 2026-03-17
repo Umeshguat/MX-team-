@@ -27,6 +27,7 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
   const [addressGps, setAddressGps] = useState('');
   const [gpsLink, setGpsLink] = useState('');
   const [isOnboarded, setIsOnboarded] = useState(null);
+  const [vendorNote, setVendorNote] = useState('');
   const [fetchingLocation, setFetchingLocation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showGPSCamera, setShowGPSCamera] = useState(false);
@@ -38,6 +39,7 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
     setAddressGps('');
     setGpsLink('');
     setIsOnboarded(null);
+    setVendorNote('');
     setShowGPSCamera(false);
   };
 
@@ -128,6 +130,7 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
       formData.append('address_gps', addressGps);
       formData.append('gps_link', gpsLink);
       formData.append('is_onboarded', isOnboarded === 'yes' ? 'true' : 'false');
+      formData.append('note', vendorNote.trim());
       formData.append('user_id', user && user.id ? String(user.id) : '');
       formData.append('visit_date', new Date().toISOString());
 
@@ -137,6 +140,7 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
       console.log('address_gps:', addressGps);
       console.log('gps_link:', gpsLink);
       console.log('is_onboarded:', isOnboarded);
+      console.log('note:', vendorNote.trim());
       console.log('user_id:', user && user.id ? user.id : 'NO ID');
 
       const response = await fetch(`${BASE_URL}/api/vendor/visit`, {
@@ -261,6 +265,17 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
                 <Text style={styles.gpsLinkText}>{gpsLink}</Text>
               </View>
             ) : null}
+
+            <Text style={styles.label}>Note</Text>
+            <TextInput
+              style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+              placeholder="Enter note (optional)"
+              placeholderTextColor="#999"
+              value={vendorNote}
+              onChangeText={setVendorNote}
+              multiline={true}
+              numberOfLines={3}
+            />
 
             <Text style={styles.label}>Is this vendor onboarded?</Text>
             <View style={styles.onboardRow}>

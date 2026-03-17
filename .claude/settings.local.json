@@ -19,7 +19,9 @@
       "Bash(emulator -list-avds)",
       "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\salesmens\\\\src' -type f \\\\\\(-name *.js -o -name *.ts \\\\\\))",
       "Read(//e/project_after_1_/ dec_2025/Salesmensapi/**)",
-      "Bash(./gradlew assembleRelease)"
+      "Bash(./gradlew assembleRelease)",
+      "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\salesmens' -type f -name *vendor* -o -name *visit* -o -name *VendorVisit*)",
+      "Bash(grep -r vendor 'e:\\\\project_after_1_ dec_2025\\\\salesmens/src' --include=*.js -l)"
     ]
   }
 }

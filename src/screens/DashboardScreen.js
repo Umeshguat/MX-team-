@@ -44,6 +44,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   const [showVendorModal, setShowVendorModal] = useState(false);
   const [vendorName, setVendorName] = useState('');
   const [vendorMobile, setVendorMobile] = useState('');
+  const [vendorNote, setVendorNote] = useState('');
   const [vendorSelfie, setVendorSelfie] = useState(null);
   const [isOnboarded, setIsOnboarded] = useState(null);
 
@@ -400,6 +401,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       formData.append('latitude', lat);
       formData.append('longitude', lng);
       formData.append('on_board', onBoardValue);
+      formData.append('note', vendorNote.trim());
       formData.append('visit_date', visitDate);
 
       formData.append('selfie_with_vendor', getImageFile(vendorSelfie, 'vendor_selfie'));
@@ -442,6 +444,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       }]);
       setVendorName('');
       setVendorMobile('');
+      setVendorNote('');
       setVendorSelfie(null);
       setIsOnboarded(null);
       setShowVendorModal(false);
@@ -817,6 +820,17 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   </TouchableOpacity>
                 </View>
               )}
+
+              <Text style={styles.modalLabel}>Note</Text>
+              <TextInput
+                style={[styles.modalInput, { height: 80, textAlignVertical: 'top' }]}
+                placeholder="Enter note (optional)"
+                placeholderTextColor="#999"
+                value={vendorNote}
+                onChangeText={setVendorNote}
+                multiline={true}
+                numberOfLines={3}
+              />
 
               <Text style={styles.modalLabel}>Is this vendor onboarded?</Text>
               <View style={styles.onboardRow}>

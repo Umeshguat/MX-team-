@@ -173,6 +173,9 @@ export default function VisitsScreen({ user, vendors, onGoBack }) {
                   {vendor.vendor_mobile ? (
                     <Text style={styles.mobileText}>📞 {vendor.vendor_mobile}</Text>
                   ) : null}
+                  {vendor.note ? (
+                    <Text style={styles.noteText}>📝 {vendor.note}</Text>
+                  ) : null}
                 </View>
                 <View style={styles.recordRight}>
                   {vendorLat !== 0 && vendorLng !== 0 ? (
@@ -391,6 +394,13 @@ var styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     fontWeight: '500',
+  },
+  noteText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+    marginTop: 3,
+    fontStyle: 'italic',
   },
   recordRight: {
     alignItems: 'center',
