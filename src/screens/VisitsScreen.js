@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BASE_URL } from '../config';
 import {
   StyleSheet,
   Text,
@@ -20,7 +21,7 @@ export default function VisitsScreen({ user, vendors, onGoBack }) {
 
   var fetchVisits = function() {
     var token = user && user.token ? user.token : '';
-    return fetch('http://192.168.1.2:5000/api/vendor-visits', {
+    return fetch(`${BASE_URL}/api/vendor-visits`, {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer ' + token,

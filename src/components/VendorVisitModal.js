@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BASE_URL } from '../config';
 import {
   StyleSheet,
   Text,
@@ -145,7 +146,7 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
       console.log('is_onboarded:', isOnboarded);
       console.log('user_id:', user && user.id ? user.id : 'NO ID');
 
-      const response = await fetch('http://192.168.1.2:5000/api/vendor/visit', {
+      const response = await fetch(`${BASE_URL}/api/vendor/visit`, {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer ' + (user && user.token ? user.token : ''),

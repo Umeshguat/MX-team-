@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BASE_URL } from '../config';
 import {
   StyleSheet,
   Text,
@@ -112,7 +113,7 @@ export default function AttendanceScreen({ user, onGoBack }) {
 
   var fetchAttendance = function() {
     var token = user && user.token ? user.token : '';
-    return fetch('http://192.168.1.2:5000/api/attendance/history', {
+    return fetch(`${BASE_URL}/api/attendance/history`, {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer ' + token,

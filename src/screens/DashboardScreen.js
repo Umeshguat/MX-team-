@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BASE_URL } from '../config';
 import {
   StyleSheet,
   Text,
@@ -49,7 +50,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   const fetchDashboard = async () => {
     try {
       const token = user && user.token ? user.token : '';
-      const response = await fetch('http://192.168.1.2:5000/api/users/dashboard', {
+      const response = await fetch(`${BASE_URL}/api/users/dashboard`, {
         method: 'GET',
         headers: {
           'Authorization': 'Bearer ' + token,
@@ -244,8 +245,8 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
 
       const token = user && user.token ? user.token : '';
       const apiUrl = modalType === 'checkin'
-        ? 'http://192.168.1.2:5000/api/attendance/check-in'
-        : 'http://192.168.1.2:5000/api/attendance/check-out';
+        ? `${BASE_URL}/api/attendance/check-in`
+        : `${BASE_URL}/api/attendance/check-out`;
 
       const formData = new FormData();
       formData.append('headquarter_name', hqName.trim());
@@ -414,7 +415,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       console.log('selfie_with_vendor:', JSON.stringify(getImageFile(vendorSelfie, 'vendor_selfie')));
       console.log('============================');
 
-      const response = await fetch('http://192.168.1.2:5000/api/vendor-visits', {
+      const response = await fetch(`${BASE_URL}/api/vendor-visits`, {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer ' + (user && user.token ? user.token : ''),

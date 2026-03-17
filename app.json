@@ -22,7 +22,6 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO"
       ],
       "package": "com.anonymous.salesmensapp"
@@ -38,6 +37,11 @@
           "photosPermission": "The app needs access to your photos to upload images."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "25e4cb3c-19a3-42ec-a9ae-3692c25e5e92"
+      }
+    }
   }
 }

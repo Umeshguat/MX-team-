@@ -11,8 +11,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { BASE_URL as SERVER_URL } from '../config';
 
-const BASE_URL = 'http://192.168.1.2:5000/api/users';
+const BASE_URL = SERVER_URL + '/api/users';
 
 export default function ForgotPasswordScreen({ onGoToLogin }) {
   const [step, setStep] = useState(1); // 1: email, 2: otp, 3: new password, 4: success

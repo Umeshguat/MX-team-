@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BASE_URL } from '../config';
 import {
   StyleSheet,
   Text,
@@ -30,7 +31,7 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const response = await fetch('http://192.168.1.2:5000/api/users/login', {
+      const response = await fetch(`${BASE_URL}/api/users/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

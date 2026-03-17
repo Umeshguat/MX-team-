@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BASE_URL } from '../config';
 import {
   StyleSheet,
   Text,
@@ -74,7 +75,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
   var fetchDailyAllowance = function() {
     var token = user && user.token ? user.token : '';
     setLoading(true);
-    fetch('http://192.168.1.2:5000/api/users/daily-allowance', {
+    fetch(`${BASE_URL}/api/users/daily-allowance`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

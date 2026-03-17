@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BASE_URL } from '../config';
 import {
   StyleSheet,
   Text,
@@ -122,7 +123,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
 
   var fetchDashboard = function() {
     var token = user && user.token ? user.token : '';
-    return fetch('http://192.168.1.2:5000/api/users/dashboard', {
+    return fetch(`${BASE_URL}/api/users/dashboard`, {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer ' + token,
@@ -215,7 +216,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
     var token = user && user.token ? user.token : '';
     var userId = (emp.user_id && typeof emp.user_id === 'object' ? emp.user_id._id : emp.user_id) || emp._id || emp.id || '';
     console.log('Employee details fetch - userId:', userId, 'emp:', JSON.stringify(emp));
-    fetch('http://192.168.1.2:5000/api/users/details?user_id=' + userId, {
+    fetch(`${BASE_URL}/api/users/details?user_id=${userId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -381,8 +382,8 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
 
       var token = user && user.token ? user.token : '';
       var apiUrl = checkModalType === 'checkin'
-        ? 'http://192.168.1.2:5000/api/attendance/check-in'
-        : 'http://192.168.1.2:5000/api/attendance/check-out';
+        ? `${BASE_URL}/api/attendance/check-in`
+        : `${BASE_URL}/api/attendance/check-out`;
 
       var formData = new FormData();
       formData.append('headquarter_name', hqName.trim());
@@ -534,7 +535,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
 
       formData.append('selfie_with_vendor', getImageFile(vendorSelfie, 'vendor_selfie'));
 
-      var response = await fetch('http://192.168.1.2:5000/api/vendor-visits', {
+      var response = await fetch(`${BASE_URL}/api/vendor-visits`, {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer ' + (user && user.token ? user.token : ''),
