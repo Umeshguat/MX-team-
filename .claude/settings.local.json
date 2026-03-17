@@ -18,7 +18,8 @@
       "Bash(grep -v \"^$\")",
       "Bash(emulator -list-avds)",
       "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\salesmens\\\\src' -type f \\\\\\(-name *.js -o -name *.ts \\\\\\))",
-      "Read(//e/project_after_1_/ dec_2025/Salesmensapi/**)"
+      "Read(//e/project_after_1_/ dec_2025/Salesmensapi/**)",
+      "Bash(./gradlew assembleRelease)"
     ]
   }
 }

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import GPSCameraScreen from './GPSCameraScreen';
 
 const getImageFile = (uri, prefix) => {
   return { uri: uri, name: prefix + '_' + Date.now() + '.jpg', type: 'image/jpeg' };
@@ -28,6 +29,7 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
   const [isOnboarded, setIsOnboarded] = useState(null);
   const [fetchingLocation, setFetchingLocation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showGPSCamera, setShowGPSCamera] = useState(false);
 
   const resetFields = () => {
     setVendorName('');
@@ -36,6 +38,7 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
     setAddressGps('');
     setGpsLink('');
     setIsOnboarded(null);
+    setShowGPSCamera(false);
   };
 
   const handleClose = () => {
@@ -57,23 +60,13 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
     }
   };
 
-  const takeSelfie = async () => {
-    try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Permission needed', 'Camera permission is required');
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setVendorSelfie(result.assets[0].uri);
-      }
-    } catch (e) {
-      Alert.alert('Error', 'Could not open camera');
-    }
+  const takeSelfie = () => {
+    setShowGPSCamera(true);
+  };
+
+  const onGPSCameraCapture = (uri) => {
+    setVendorSelfie(uri);
+    setShowGPSCamera(false);
   };
 
   const fetchLocation = async () => {
@@ -237,7 +230,7 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
               <View style={styles.uploadRow}>
                 <TouchableOpacity style={styles.uploadBtn} onPress={takeSelfie}>
                   <Text style={styles.uploadIcon}>📷</Text>
-                  <Text style={styles.uploadText}>Camera</Text>
+                  <Text style={styles.uploadText}>GPS Camera</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.uploadBtn} onPress={pickSelfie}>
                   <Text style={styles.uploadIcon}>🖼</Text>
@@ -306,6 +299,18 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
           </ScrollView>
         </View>
       </View>
+
+      {/* GPS Map Camera */}
+      <Modal
+        visible={showGPSCamera}
+        animationType="slide"
+        onRequestClose={() => setShowGPSCamera(false)}
+      >
+        <GPSCameraScreen
+          onCapture={onGPSCameraCapture}
+          onClose={() => setShowGPSCamera(false)}
+        />
+      </Modal>
     </Modal>
   );
 }
