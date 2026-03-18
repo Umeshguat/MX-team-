@@ -15,6 +15,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import GPSCameraScreen from '../components/GPSCameraScreen';
 
 export default function DashboardScreen({ user, onLogout, vendors, onVendorsChange, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits }) {
   const [checkedIn, setCheckedIn] = useState(false);
@@ -40,6 +41,9 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   const [otherBillImage, setOtherBillImage] = useState(null);
   const [otherBillAmount, setOtherBillAmount] = useState('');
   const [otherBillDescription, setOtherBillDescription] = useState('');
+
+  const [showGPSCamera, setShowGPSCamera] = useState(false);
+  const [gpsCameraTarget, setGpsCameraTarget] = useState(null);
 
   const [showVendorModal, setShowVendorModal] = useState(false);
   const [vendorName, setVendorName] = useState('');
@@ -162,20 +166,9 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
     setOtherBillDescription('');
   };
 
-  const takeSelfie = async () => {
-    try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Permission needed', 'Camera permission is required');
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.8 });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setSelfieImage(result.assets[0].uri);
-      }
-    } catch (e) {
-      Alert.alert('Error', 'Could not open camera');
-    }
+  const takeSelfie = () => {
+    setGpsCameraTarget('selfie');
+    setShowGPSCamera(true);
   };
 
   const pickSelfie = async () => {
@@ -347,23 +340,19 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
     }
   };
 
-  const takeVendorSelfie = async () => {
-    try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Permission needed', 'Camera permission is required');
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setVendorSelfie(result.assets[0].uri);
-      }
-    } catch (e) {
-      Alert.alert('Error', 'Could not open camera');
+  const takeVendorSelfie = () => {
+    setGpsCameraTarget('vendor');
+    setShowGPSCamera(true);
+  };
+
+  const onGPSCameraCapture = (uri) => {
+    if (gpsCameraTarget === 'selfie') {
+      setSelfieImage(uri);
+    } else if (gpsCameraTarget === 'vendor') {
+      setVendorSelfie(uri);
     }
+    setShowGPSCamera(false);
+    setGpsCameraTarget(null);
   };
 
   const submitVendor = async () => {
@@ -864,6 +853,17 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
             </ScrollView>
           </View>
         </View>
+      </Modal>
+
+      <Modal
+        visible={showGPSCamera}
+        animationType="slide"
+        onRequestClose={() => setShowGPSCamera(false)}
+      >
+        <GPSCameraScreen
+          onCapture={onGPSCameraCapture}
+          onClose={() => { setShowGPSCamera(false); setGpsCameraTarget(null); }}
+        />
       </Modal>
     </View>
   );

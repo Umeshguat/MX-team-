@@ -13,23 +13,40 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { captureRef } from 'react-native-view-shot';
 
+var COUNTRY_FLAGS = {
+  IN: '\u{1F1EE}\u{1F1F3}',
+  US: '\u{1F1FA}\u{1F1F8}',
+  GB: '\u{1F1EC}\u{1F1E7}',
+  AE: '\u{1F1E6}\u{1F1EA}',
+  SA: '\u{1F1F8}\u{1F1E6}',
+  NP: '\u{1F1F3}\u{1F1F5}',
+  BD: '\u{1F1E7}\u{1F1E9}',
+  PK: '\u{1F1F5}\u{1F1F0}',
+  LK: '\u{1F1F1}\u{1F1F0}',
+};
+
 export default function GPSCameraScreen({ onCapture, onClose }) {
   var [locationData, setLocationData] = useState(null);
-  var [address, setAddress] = useState('');
+  var [addressInfo, setAddressInfo] = useState(null);
   var [loadingLocation, setLoadingLocation] = useState(true);
   var [capturedPhoto, setCapturedPhoto] = useState(null);
   var [saving, setSaving] = useState(false);
+  var [imageLoaded, setImageLoaded] = useState(false);
+  var [mapLoaded, setMapLoaded] = useState(false);
 
   var previewRef = useRef(null);
 
   useEffect(function () {
-    fetchLocationAndOpenCamera();
+    fetchLocationThenOpenCamera();
   }, []);
 
-  var fetchLocationAndOpenCamera = function () {
+  var fetchLocationThenOpenCamera = function () {
     setLoadingLocation(true);
 
-    // Get location first, then open camera
+    var locationTimeout = new Promise(function (_, reject) {
+      setTimeout(function () { reject(new Error('Location timeout')); }, 10000);
+    });
+
     Location.requestForegroundPermissionsAsync()
       .then(function (result) {
         if (result.status !== 'granted') {
@@ -37,7 +54,10 @@ export default function GPSCameraScreen({ onCapture, onClose }) {
           setLoadingLocation(false);
           return null;
         }
-        return Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        return Promise.race([
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          locationTimeout,
+        ]);
       })
       .then(function (location) {
         if (!location) return;
@@ -54,19 +74,47 @@ export default function GPSCameraScreen({ onCapture, onClose }) {
           .then(function (addresses) {
             if (addresses && addresses.length > 0) {
               var addr = addresses[0];
-              var line1Parts = [addr.name, addr.street].filter(Boolean);
-              var line2Parts = [addr.city, addr.region, addr.postalCode, addr.country].filter(Boolean);
-              var fullAddress = '';
-              if (line1Parts.length > 0) fullAddress = line1Parts.join(', ');
-              if (line2Parts.length > 0) {
-                if (fullAddress) fullAddress += '\n';
-                fullAddress += line2Parts.join(', ');
+
+              // Build city line: "City, Region, Country"
+              var cityParts = [addr.city, addr.region, addr.country].filter(Boolean);
+              var cityLine = cityParts.length > 0 ? cityParts.join(', ') : '';
+
+              // Build full street address: "name, street, district, subregion, city, region postalCode, country"
+              var streetParts = [addr.name, addr.street].filter(Boolean);
+              var areaParts = [addr.district, addr.subregion].filter(Boolean);
+              var regionPart = addr.region || '';
+              if (addr.postalCode) regionPart = regionPart ? regionPart + ' ' + addr.postalCode : addr.postalCode;
+              var fullParts = streetParts.concat(areaParts);
+              if (addr.city) fullParts.push(addr.city);
+              if (regionPart) fullParts.push(regionPart);
+              if (addr.country) fullParts.push(addr.country);
+              var fullAddress = fullParts.join(', ');
+
+              // Get country flag
+              var flag = '';
+              if (addr.isoCountryCode && COUNTRY_FLAGS[addr.isoCountryCode]) {
+                flag = ' ' + COUNTRY_FLAGS[addr.isoCountryCode];
               }
-              setAddress(fullAddress || coords.latitude.toFixed(6) + ', ' + coords.longitude.toFixed(6));
+
+              setAddressInfo({
+                cityLine: cityLine,
+                fullAddress: fullAddress,
+                flag: flag,
+              });
+            } else {
+              setAddressInfo({
+                cityLine: '',
+                fullAddress: coords.latitude.toFixed(6) + ', ' + coords.longitude.toFixed(6),
+                flag: '',
+              });
             }
           })
           .catch(function () {
-            setAddress(coords.latitude.toFixed(6) + ', ' + coords.longitude.toFixed(6));
+            setAddressInfo({
+              cityLine: '',
+              fullAddress: coords.latitude.toFixed(6) + ', ' + coords.longitude.toFixed(6),
+              flag: '',
+            });
           });
       })
       .catch(function (err) {
@@ -74,7 +122,6 @@ export default function GPSCameraScreen({ onCapture, onClose }) {
       })
       .finally(function () {
         setLoadingLocation(false);
-        // Now open camera
         openCamera();
       });
   };
@@ -95,10 +142,11 @@ export default function GPSCameraScreen({ onCapture, onClose }) {
       .then(function (result) {
         if (!result) return;
         if (result.canceled || !result.assets || result.assets.length === 0) {
-          // User cancelled camera
           onClose();
           return;
         }
+        setImageLoaded(false);
+        setMapLoaded(false);
         setCapturedPhoto(result.assets[0].uri);
       })
       .catch(function (err) {
@@ -133,7 +181,7 @@ export default function GPSCameraScreen({ onCapture, onClose }) {
     return {
       dayName: dayName,
       date: dd + '/' + mm + '/' + yyyy,
-      time: hhStr + ':' + min + ':' + sec + ' ' + ampm,
+      time: hhStr + ':' + min + ' ' + ampm,
       timezone: 'GMT ' + tzSign + tzHours + ':' + tzMins,
     };
   };
@@ -148,37 +196,59 @@ export default function GPSCameraScreen({ onCapture, onClose }) {
       lat + ',' + lng + ',red-pushpin';
   };
 
-  var confirmPhoto = function () {
+  var doCapture = function () {
     if (!previewRef.current) {
       Alert.alert('Error', 'Preview not ready, please try again');
+      setSaving(false);
       return;
     }
-    setSaving(true);
 
-    captureRef(previewRef, {
-      format: 'jpg',
-      quality: 0.85,
-      result: 'tmpfile',
-    })
-      .then(function (uri) {
-        setSaving(false);
-        onCapture(uri);
+    setTimeout(function () {
+      captureRef(previewRef, {
+        format: 'jpg',
+        quality: 0.85,
+        result: 'tmpfile',
       })
-      .catch(function (err) {
-        console.log('Capture error:', err);
-        setSaving(false);
-        // If view-shot fails, return original photo
-        Alert.alert('Note', 'GPS overlay could not be saved. Using original photo.');
-        onCapture(capturedPhoto);
-      });
+        .then(function (uri) {
+          setSaving(false);
+          onCapture(uri);
+        })
+        .catch(function (err) {
+          console.log('Capture error (attempt 1):', err);
+          setTimeout(function () {
+            captureRef(previewRef, {
+              format: 'jpg',
+              quality: 0.8,
+              result: 'tmpfile',
+            })
+              .then(function (uri) {
+                setSaving(false);
+                onCapture(uri);
+              })
+              .catch(function (err2) {
+                console.log('Capture error (attempt 2):', err2);
+                setSaving(false);
+                Alert.alert('Note', 'GPS overlay could not be saved. Using original photo.');
+                onCapture(capturedPhoto);
+              });
+          }, 500);
+        });
+    }, 300);
+  };
+
+  var confirmPhoto = function () {
+    setSaving(true);
+    doCapture();
   };
 
   var retakePhoto = function () {
     setCapturedPhoto(null);
+    setImageLoaded(false);
+    setMapLoaded(false);
     openCamera();
   };
 
-  // Loading state - getting location & opening camera
+  // Loading state
   if (!capturedPhoto) {
     return (
       <View style={styles.container}>
@@ -198,27 +268,33 @@ export default function GPSCameraScreen({ onCapture, onClose }) {
   var dateTime = getCurrentDateTime();
   var staticMapUrl = getStaticMapUrl();
 
-  // ===== PREVIEW MODE - Photo taken, show with GPS overlay =====
+  // ===== PREVIEW MODE =====
   return (
     <View style={styles.container}>
-      {/* Capturable area: photo + GPS overlay */}
+      {/* Capturable area */}
       <View
         ref={previewRef}
         collapsable={false}
         style={styles.previewContainer}
       >
-        <Image source={{ uri: capturedPhoto }} style={styles.previewImage} />
+        <Image
+          source={{ uri: capturedPhoto }}
+          style={styles.previewImage}
+          onLoad={function () { setImageLoaded(true); }}
+        />
 
-        {/* GPS Overlay at bottom */}
+        {/* GPS Overlay - same style as reference image */}
         <View style={styles.overlayBottom}>
           <View style={styles.overlayContent}>
-            {/* Map thumbnail */}
+            {/* Map thumbnail on left */}
             {staticMapUrl ? (
               <View style={styles.mapThumbnailWrapper}>
                 <Image
                   source={{ uri: staticMapUrl }}
                   style={styles.mapThumbnail}
                   resizeMode="cover"
+                  onLoad={function () { setMapLoaded(true); }}
+                  onError={function () { setMapLoaded(true); }}
                 />
                 <View style={styles.mapPinOverlay}>
                   <Text style={styles.mapPinIcon}>📍</Text>
@@ -226,22 +302,37 @@ export default function GPSCameraScreen({ onCapture, onClose }) {
               </View>
             ) : null}
 
-            {/* Location info */}
+            {/* Location info on right */}
             <View style={styles.locationInfo}>
-              <View style={styles.gpsBadge}>
-                <Text style={styles.gpsBadgeText}>GPS Map Camera</Text>
+              {/* GPS Map Camera badge */}
+              <View style={styles.gpsBadgeRow}>
+                <View style={styles.gpsBadge}>
+                  <Text style={styles.gpsBadgeText}>GPS Map Camera</Text>
+                </View>
               </View>
 
-              {address ? (
-                <Text style={styles.addressText} numberOfLines={3}>{address}</Text>
-              ) : null}
-
-              {locationData ? (
-                <Text style={styles.coordsText}>
-                  Lat {locationData.latitude.toFixed(6)} Long {locationData.longitude.toFixed(6)}
+              {/* City, State, Country + Flag (title line) */}
+              {addressInfo && addressInfo.cityLine ? (
+                <Text style={styles.cityLineText}>
+                  {addressInfo.cityLine}{addressInfo.flag}
                 </Text>
               ) : null}
 
+              {/* Full detailed address */}
+              {addressInfo && addressInfo.fullAddress ? (
+                <Text style={styles.addressText} numberOfLines={3}>
+                  {addressInfo.fullAddress}
+                </Text>
+              ) : null}
+
+              {/* Coordinates */}
+              {locationData ? (
+                <Text style={styles.coordsText}>
+                  Lat {locationData.latitude.toFixed(6)}° Long {locationData.longitude.toFixed(6)}°
+                </Text>
+              ) : null}
+
+              {/* Date & Time */}
               <Text style={styles.dateTimeText}>
                 {dateTime.dayName}, {dateTime.date} {dateTime.time} {dateTime.timezone}
               </Text>
@@ -261,12 +352,14 @@ export default function GPSCameraScreen({ onCapture, onClose }) {
           <Text style={styles.actionBtnText}>Retake</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.confirmBtn, saving && { opacity: 0.6 }]}
+          style={[styles.confirmBtn, (saving || !imageLoaded) && { opacity: 0.6 }]}
           onPress={confirmPhoto}
-          disabled={saving}
+          disabled={saving || !imageLoaded}
         >
           {saving ? (
             <ActivityIndicator color="#fff" />
+          ) : !imageLoaded ? (
+            <Text style={styles.actionBtnText}>Loading...</Text>
           ) : (
             <Text style={styles.actionBtnText}>Use Photo</Text>
           )}
@@ -329,26 +422,30 @@ var styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 10,
+    padding: 8,
   },
   overlayContent: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 10,
     padding: 10,
     alignItems: 'center',
   },
+
+  // Map thumbnail
   mapThumbnailWrapper: {
-    width: 85,
-    height: 65,
+    width: 90,
+    height: 70,
     borderRadius: 8,
     overflow: 'hidden',
     marginRight: 10,
-    backgroundColor: '#444',
+    backgroundColor: '#333',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   mapThumbnail: {
-    width: 85,
-    height: 65,
+    width: 90,
+    height: 70,
   },
   mapPinOverlay: {
     position: 'absolute',
@@ -360,56 +457,63 @@ var styles = StyleSheet.create({
     alignItems: 'center',
   },
   mapPinIcon: {
-    fontSize: 16,
+    fontSize: 18,
   },
+
+  // Location info
   locationInfo: {
     flex: 1,
   },
+  gpsBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 2,
+  },
   gpsBadge: {
     backgroundColor: 'rgba(76, 175, 80, 0.9)',
-    alignSelf: 'flex-start',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 2,
     borderRadius: 4,
-    marginBottom: 4,
   },
   gpsBadgeText: {
     color: '#fff',
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  addressText: {
+  cityLineText: {
     color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 15,
+    fontSize: 14,
+    fontWeight: '800',
     marginBottom: 2,
   },
+  addressText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+    lineHeight: 14,
+    marginBottom: 3,
+  },
   coordsText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 9,
-    fontWeight: '500',
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 10,
+    fontWeight: '600',
     marginBottom: 2,
   },
   dateTimeText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 9,
-    fontWeight: '500',
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 10,
+    fontWeight: '600',
   },
 
   // Bottom actions
   bottomActions: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingBottom: Platform.OS === 'ios' ? 40 : 25,
     paddingTop: 15,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: '#000',
   },
   retakeBtn: {
     paddingHorizontal: 28,
