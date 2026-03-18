@@ -83,7 +83,6 @@ export default function App() {
     return (
       <VendorMapScreen
         user={user}
-        vendors={vendors}
         onGoBack={() => setScreen(homeDashboard)}
       />
     );
