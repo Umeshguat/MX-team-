@@ -4,14 +4,19 @@ import {
   Text,
   View,
   TouchableOpacity,
-  ScrollView,
+  FlatList,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { BASE_URL } from '../config';
 
+var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 function getStatusColor(status) {
   switch (status) {
+    case 'checked in': return '#4caf50';
+    case 'checked out': return '#1565c0';
     case 'present': return '#4caf50';
     case 'absent': return '#e53935';
     case 'half-day': return '#ff9800';
@@ -22,6 +27,8 @@ function getStatusColor(status) {
 
 function getStatusBg(status) {
   switch (status) {
+    case 'checked in': return '#e8f5e9';
+    case 'checked out': return '#e3f2fd';
     case 'present': return '#e8f5e9';
     case 'absent': return '#ffebee';
     case 'half-day': return '#fff3e0';
@@ -32,6 +39,8 @@ function getStatusBg(status) {
 
 function getStatusLabel(status) {
   switch (status) {
+    case 'checked in': return 'Checked In';
+    case 'checked out': return 'Checked Out';
     case 'present': return 'Present';
     case 'absent': return 'Absent';
     case 'half-day': return 'Half Day';
@@ -40,30 +49,27 @@ function getStatusLabel(status) {
   }
 }
 
-function generateAttendanceData() {
-  var data = [];
-  var today = new Date();
-  for (var i = 0; i < 7; i++) {
-    var date = new Date(today);
-    date.setDate(date.getDate() - i);
-    var present = Math.floor(Math.random() * 4 + 6);
-    data.push({
-      date: date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
-      present: present,
-      absent: 10 - present,
-    });
-  }
-  return data.reverse();
-}
-
 export default function AdminAttendanceListScreen({ user, onGoBack }) {
   var [employees, setEmployees] = useState([]);
   var [loading, setLoading] = useState(true);
-  var [attendanceWeek] = useState(generateAttendanceData);
+  var [refreshing, setRefreshing] = useState(false);
+  var [currentPage, setCurrentPage] = useState(1);
+  var [totalPages, setTotalPages] = useState(1);
+  var [totalRecords, setTotalRecords] = useState(0);
+  var [loadingMore, setLoadingMore] = useState(false);
 
-  useEffect(function() {
-    var token = user && user.token ? user.token : '';
-    fetch(BASE_URL + '/api/users/dashboard', {
+  var token = user && user.token ? user.token : '';
+
+  var fetchAttendance = function(page, isRefresh) {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else if (page === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+
+    fetch(BASE_URL + '/api/users/attendance-list?page=' + page + '&limit=10', {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer ' + token,
@@ -72,22 +78,99 @@ export default function AdminAttendanceListScreen({ user, onGoBack }) {
     })
       .then(function(response) { return response.json(); })
       .then(function(result) {
-        if (result.status === 200 && result.data) {
-          var emps = result.data.employees_check_in || result.data.employees || result.data.users || result.data.team || [];
-          setEmployees(emps);
+        console.log('Admin Attendance API response:', JSON.stringify(result));
+        if (result.status === 200 && Array.isArray(result.data)) {
+          if (page === 1 || isRefresh) {
+            setEmployees(result.data);
+          } else {
+            setEmployees(function(prev) { return prev.concat(result.data); });
+          }
+          if (result.pagination) {
+            setCurrentPage(result.pagination.current_page);
+            setTotalPages(result.pagination.total_pages);
+            setTotalRecords(result.pagination.total_records);
+          }
+        } else {
+          console.log('Unexpected response:', result);
+          if (page === 1 || isRefresh) {
+            setEmployees([]);
+          }
         }
         setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
       })
       .catch(function(err) {
         console.log('Attendance list fetch error:', err);
         setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
       });
+  };
+
+  useEffect(function() {
+    fetchAttendance(1, false);
   }, []);
 
-  var presentCount = employees.filter(function(e) { return (e.status || '').toLowerCase() === 'present'; }).length;
-  var absentCount = employees.filter(function(e) { return (e.status || '').toLowerCase() === 'absent'; }).length;
-  var halfDayCount = employees.filter(function(e) { return (e.status || '').toLowerCase() === 'half-day'; }).length;
-  var leaveCount = employees.filter(function(e) { return (e.status || '').toLowerCase() === 'leave'; }).length;
+  var onRefresh = function() {
+    setCurrentPage(1);
+    fetchAttendance(1, true);
+  };
+
+  var loadMore = function() {
+    if (loadingMore || currentPage >= totalPages) return;
+    fetchAttendance(currentPage + 1, false);
+  };
+
+  var checkedInCount = employees.filter(function(e) { return (e.status || '').toLowerCase() === 'checked in'; }).length;
+  var checkedOutCount = employees.filter(function(e) { return (e.status || '').toLowerCase() === 'checked out'; }).length;
+
+  var renderEmployee = function({ item: emp, index }) {
+    var empName = emp.full_name || 'Employee';
+    var empStatus = (emp.status || '').toLowerCase();
+    var d = new Date(emp.date);
+    var dayNum = isNaN(d.getTime()) ? '--' : d.getDate();
+    var dayName = isNaN(d.getTime()) ? '' : WEEKDAYS[d.getDay()];
+
+    return (
+      <View style={styles.attendanceRow}>
+        <View style={styles.dateBox}>
+          <Text style={[styles.dateNum, { color: getStatusColor(empStatus) }]}>{dayNum}</Text>
+          <Text style={[styles.dateDay, { color: getStatusColor(empStatus) }]}>{dayName}</Text>
+        </View>
+        <View style={styles.attendanceLeft}>
+          <Text style={styles.attendanceName}>{empName}</Text>
+          <Text style={styles.attendanceEmail}>{emp.email || ''}</Text>
+          <Text style={styles.attendanceCheckIn}>
+            {emp.check_in_time || '--'} - {emp.check_out_time || '--'}
+          </Text>
+          <Text style={styles.attendanceMeta}>
+            {emp.headquarter_name || ''}{emp.working_town ? ' | ' + emp.working_town : ''}{emp.route ? ' | ' + emp.route : ''}
+          </Text>
+        </View>
+        <View style={styles.attendanceRight}>
+          <View style={[styles.attendanceStatusBadge, { backgroundColor: getStatusBg(empStatus) }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(empStatus) }]} />
+            <Text style={[styles.attendanceStatusText, { color: getStatusColor(empStatus) }]}>
+              {getStatusLabel(empStatus)}
+            </Text>
+          </View>
+          <Text style={styles.kmText}>{emp.total_km != null ? emp.total_km : 0} km</Text>
+          <Text style={styles.hoursText}>{emp.hours || '0h 0m'}</Text>
+        </View>
+      </View>
+    );
+  };
+
+  var renderFooter = function() {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#e53935" />
+        <Text style={styles.footerText}>Loading more...</Text>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -106,23 +189,18 @@ export default function AdminAttendanceListScreen({ user, onGoBack }) {
 
         <View style={styles.statsBar}>
           <View style={styles.statItem}>
-            <Text style={[styles.statCount, { color: '#4caf50' }]}>{presentCount}</Text>
-            <Text style={styles.statLabel}>Present</Text>
+            <Text style={styles.statCount}>{totalRecords}</Text>
+            <Text style={styles.statLabel}>Total</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statCount, { color: '#ff9800' }]}>{halfDayCount}</Text>
-            <Text style={styles.statLabel}>Half Day</Text>
+            <Text style={[styles.statCount, { color: '#4caf50' }]}>{checkedInCount}</Text>
+            <Text style={styles.statLabel}>Checked In</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statCount, { color: '#e53935' }]}>{absentCount}</Text>
-            <Text style={styles.statLabel}>Absent</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statCount, { color: '#1565c0' }]}>{leaveCount}</Text>
-            <Text style={styles.statLabel}>Leave</Text>
+            <Text style={[styles.statCount, { color: '#1565c0' }]}>{checkedOutCount}</Text>
+            <Text style={styles.statLabel}>Checked Out</Text>
           </View>
         </View>
       </View>
@@ -133,87 +211,33 @@ export default function AdminAttendanceListScreen({ user, onGoBack }) {
           <Text style={styles.loadingText}>Loading attendance...</Text>
         </View>
       ) : (
-        <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
-          {/* Weekly Chart */}
-          <Text style={styles.sectionTitle}>Weekly Overview</Text>
-          <View style={styles.weekChart}>
-            {attendanceWeek.map(function(day, i) {
-              var maxHeight = 100;
-              var presentH = (day.present / 10) * maxHeight;
-              var absentH = (day.absent / 10) * maxHeight;
-              return (
-                <View key={i} style={styles.weekDay}>
-                  <View style={styles.barWrapper}>
-                    <View style={[styles.bar, { height: presentH, backgroundColor: '#4caf50' }]} />
-                    <View style={[styles.bar, { height: absentH, backgroundColor: '#ef5350', marginTop: 2 }]} />
-                  </View>
-                  <Text style={styles.weekDayLabel}>{day.date}</Text>
-                </View>
-              );
-            })}
-          </View>
-          <View style={styles.legendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#4caf50' }]} />
-              <Text style={styles.legendText}>Present</Text>
+        <FlatList
+          data={employees}
+          renderItem={renderEmployee}
+          keyExtractor={function(item, index) { return item._id || String(index); }}
+          contentContainerStyle={styles.bodyContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e53935']} />
+          }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyIcon}>📋</Text>
+              <Text style={styles.emptyText}>No attendance records found</Text>
             </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#ef5350' }]} />
-              <Text style={styles.legendText}>Absent</Text>
-            </View>
-          </View>
+          }
+        />
+      )}
 
-          {/* Attendance Bar */}
-          <Text style={styles.sectionTitle}>Today's Summary</Text>
-          <View style={styles.attendanceBar}>
-            <View style={[styles.attendanceSegment, { flex: presentCount || 0.01, backgroundColor: '#4caf50' }]} />
-            <View style={[styles.attendanceSegment, { flex: halfDayCount || 0.01, backgroundColor: '#ff9800' }]} />
-            <View style={[styles.attendanceSegment, { flex: absentCount || 0.01, backgroundColor: '#e53935' }]} />
-            <View style={[styles.attendanceSegment, { flex: leaveCount || 0.01, backgroundColor: '#1565c0' }]} />
-          </View>
-          <View style={styles.legendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#4caf50' }]} />
-              <Text style={styles.legendText}>Present ({presentCount})</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#ff9800' }]} />
-              <Text style={styles.legendText}>Half Day ({halfDayCount})</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#e53935' }]} />
-              <Text style={styles.legendText}>Absent ({absentCount})</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#1565c0' }]} />
-              <Text style={styles.legendText}>Leave ({leaveCount})</Text>
-            </View>
-          </View>
-
-          {/* Employee Attendance List */}
-          <Text style={styles.sectionTitle}>Employee Attendance</Text>
-          {employees.map(function(emp, index) {
-            var empName = emp.full_name || emp.name || 'Employee';
-            var empCheckIn = emp.check_in_time || emp.checkIn || null;
-            var empStatus = emp.status ? emp.status.toLowerCase() : (empCheckIn ? 'present' : 'absent');
-            return (
-              <View key={emp._id || emp.id || index} style={styles.attendanceRow}>
-                <View style={styles.attendanceLeft}>
-                  <Text style={styles.attendanceName}>{empName}</Text>
-                  <Text style={styles.attendanceDesig}>{emp.designation_name || emp.designation || ''}</Text>
-                  <Text style={styles.attendanceCheckIn}>
-                    {empCheckIn ? 'Check In: ' + empCheckIn : 'Not checked in'}
-                  </Text>
-                </View>
-                <View style={[styles.attendanceStatusBadge, { backgroundColor: getStatusBg(empStatus) }]}>
-                  <Text style={[styles.attendanceStatusText, { color: getStatusColor(empStatus) }]}>
-                    {getStatusLabel(empStatus)}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </ScrollView>
+      {!loading && totalPages > 0 && (
+        <View style={styles.paginationBar}>
+          <Text style={styles.paginationText}>
+            Page {currentPage} of {totalPages}  ({totalRecords} records)
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -222,14 +246,8 @@ export default function AdminAttendanceListScreen({ user, onGoBack }) {
 var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f7' },
   header: {
-    backgroundColor: '#1a1a2e',
-    paddingTop: 50,
-    paddingBottom: 18,
-    paddingHorizontal: 25,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: 'hidden',
-    zIndex: 10,
+    backgroundColor: '#1a1a2e', paddingTop: 50, paddingBottom: 18, paddingHorizontal: 25,
+    borderBottomLeftRadius: 30, borderBottomRightRadius: 30, overflow: 'hidden', zIndex: 10,
   },
   circle1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(229, 57, 53, 0.2)', top: -50, right: -40 },
   circle2: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255, 87, 34, 0.15)', top: 60, left: -50 },
@@ -245,39 +263,40 @@ var styles = StyleSheet.create({
   statCount: { color: '#fff', fontSize: 18, fontWeight: '900' },
   statLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '600', marginTop: 2 },
   statDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 12 },
-  body: { flex: 1 },
   bodyContent: { padding: 16, paddingBottom: 30 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 14, fontWeight: '700', color: '#999', marginTop: 12 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a2e', marginTop: 6, marginBottom: 15 },
-  // Weekly chart
-  weekChart: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12,
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
-  },
-  weekDay: { alignItems: 'center', flex: 1 },
-  barWrapper: { alignItems: 'center', marginBottom: 8 },
-  bar: { width: 22, borderRadius: 4 },
-  weekDayLabel: { fontSize: 11, color: '#999', fontWeight: '600' },
-  // Legend
-  legendRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 20 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: 16, marginBottom: 6 },
-  legendDot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
-  legendText: { fontSize: 12, color: '#666', fontWeight: '600' },
-  // Attendance bar
-  attendanceBar: { flexDirection: 'row', height: 14, borderRadius: 7, overflow: 'hidden', marginBottom: 12 },
-  attendanceSegment: { height: 14 },
-  // Attendance rows
   attendanceRow: {
     backgroundColor: '#fff', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', marginBottom: 8,
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
+    marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
   },
+  dateBox: {
+    width: 48, height: 48, borderRadius: 12, backgroundColor: '#f5f5f7',
+    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  },
+  dateNum: { fontSize: 18, fontWeight: '800' },
+  dateDay: { fontSize: 10, fontWeight: '600' },
   attendanceLeft: { flex: 1 },
   attendanceName: { fontSize: 15, fontWeight: '700', color: '#333' },
-  attendanceDesig: { fontSize: 12, color: '#777', marginTop: 2 },
-  attendanceCheckIn: { fontSize: 12, color: '#999', marginTop: 2 },
-  attendanceStatusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  attendanceStatusText: { fontSize: 12, fontWeight: '700' },
+  attendanceEmail: { fontSize: 11, color: '#999', marginTop: 1 },
+  attendanceCheckIn: { fontSize: 12, color: '#777', marginTop: 3 },
+  attendanceMeta: { fontSize: 10, color: '#bbb', marginTop: 2 },
+  attendanceRight: { alignItems: 'flex-end', marginLeft: 8 },
+  attendanceStatusBadge: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10,
+  },
+  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
+  attendanceStatusText: { fontSize: 11, fontWeight: '700' },
+  kmText: { fontSize: 12, fontWeight: '700', color: '#1a1a2e', marginTop: 4 },
+  hoursText: { fontSize: 10, color: '#999', fontWeight: '600', marginTop: 2 },
+  emptyCard: { backgroundColor: '#fff', borderRadius: 14, padding: 40, alignItems: 'center', elevation: 2 },
+  emptyIcon: { fontSize: 40, marginBottom: 12 },
+  emptyText: { fontSize: 15, color: '#999', fontWeight: '600' },
+  footerLoader: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16 },
+  footerText: { fontSize: 12, color: '#999', marginLeft: 8 },
+  paginationBar: {
+    backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 20, alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: '#f0f0f0',
+  },
+  paginationText: { fontSize: 12, color: '#888', fontWeight: '600' },
 });

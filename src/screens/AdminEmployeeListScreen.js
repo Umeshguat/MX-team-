@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,6 +8,8 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
+  FlatList,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
@@ -15,6 +17,8 @@ import { BASE_URL } from '../config';
 
 function getStatusColor(status) {
   switch (status) {
+    case 'checked in': return '#4caf50';
+    case 'checked out': return '#1565c0';
     case 'present': return '#4caf50';
     case 'absent': return '#e53935';
     case 'half-day': return '#ff9800';
@@ -25,6 +29,8 @@ function getStatusColor(status) {
 
 function getStatusBg(status) {
   switch (status) {
+    case 'checked in': return '#e8f5e9';
+    case 'checked out': return '#e3f2fd';
     case 'present': return '#e8f5e9';
     case 'absent': return '#ffebee';
     case 'half-day': return '#fff3e0';
@@ -35,11 +41,23 @@ function getStatusBg(status) {
 
 function getStatusLabel(status) {
   switch (status) {
+    case 'checked in': return 'Checked In';
+    case 'checked out': return 'Checked Out';
     case 'present': return 'Present';
     case 'absent': return 'Absent';
     case 'half-day': return 'Half Day';
     case 'leave': return 'On Leave';
     default: return '--';
+  }
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '--';
+  try {
+    var d = new Date(dateStr);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch (e) {
+    return '--';
   }
 }
 
@@ -109,6 +127,12 @@ function generateEmpVendorMapHTML(visits, name) {
 export default function AdminEmployeeListScreen({ user, onGoBack }) {
   var [employees, setEmployees] = useState([]);
   var [loading, setLoading] = useState(true);
+  var [refreshing, setRefreshing] = useState(false);
+  var [currentPage, setCurrentPage] = useState(1);
+  var [totalPages, setTotalPages] = useState(1);
+  var [totalRecords, setTotalRecords] = useState(0);
+  var [loadingMore, setLoadingMore] = useState(false);
+
   var [selectedEmployee, setSelectedEmployee] = useState(null);
   var [showEmployeeModal, setShowEmployeeModal] = useState(false);
   var [employeeDetailLoading, setEmployeeDetailLoading] = useState(false);
@@ -118,9 +142,17 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
   var [empVendorMapLoading, setEmpVendorMapLoading] = useState(false);
   var [empVendorMapName, setEmpVendorMapName] = useState('');
 
-  useEffect(function() {
+  var fetchEmployees = useCallback(function(page, isRefresh) {
     var token = user && user.token ? user.token : '';
-    fetch(BASE_URL + '/api/users/dashboard', {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else if (page === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+
+    fetch(BASE_URL + '/api/users/employee-list?page=' + page + '&limit=5', {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer ' + token,
@@ -130,56 +162,51 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
       .then(function(response) { return response.json(); })
       .then(function(result) {
         if (result.status === 200 && result.data) {
-          var emps = result.data.employees_check_in || result.data.employees || result.data.users || result.data.team || [];
-          setEmployees(emps);
+          if (page === 1) {
+            setEmployees(result.data);
+          } else {
+            setEmployees(function(prev) { return prev.concat(result.data); });
+          }
+          if (result.pagination) {
+            setCurrentPage(result.pagination.current_page);
+            setTotalPages(result.pagination.total_pages);
+            setTotalRecords(result.pagination.total_records);
+          }
         }
         setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
       })
       .catch(function(err) {
         console.log('Employee list fetch error:', err);
         setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
       });
-  }, []);
+  }, [user]);
+
+  useEffect(function() {
+    fetchEmployees(1, false);
+  }, [fetchEmployees]);
+
+  var onRefresh = function() {
+    fetchEmployees(1, true);
+  };
+
+  var loadMore = function() {
+    if (loadingMore || currentPage >= totalPages) return;
+    fetchEmployees(currentPage + 1, false);
+  };
 
   var openEmployee = function(emp) {
     setSelectedEmployee(emp);
     setShowEmployeeModal(true);
-    setEmployeeDetailLoading(true);
-    var token = user && user.token ? user.token : '';
-    var userId = (emp.user_id && typeof emp.user_id === 'object' ? emp.user_id._id : emp.user_id) || emp._id || emp.id || '';
-    fetch(BASE_URL + '/api/users/details?user_id=' + userId, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token,
-      },
-    })
-      .then(function(response) { return response.json(); })
-      .then(function(data) {
-        if (data.status === 200 && data.data) {
-          var empFullName = emp.full_name || emp.name || (emp.user_id && typeof emp.user_id === 'object' ? emp.user_id.full_name : '') || '';
-          setSelectedEmployee(Object.assign({}, emp, {
-            full_name: empFullName || data.data.full_name || 'Employee',
-            email: data.data.email || '',
-            headquarter_name: data.data.headquarter_name || emp.headquarter_name || emp.hq,
-            phone_number: data.data.phone_number || emp.phone_number || emp.phone,
-            check_in_time: data.data.check_in_time || emp.start_time || emp.checkIn,
-            vendor_visits: data.data.vendor_visits != null ? data.data.vendor_visits : (emp.vendor_visits || emp.vendors || 0),
-            total_allowance: data.data.total_allowance != null ? data.data.total_allowance : (emp.allowance || emp.daily_allowance || 0),
-          }));
-        }
-        setEmployeeDetailLoading(false);
-      })
-      .catch(function(error) {
-        console.error('Error fetching employee details:', error);
-        setEmployeeDetailLoading(false);
-      });
   };
 
   var openEmpVendorMap = function() {
     if (!selectedEmployee) return;
-    var userId = (selectedEmployee.user_id && typeof selectedEmployee.user_id === 'object' ? selectedEmployee.user_id._id : selectedEmployee.user_id) || selectedEmployee._id || selectedEmployee.id || '';
-    var empName = selectedEmployee.full_name || selectedEmployee.name || 'Employee';
+    var userId = selectedEmployee.user_id || selectedEmployee._id || '';
+    var empName = selectedEmployee.full_name || 'Employee';
     setEmpVendorMapName(empName);
     setEmpVendorMapLoading(true);
     setShowEmpVendorMap(true);
@@ -216,8 +243,60 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
       });
   };
 
-  var presentCount = employees.filter(function(e) { return (e.status || '').toLowerCase() === 'present'; }).length;
-  var absentCount = employees.filter(function(e) { var s = (e.status || '').toLowerCase(); return s === 'absent' || s === 'leave'; }).length;
+  var checkedInCount = employees.filter(function(e) { return (e.status || '').toLowerCase() === 'checked in'; }).length;
+  var checkedOutCount = employees.filter(function(e) { return (e.status || '').toLowerCase() === 'checked out'; }).length;
+
+  var renderEmployee = function({ item: emp, index }) {
+    var empName = emp.full_name || 'Employee';
+    var empStatus = (emp.status || '').toLowerCase();
+    return (
+      <TouchableOpacity
+        key={emp._id || index}
+        style={styles.empCard}
+        onPress={function() { openEmployee(emp); }}
+        activeOpacity={0.7}
+      >
+        <View style={styles.empAvatar}>
+          <Text style={styles.empAvatarText}>
+            {empName.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase()}
+          </Text>
+        </View>
+        <View style={styles.empInfo}>
+          <Text style={styles.empName}>{empName}</Text>
+          <Text style={styles.empDesig}>{emp.email || ''}</Text>
+          <Text style={styles.empHq}>{emp.headquarter_name || ''} {emp.working_town ? '| ' + emp.working_town : ''}</Text>
+          <View style={styles.empMetaRow}>
+            <Text style={styles.empMetaText}>{emp.check_in_time || '--'}</Text>
+            <Text style={styles.empMetaDot}> - </Text>
+            <Text style={styles.empMetaText}>{emp.check_out_time || '--'}</Text>
+            <Text style={styles.empMetaSep}>  |  </Text>
+            <Text style={styles.empMetaText}>{emp.total_km || 0} km</Text>
+            <Text style={styles.empMetaSep}>  |  </Text>
+            <Text style={styles.empMetaText}>{emp.hours || '0h 0m'}</Text>
+          </View>
+        </View>
+        <View style={styles.empRight}>
+          <View style={[styles.empStatusBadge, { backgroundColor: getStatusBg(empStatus) }]}>
+            <View style={[styles.empStatusDot, { backgroundColor: getStatusColor(empStatus) }]} />
+            <Text style={[styles.empStatusText, { color: getStatusColor(empStatus) }]}>
+              {getStatusLabel(empStatus)}
+            </Text>
+          </View>
+          <Text style={styles.empDateText}>{formatDate(emp.date)}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  var renderFooter = function() {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#e53935" />
+        <Text style={styles.footerText}>Loading more...</Text>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -236,18 +315,18 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
 
         <View style={styles.statsBar}>
           <View style={styles.statItem}>
-            <Text style={styles.statCount}>{employees.length}</Text>
+            <Text style={styles.statCount}>{totalRecords}</Text>
             <Text style={styles.statLabel}>Total</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statCount, { color: '#4caf50' }]}>{presentCount}</Text>
-            <Text style={styles.statLabel}>Present</Text>
+            <Text style={[styles.statCount, { color: '#4caf50' }]}>{checkedInCount}</Text>
+            <Text style={styles.statLabel}>Checked In</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statCount, { color: '#e53935' }]}>{absentCount}</Text>
-            <Text style={styles.statLabel}>Absent</Text>
+            <Text style={[styles.statCount, { color: '#1565c0' }]}>{checkedOutCount}</Text>
+            <Text style={styles.statLabel}>Checked Out</Text>
           </View>
         </View>
       </View>
@@ -258,41 +337,33 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
           <Text style={styles.loadingText}>Loading employees...</Text>
         </View>
       ) : (
-        <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
-          {employees.map(function(emp, index) {
-            var empName = emp.full_name || emp.name || 'Employee';
-            var empDesig = emp.designation_name || emp.designation || '';
-            var empHq = emp.headquarter_name || emp.hq || '';
-            var empStatus = (emp.status || 'present').toLowerCase();
-            return (
-              <TouchableOpacity
-                key={emp._id || emp.id || index}
-                style={styles.empCard}
-                onPress={function() { openEmployee(emp); }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.empAvatar}>
-                  <Text style={styles.empAvatarText}>
-                    {empName.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.empInfo}>
-                  <Text style={styles.empName}>{empName}</Text>
-                  <Text style={styles.empDesig}>{empDesig}</Text>
-                  <Text style={styles.empHq}>{empHq}</Text>
-                </View>
-                <View style={styles.empRight}>
-                  <View style={[styles.empStatusBadge, { backgroundColor: getStatusBg(empStatus) }]}>
-                    <View style={[styles.empStatusDot, { backgroundColor: getStatusColor(empStatus) }]} />
-                    <Text style={[styles.empStatusText, { color: getStatusColor(empStatus) }]}>
-                      {getStatusLabel(empStatus)}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        <FlatList
+          data={employees}
+          renderItem={renderEmployee}
+          keyExtractor={function(item, index) { return item._id || String(index); }}
+          contentContainerStyle={styles.bodyContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e53935']} />
+          }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No employees found</Text>
+            </View>
+          }
+        />
+      )}
+
+      {/* Pagination Info */}
+      {!loading && totalPages > 0 && (
+        <View style={styles.paginationBar}>
+          <Text style={styles.paginationText}>
+            Page {currentPage} of {totalPages} ({totalRecords} records)
+          </Text>
+        </View>
       )}
 
       {/* Employee Detail Modal */}
@@ -307,22 +378,20 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
                 </TouchableOpacity>
               </View>
 
-              {employeeDetailLoading ? (
-                <ActivityIndicator size="large" color="#9c27b0" style={{ marginTop: 40, marginBottom: 40 }} />
-              ) : selectedEmployee ? (
+              {selectedEmployee ? (
                 <View>
                   <View style={styles.modalProfile}>
                     <View style={styles.modalAvatar}>
                       <Text style={styles.modalAvatarText}>
-                        {(selectedEmployee.full_name || selectedEmployee.name || 'E').split(' ').map(function(n) { return n[0]; }).join('').toUpperCase()}
+                        {(selectedEmployee.full_name || 'E').split(' ').map(function(n) { return n[0]; }).join('').toUpperCase()}
                       </Text>
                     </View>
-                    <Text style={styles.modalProfileName}>{selectedEmployee.full_name || selectedEmployee.name || 'Employee'}</Text>
-                    <Text style={styles.modalProfileDesig}>{selectedEmployee.designation_name || selectedEmployee.designation || ''}</Text>
-                    <View style={[styles.empStatusBadge, { backgroundColor: getStatusBg((selectedEmployee.status || 'present').toLowerCase()), alignSelf: 'center', marginTop: 8 }]}>
-                      <View style={[styles.empStatusDot, { backgroundColor: getStatusColor((selectedEmployee.status || 'present').toLowerCase()) }]} />
-                      <Text style={[styles.empStatusText, { color: getStatusColor((selectedEmployee.status || 'present').toLowerCase()) }]}>
-                        {getStatusLabel((selectedEmployee.status || 'present').toLowerCase())}
+                    <Text style={styles.modalProfileName}>{selectedEmployee.full_name || 'Employee'}</Text>
+                    <Text style={styles.modalProfileDesig}>{selectedEmployee.email || ''}</Text>
+                    <View style={[styles.empStatusBadge, { backgroundColor: getStatusBg((selectedEmployee.status || '').toLowerCase()), alignSelf: 'center', marginTop: 8 }]}>
+                      <View style={[styles.empStatusDot, { backgroundColor: getStatusColor((selectedEmployee.status || '').toLowerCase()) }]} />
+                      <Text style={[styles.empStatusText, { color: getStatusColor((selectedEmployee.status || '').toLowerCase()) }]}>
+                        {getStatusLabel((selectedEmployee.status || '').toLowerCase())}
                       </Text>
                     </View>
                   </View>
@@ -331,39 +400,76 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
                     <Text style={styles.modalDetailIcon}>🏢</Text>
                     <View>
                       <Text style={styles.modalDetailLabel}>Headquarter</Text>
-                      <Text style={styles.modalDetailValue}>{selectedEmployee.headquarter_name || selectedEmployee.hq || '--'}</Text>
+                      <Text style={styles.modalDetailValue}>{selectedEmployee.headquarter_name || '--'}</Text>
                     </View>
                   </View>
 
                   <View style={styles.modalDetailRow}>
-                    <Text style={styles.modalDetailIcon}>📱</Text>
+                    <Text style={styles.modalDetailIcon}>🏙</Text>
                     <View>
-                      <Text style={styles.modalDetailLabel}>Phone</Text>
-                      <Text style={styles.modalDetailValue}>{selectedEmployee.phone_number || selectedEmployee.phone || '--'}</Text>
+                      <Text style={styles.modalDetailLabel}>Working Town</Text>
+                      <Text style={styles.modalDetailValue}>{selectedEmployee.working_town || '--'}</Text>
                     </View>
                   </View>
 
                   <View style={styles.modalDetailRow}>
-                    <Text style={styles.modalDetailIcon}>⏰</Text>
+                    <Text style={styles.modalDetailIcon}>🛣</Text>
                     <View>
-                      <Text style={styles.modalDetailLabel}>Check In Time</Text>
-                      <Text style={styles.modalDetailValue}>{selectedEmployee.check_in_time || selectedEmployee.start_time || selectedEmployee.checkIn || 'Not checked in'}</Text>
+                      <Text style={styles.modalDetailLabel}>Route</Text>
+                      <Text style={styles.modalDetailValue}>{selectedEmployee.route || '--'}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.modalDetailRow}>
+                    <Text style={styles.modalDetailIcon}>📅</Text>
+                    <View>
+                      <Text style={styles.modalDetailLabel}>Date</Text>
+                      <Text style={styles.modalDetailValue}>{formatDate(selectedEmployee.date)}</Text>
                     </View>
                   </View>
 
                   <View style={styles.modalStatsRow}>
-                    <TouchableOpacity style={[styles.modalStatCard, { backgroundColor: '#e8f5e9' }]} onPress={openEmpVendorMap} activeOpacity={0.7}>
-                      <Text style={styles.modalStatIcon}>🏪</Text>
-                      <Text style={[styles.modalStatValue, { color: '#4caf50' }]}>{selectedEmployee.vendor_visits != null ? selectedEmployee.vendor_visits : (selectedEmployee.vendors || 0)}</Text>
-                      <Text style={styles.modalStatLabel}>Vendor Visits</Text>
-                      <Text style={{ fontSize: 10, color: '#4caf50', fontWeight: '600', marginTop: 4 }}>Tap to view map</Text>
-                    </TouchableOpacity>
-                    <View style={[styles.modalStatCard, { backgroundColor: '#f3e5f5' }]}>
-                      <Text style={styles.modalStatIcon}>💰</Text>
-                      <Text style={[styles.modalStatValue, { color: '#9c27b0' }]}>₹{selectedEmployee.total_allowance != null ? selectedEmployee.total_allowance : (selectedEmployee.allowance || selectedEmployee.daily_allowance || 0)}</Text>
-                      <Text style={styles.modalStatLabel}>Allowance</Text>
+                    <View style={[styles.modalStatCard, { backgroundColor: '#e8f5e9' }]}>
+                      <Text style={styles.modalStatIcon}>⏰</Text>
+                      <Text style={[styles.modalStatValue, { color: '#4caf50', fontSize: 14 }]}>{selectedEmployee.check_in_time || '--'}</Text>
+                      <Text style={styles.modalStatLabel}>Check In</Text>
+                    </View>
+                    <View style={[styles.modalStatCard, { backgroundColor: '#e3f2fd' }]}>
+                      <Text style={styles.modalStatIcon}>⏱</Text>
+                      <Text style={[styles.modalStatValue, { color: '#1565c0', fontSize: 14 }]}>{selectedEmployee.check_out_time || '--'}</Text>
+                      <Text style={styles.modalStatLabel}>Check Out</Text>
                     </View>
                   </View>
+
+                  <View style={styles.modalStatsRow}>
+                    <View style={[styles.modalStatCard, { backgroundColor: '#fff3e0' }]}>
+                      <Text style={styles.modalStatIcon}>🚗</Text>
+                      <Text style={[styles.modalStatValue, { color: '#ff9800' }]}>{selectedEmployee.check_in_km || 0}</Text>
+                      <Text style={styles.modalStatLabel}>Start KM</Text>
+                    </View>
+                    <View style={[styles.modalStatCard, { backgroundColor: '#fce4ec' }]}>
+                      <Text style={styles.modalStatIcon}>🏁</Text>
+                      <Text style={[styles.modalStatValue, { color: '#e53935' }]}>{selectedEmployee.check_out_km || '--'}</Text>
+                      <Text style={styles.modalStatLabel}>End KM</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.modalStatsRow}>
+                    <View style={[styles.modalStatCard, { backgroundColor: '#f3e5f5' }]}>
+                      <Text style={styles.modalStatIcon}>📏</Text>
+                      <Text style={[styles.modalStatValue, { color: '#9c27b0' }]}>{selectedEmployee.total_km || 0} km</Text>
+                      <Text style={styles.modalStatLabel}>Total KM</Text>
+                    </View>
+                    <View style={[styles.modalStatCard, { backgroundColor: '#e0f2f1' }]}>
+                      <Text style={styles.modalStatIcon}>⏳</Text>
+                      <Text style={[styles.modalStatValue, { color: '#00897b' }]}>{selectedEmployee.hours || '0h 0m'}</Text>
+                      <Text style={styles.modalStatLabel}>Working Hours</Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity style={styles.viewMapBtn} onPress={openEmpVendorMap} activeOpacity={0.7}>
+                    <Text style={styles.viewMapBtnText}>🗺  View Vendor Visits Map</Text>
+                  </TouchableOpacity>
                 </View>
               ) : null}
             </ScrollView>
@@ -457,7 +563,6 @@ var styles = StyleSheet.create({
   statCount: { color: '#fff', fontSize: 18, fontWeight: '900' },
   statLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '600', marginTop: 2 },
   statDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 12 },
-  body: { flex: 1 },
   bodyContent: { padding: 16, paddingBottom: 30 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 14, fontWeight: '700', color: '#999', marginTop: 12 },
@@ -471,13 +576,27 @@ var styles = StyleSheet.create({
   empName: { fontSize: 15, fontWeight: '700', color: '#333' },
   empDesig: { fontSize: 12, color: '#777', marginTop: 2 },
   empHq: { fontSize: 11, color: '#999', marginTop: 1 },
+  empMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  empMetaText: { fontSize: 10, color: '#888', fontWeight: '600' },
+  empMetaDot: { fontSize: 10, color: '#ccc' },
+  empMetaSep: { fontSize: 10, color: '#ddd' },
   empRight: { alignItems: 'flex-end' },
   empStatusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   empStatusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
   empStatusText: { fontSize: 11, fontWeight: '700' },
+  empDateText: { fontSize: 10, color: '#999', marginTop: 4 },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 },
+  emptyText: { fontSize: 15, color: '#999', fontWeight: '600' },
+  footerLoader: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16 },
+  footerText: { fontSize: 12, color: '#999', marginLeft: 8 },
+  paginationBar: {
+    backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 20, alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: '#f0f0f0',
+  },
+  paginationText: { fontSize: 12, color: '#888', fontWeight: '600' },
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 22, maxHeight: '80%' },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 22, maxHeight: '85%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
   modalTitle: { fontSize: 20, fontWeight: '800', color: '#1a1a2e' },
   modalClose: { fontSize: 22, color: '#999', fontWeight: '700', padding: 4 },
@@ -490,11 +609,15 @@ var styles = StyleSheet.create({
   modalDetailIcon: { fontSize: 22, marginRight: 14 },
   modalDetailLabel: { fontSize: 12, color: '#999', fontWeight: '600' },
   modalDetailValue: { fontSize: 15, fontWeight: '700', color: '#333', marginTop: 2 },
-  modalStatsRow: { flexDirection: 'row', marginTop: 18, gap: 12 },
-  modalStatCard: { flex: 1, borderRadius: 16, padding: 16, alignItems: 'center' },
-  modalStatIcon: { fontSize: 24, marginBottom: 6 },
-  modalStatValue: { fontSize: 22, fontWeight: '900' },
+  modalStatsRow: { flexDirection: 'row', marginTop: 12, gap: 12 },
+  modalStatCard: { flex: 1, borderRadius: 16, padding: 14, alignItems: 'center' },
+  modalStatIcon: { fontSize: 22, marginBottom: 4 },
+  modalStatValue: { fontSize: 18, fontWeight: '900' },
   modalStatLabel: { fontSize: 11, color: '#666', fontWeight: '600', marginTop: 4 },
+  viewMapBtn: {
+    backgroundColor: '#1a1a2e', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 18, marginBottom: 10,
+  },
+  viewMapBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   // Emp Map Modal
   empMapHeader: {
     backgroundColor: '#1a1a2e', paddingTop: 50, paddingBottom: 18, paddingHorizontal: 25,
