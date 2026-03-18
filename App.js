@@ -13,6 +13,8 @@ import DailyAllowanceScreen from './src/screens/DailyAllowanceScreen';
 import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
 import VisitsScreen from './src/screens/VisitsScreen';
 import VendorMapScreen from './src/screens/VendorMapScreen';
+import AdminEmployeeListScreen from './src/screens/AdminEmployeeListScreen';
+import AdminAttendanceListScreen from './src/screens/AdminAttendanceListScreen';
 
 const SESSION_KEY = 'user_session';
 
@@ -75,6 +77,26 @@ export default function App() {
         onGoToDailyAllowance={() => setScreen('dailyAllowance')}
         onGoToVisits={() => setScreen('visits')}
         onGoToVendorMap={() => setScreen('vendorMap')}
+        onGoToEmployeeList={() => setScreen('adminEmployeeList')}
+        onGoToAttendanceList={() => setScreen('adminAttendanceList')}
+      />
+    );
+  }
+
+  if (screen === 'adminEmployeeList') {
+    return (
+      <AdminEmployeeListScreen
+        user={user}
+        onGoBack={() => setScreen(homeDashboard)}
+      />
+    );
+  }
+
+  if (screen === 'adminAttendanceList') {
+    return (
+      <AdminAttendanceListScreen
+        user={user}
+        onGoBack={() => setScreen(homeDashboard)}
       />
     );
   }

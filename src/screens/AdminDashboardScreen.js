@@ -81,7 +81,7 @@ var getImageFile = function(uri, prefix) {
   return { uri: uri, name: prefix + '_' + Date.now() + '.jpg', type: 'image/jpeg' };
 };
 
-export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits, onGoToVendorMap, vendors, onVendorsChange }) {
+export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits, onGoToVendorMap, onGoToEmployeeList, onGoToAttendanceList, vendors, onVendorsChange }) {
   var [activeTab, setActiveTab] = useState('overview');
   var [selectedEmployee, setSelectedEmployee] = useState(null);
   var [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -910,9 +910,14 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
           <View>
             <View style={styles.empSummaryRow}>
               <Text style={styles.empSummaryText}>{employees.length} employees</Text>
+              {employees.length > 5 ? (
+                <TouchableOpacity onPress={onGoToEmployeeList} activeOpacity={0.7}>
+                  <Text style={styles.viewAllText}>View All →</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
 
-            {employees.map(function(emp, index) {
+            {employees.slice(0, 5).map(function(emp, index) {
               var empName = emp.full_name || emp.name || 'Employee';
               var empDesig = emp.designation_name || emp.designation || '';
               var empHq = emp.headquarter_name || emp.hq || '';
@@ -979,8 +984,15 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
               </View>
             </View>
 
-            <Text style={styles.sectionTitle}>Today's Employee Attendance</Text>
-            {employees.map(function(emp, index) {
+            <View style={styles.empSummaryRow}>
+              <Text style={styles.sectionTitle}>Today's Employee Attendance</Text>
+              {employees.length > 5 ? (
+                <TouchableOpacity onPress={onGoToAttendanceList} activeOpacity={0.7}>
+                  <Text style={styles.viewAllText}>View All →</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            {employees.slice(0, 5).map(function(emp, index) {
               var empName = emp.full_name || emp.name || 'Employee';
               var empCheckIn = emp.check_in_time || emp.checkIn || null;
               var empStatus = emp.status ? emp.status.toLowerCase() : (empCheckIn ? 'present' : 'absent');
@@ -1939,11 +1951,19 @@ var styles = StyleSheet.create({
   // Employee list
   empSummaryRow: {
     marginBottom: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   empSummaryText: {
     fontSize: 14,
     color: '#999',
     fontWeight: '600',
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#e53935',
+    fontWeight: '700',
   },
   empCard: {
     backgroundColor: '#fff',
