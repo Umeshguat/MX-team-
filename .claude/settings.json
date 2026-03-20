@@ -14,7 +14,9 @@
       "Bash(adb wait-for-device:*)",
       "Bash(adb logcat:*)",
       "Bash(npx eas-cli:*)",
-      "Bash(./gradlew assembleDebug)"
+      "Bash(./gradlew assembleDebug)",
+      "Bash(mkdir -p android/app/src/main/assets)",
+      "Bash(npx react-native:*)"
     ]
   }
 }
