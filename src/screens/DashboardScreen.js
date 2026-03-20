@@ -11,11 +11,13 @@ import {
   Modal,
   TextInput,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import GPSCameraScreen from '../components/GPSCameraScreen';
+import { extractKmFromImage } from '../utils/ocrHelper';
 
 export default function DashboardScreen({ user, onLogout, vendors, onVendorsChange, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits }) {
   const [checkedIn, setCheckedIn] = useState(false);
@@ -28,6 +30,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   const [modalType, setModalType] = useState('checkin');
   const [kmImage, setKmImage] = useState(null);
   const [kmReading, setKmReading] = useState('');
+  const [ocrLoading, setOcrLoading] = useState(false);
   const [hqName, setHqName] = useState('');
   const [workingTown, setWorkingTown] = useState('');
   const [route, setRoute] = useState('');
@@ -116,6 +119,24 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
     });
   };
 
+  const runOcrOnImage = async (uri) => {
+    setKmImage(uri);
+    setOcrLoading(true);
+    try {
+      const km = await extractKmFromImage(uri);
+      if (km) {
+        setKmReading(km);
+        Alert.alert('KM Detected', 'Odometer reading: ' + km + ' km\n\nYou can edit if incorrect.');
+      } else {
+        Alert.alert('OCR', 'Could not detect KM from image. Please enter manually.');
+      }
+    } catch (e) {
+      console.log('OCR failed:', e);
+      Alert.alert('OCR Error', 'Could not read image. Please enter KM manually.');
+    }
+    setOcrLoading(false);
+  };
+
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -123,7 +144,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         quality: 0.8,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setKmImage(result.assets[0].uri);
+        runOcrOnImage(result.assets[0].uri);
       }
     } catch (e) {
       Alert.alert('Error', 'Could not open gallery');
@@ -142,7 +163,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         quality: 0.8,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setKmImage(result.assets[0].uri);
+        runOcrOnImage(result.assets[0].uri);
       }
     } catch (e) {
       Alert.alert('Error', 'Could not open camera');
@@ -152,6 +173,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   const resetModalFields = () => {
     setKmImage(null);
     setKmReading('');
+    setOcrLoading(false);
     setHqName('');
     setWorkingTown('');
     setRoute('');
@@ -638,15 +660,20 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                 </View>
               )}
 
-              <Text style={styles.modalLabel}>KM Reading</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter KM reading"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                value={kmReading}
-                onChangeText={setKmReading}
-              />
+              <Text style={styles.modalLabel}>KM Reading {ocrLoading ? '(Reading from image...)' : ''}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <TextInput
+                  style={[styles.modalInput, { flex: 1 }]}
+                  placeholder={ocrLoading ? 'Detecting KM...' : 'Enter KM reading'}
+                  placeholderTextColor="#999"
+                  keyboardType="numeric"
+                  value={kmReading}
+                  onChangeText={setKmReading}
+                />
+                {ocrLoading ? (
+                  <ActivityIndicator size="small" color="#e53935" style={{ marginLeft: 10 }} />
+                ) : null}
+              </View>
 
               <Text style={styles.modalLabel}>HQ Name</Text>
               <TextInput
