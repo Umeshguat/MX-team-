@@ -40,7 +40,7 @@
           "photosPermission": "The app needs access to your photos to upload images."
         }
       ],
-[
+      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "The app needs your location to stamp GPS info on photos.",

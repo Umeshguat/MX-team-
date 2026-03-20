@@ -12,7 +12,9 @@
       "Bash(adb kill-server:*)",
       "Bash(adb start-server:*)",
       "Bash(adb wait-for-device:*)",
-      "Bash(adb logcat:*)"
+      "Bash(adb logcat:*)",
+      "Bash(npx eas-cli:*)",
+      "Bash(./gradlew assembleDebug)"
     ]
   }
 }
