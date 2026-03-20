@@ -17,6 +17,8 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { WebView } from 'react-native-webview';
+import GPSCameraScreen from '../components/GPSCameraScreen';
+import { extractKmFromImage } from '../utils/ocrHelper';
 
 var SAMPLE_EMPLOYEES = [
   { id: '1', name: 'Rahul Sharma', designation: 'Sales Executive', hq: 'Delhi', phone: '9876543210', status: 'present', checkIn: '09:15 AM', vendors: 4, allowance: 850 },
@@ -97,6 +99,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   var [checkModalType, setCheckModalType] = useState('checkin');
   var [kmImage, setKmImage] = useState(null);
   var [kmReading, setKmReading] = useState('');
+  var [ocrLoading, setOcrLoading] = useState(false);
   var [hqName, setHqName] = useState('');
   var [workingTown, setWorkingTown] = useState('');
   var [route, setRoute] = useState('');
@@ -111,6 +114,10 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   var [otherBillImage, setOtherBillImage] = useState(null);
   var [otherBillAmount, setOtherBillAmount] = useState('');
   var [otherBillDescription, setOtherBillDescription] = useState('');
+
+  // GPS Camera state
+  var [showGPSCamera, setShowGPSCamera] = useState(false);
+  var [gpsCameraTarget, setGpsCameraTarget] = useState(null);
 
   // Vendor visit state
   var [showVendorModal, setShowVendorModal] = useState(false);
@@ -355,14 +362,35 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
       '<\/script></body></html>';
   };
 
-  // Image picker functions
+  // OCR helper - extract KM from image
+  var runOcrOnImage = function(uri) {
+    setKmImage(uri);
+    setOcrLoading(true);
+    extractKmFromImage(uri)
+      .then(function(km) {
+        if (km) {
+          setKmReading(km);
+          Alert.alert('KM Detected', 'Odometer reading: ' + km + ' km\n\nYou can edit if incorrect.');
+        } else {
+          Alert.alert('OCR', 'Could not detect KM from image. Please enter manually.');
+        }
+        setOcrLoading(false);
+      })
+      .catch(function(e) {
+        console.log('OCR failed:', e);
+        Alert.alert('OCR Error', 'Could not read image. Please enter KM manually.');
+        setOcrLoading(false);
+      });
+  };
+
+  // Image picker functions with OCR
   var pickImage = function() {
     ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
       quality: 0.8,
     }).then(function(result) {
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setKmImage(result.assets[0].uri);
+        runOcrOnImage(result.assets[0].uri);
       }
     }).catch(function() {
       Alert.alert('Error', 'Could not open gallery');
@@ -380,7 +408,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
         quality: 0.8,
       }).then(function(result) {
         if (!result.canceled && result.assets && result.assets.length > 0) {
-          setKmImage(result.assets[0].uri);
+          runOcrOnImage(result.assets[0].uri);
         }
       }).catch(function() {
         Alert.alert('Error', 'Could not open camera');
@@ -388,24 +416,20 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
     });
   };
 
+  // GPS Camera selfie
   var takeSelfie = function() {
-    ImagePicker.requestCameraPermissionsAsync().then(function(permission) {
-      if (!permission.granted) {
-        Alert.alert('Permission needed', 'Camera permission is required');
-        return;
-      }
-      ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        quality: 0.8,
-        cameraType: ImagePicker.CameraType.front,
-      }).then(function(result) {
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-          setSelfieImage(result.assets[0].uri);
-        }
-      }).catch(function() {
-        Alert.alert('Error', 'Could not open camera');
-      });
-    });
+    setGpsCameraTarget('selfie');
+    setShowGPSCamera(true);
+  };
+
+  var onGPSCameraCapture = function(uri) {
+    if (gpsCameraTarget === 'selfie') {
+      setSelfieImage(uri);
+    } else if (gpsCameraTarget === 'vendor') {
+      setVendorSelfie(uri);
+    }
+    setShowGPSCamera(false);
+    setGpsCameraTarget(null);
   };
 
   var pickSelfie = function() {
@@ -424,14 +448,19 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   var resetCheckFields = function() {
     setKmImage(null);
     setKmReading('');
+    setOcrLoading(false);
     setHqName('');
     setWorkingTown('');
     setRoute('');
     setSelfieImage(null);
     setOutOfTown(false);
     setStayBillImage(null);
+    setStayBillAmount('');
     setFoodBillImage(null);
+    setFoodBillAmount('');
     setOtherBillImage(null);
+    setOtherBillAmount('');
+    setOtherBillDescription('');
   };
 
   var pickBillImage = function(setter) {
@@ -588,22 +617,8 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   };
 
   var takeVendorSelfie = function() {
-    ImagePicker.requestCameraPermissionsAsync().then(function(permission) {
-      if (!permission.granted) {
-        Alert.alert('Permission needed', 'Camera permission is required');
-        return;
-      }
-      ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        quality: 0.8,
-      }).then(function(result) {
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-          setVendorSelfie(result.assets[0].uri);
-        }
-      }).catch(function() {
-        Alert.alert('Error', 'Could not open camera');
-      });
-    });
+    setGpsCameraTarget('vendor');
+    setShowGPSCamera(true);
   };
 
   var submitVendor = async function() {
@@ -1233,7 +1248,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
               {kmImage ? (
                 <View style={styles.imagePreviewWrapper}>
                   <Image source={{ uri: kmImage }} style={styles.imagePreview} />
-                  <TouchableOpacity style={styles.removeImageBtn} onPress={function() { setKmImage(null); }}>
+                  <TouchableOpacity style={styles.removeImageBtn} onPress={function() { setKmImage(null); setKmReading(''); }}>
                     <Text style={styles.removeImageText}>✕</Text>
                   </TouchableOpacity>
                 </View>
@@ -1251,6 +1266,12 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
               )}
 
               <Text style={styles.checkModalLabel}>KM Reading</Text>
+              {ocrLoading ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <ActivityIndicator size="small" color="#1976d2" />
+                  <Text style={{ marginLeft: 8, color: '#1976d2', fontSize: 13 }}>Reading odometer...</Text>
+                </View>
+              ) : null}
               <TextInput
                 style={styles.checkModalInput}
                 placeholder="Enter KM reading"
@@ -1518,6 +1539,18 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
             </ScrollView>
           </View>
         </View>
+      </Modal>
+
+      {/* GPS Camera Modal */}
+      <Modal
+        visible={showGPSCamera}
+        animationType="slide"
+        onRequestClose={function() { setShowGPSCamera(false); setGpsCameraTarget(null); }}
+      >
+        <GPSCameraScreen
+          onCapture={onGPSCameraCapture}
+          onClose={function() { setShowGPSCamera(false); setGpsCameraTarget(null); }}
+        />
       </Modal>
     </View>
   );
