@@ -10,6 +10,7 @@ import {
   Dimensions,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -24,6 +25,7 @@ export default function SignUpScreen({ onGoToLogin }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
   const [secureConfirm, setSecureConfirm] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const designations = [
     'Sales Executive',
@@ -39,6 +41,7 @@ export default function SignUpScreen({ onGoToLogin }) {
   ];
 
   const handleSignUp = () => {
+    if (loading) return;
     if (!fullName.trim() || !email.trim() || !designation || !headquarter.trim() || !phone.trim() || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
@@ -54,8 +57,9 @@ export default function SignUpScreen({ onGoToLogin }) {
       return;
     }
 
+    setLoading(true);
     Alert.alert('Success', 'Account created successfully!', [
-      { text: 'OK', onPress: onGoToLogin },
+      { text: 'OK', onPress: () => { setLoading(false); onGoToLogin(); } },
     ]);
   };
 
@@ -189,11 +193,16 @@ export default function SignUpScreen({ onGoToLogin }) {
 
           {/* Sign Up Button */}
           <TouchableOpacity
-            style={styles.signupBtn}
+            style={[styles.signupBtn, loading && styles.signupBtnDisabled]}
             onPress={handleSignUp}
             activeOpacity={0.8}
+            disabled={loading}
           >
-            <Text style={styles.signupBtnText}>SIGN UP</Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.signupBtnText}>SIGN UP</Text>
+            )}
           </TouchableOpacity>
 
           {/* Divider */}

@@ -60,6 +60,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
   var [foodAmount, setFoodAmount] = useState('');
   var [fareAmount, setFareAmount] = useState('');
   var [remarks, setRemarks] = useState('');
+  var [submitting, setSubmitting] = useState(false);
 
   var kmDistance = (kmStart && kmEnd && Number(kmEnd) > Number(kmStart))
     ? Number(kmEnd) - Number(kmStart) : 0;
@@ -132,6 +133,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
   };
 
   var submitAllowance = function() {
+    if (submitting) return;
     if (!kmStart.trim() || !kmEnd.trim()) {
       Alert.alert('Error', 'Please enter KM start and end readings');
       return;
@@ -145,10 +147,12 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
       return;
     }
 
+    setSubmitting(true);
     Alert.alert('Success', 'Daily allowance submitted for approval!');
     setShowAddModal(false);
     resetForm();
     fetchDailyAllowance();
+    setSubmitting(false);
   };
 
   var fullName = user && user.fullName ? user.fullName : 'Employee';
@@ -387,11 +391,16 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
               </View>
 
               <TouchableOpacity
-                style={styles.submitBtn}
+                style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
                 onPress={submitAllowance}
                 activeOpacity={0.8}
+                disabled={submitting}
               >
-                <Text style={styles.submitBtnText}>SUBMIT ALLOWANCE</Text>
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitBtnText}>SUBMIT ALLOWANCE</Text>
+                )}
               </TouchableOpacity>
             </ScrollView>
           </View>

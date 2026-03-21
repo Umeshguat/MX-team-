@@ -126,6 +126,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   var [vendorNote, setVendorNote] = useState('');
   var [vendorSelfie, setVendorSelfie] = useState(null);
   var [isOnboarded, setIsOnboarded] = useState(null);
+  var [submitting, setSubmitting] = useState(false);
 
   var [showEmpVendorMap, setShowEmpVendorMap] = useState(false);
   var [empVendorVisits, setEmpVendorVisits] = useState([]);
@@ -496,6 +497,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   };
 
   var submitCheckModal = async function() {
+    if (submitting) return;
     if (checkModalType === 'checkin' && !selfieImage) {
       Alert.alert('Error', 'Please take a selfie for check-in');
       return;
@@ -509,6 +511,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
       return;
     }
 
+    setSubmitting(true);
     try {
       var permResult = await Location.requestForegroundPermissionsAsync();
       if (permResult.status !== 'granted') {
@@ -599,6 +602,8 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
     } catch (e) {
       console.log(checkModalType + ' error:', e);
       Alert.alert('Error', 'Failed to ' + checkModalType + ': ' + e.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -622,6 +627,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   };
 
   var submitVendor = async function() {
+    if (submitting) return;
     if (!vendorName.trim()) {
       Alert.alert('Error', 'Please enter vendor name');
       return;
@@ -635,6 +641,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
       return;
     }
 
+    setSubmitting(true);
     try {
       var permResult = await Location.requestForegroundPermissionsAsync();
       if (permResult.status !== 'granted') {
@@ -698,6 +705,8 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
     } catch (e) {
       console.log('Vendor submit error:', e);
       Alert.alert('Error', 'Failed to submit vendor visit: ' + e.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -1425,13 +1434,18 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
               ) : null}
 
               <TouchableOpacity
-                style={[styles.checkSubmitBtn, checkModalType === 'checkout' && styles.checkSubmitBtnCheckout]}
+                style={[styles.checkSubmitBtn, checkModalType === 'checkout' && styles.checkSubmitBtnCheckout, submitting && { opacity: 0.7 }]}
                 onPress={submitCheckModal}
                 activeOpacity={0.8}
+                disabled={submitting}
               >
-                <Text style={styles.checkSubmitText}>
-                  {checkModalType === 'checkin' ? 'CHECK IN' : 'CHECK OUT'}
-                </Text>
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.checkSubmitText}>
+                    {checkModalType === 'checkin' ? 'CHECK IN' : 'CHECK OUT'}
+                  </Text>
+                )}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -1530,11 +1544,16 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
               </View>
 
               <TouchableOpacity
-                style={styles.vendorSubmitBtn}
+                style={[styles.vendorSubmitBtn, submitting && { opacity: 0.7 }]}
                 onPress={submitVendor}
                 activeOpacity={0.8}
+                disabled={submitting}
               >
-                <Text style={styles.checkSubmitText}>ADD VENDOR VISIT</Text>
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.checkSubmitText}>ADD VENDOR VISIT</Text>
+                )}
               </TouchableOpacity>
             </ScrollView>
           </View>

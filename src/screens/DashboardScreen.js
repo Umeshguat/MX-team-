@@ -54,6 +54,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   const [vendorNote, setVendorNote] = useState('');
   const [vendorSelfie, setVendorSelfie] = useState(null);
   const [isOnboarded, setIsOnboarded] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchDashboard = async () => {
     try {
@@ -221,6 +222,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   };
 
   const submitModal = async () => {
+    if (submitting) return;
     if (modalType === 'checkin' && !selfieImage) {
       Alert.alert('Error', 'Please take a selfie for check-in');
       return;
@@ -234,6 +236,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       return;
     }
 
+    setSubmitting(true);
     console.log('=== CHECK-IN/OUT IMAGE FILES ===');
     console.log('selfie_image URI:', selfieImage);
     console.log('selfie_image file:', selfieImage ? JSON.stringify(getImageFile(selfieImage, 'selfie')) : 'none');
@@ -345,6 +348,8 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
     } catch (e) {
       console.log(modalType + ' error:', e);
       Alert.alert('Error', 'Failed to ' + modalType + ': ' + e.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -378,6 +383,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   };
 
   const submitVendor = async () => {
+    if (submitting) return;
     if (!vendorName.trim()) {
       Alert.alert('Error', 'Please enter vendor name');
       return;
@@ -391,6 +397,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       return;
     }
 
+    setSubmitting(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -463,6 +470,8 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
     } catch (e) {
       console.log('Vendor submit error:', e);
       Alert.alert('Error', 'Failed to submit vendor visit: ' + e.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -767,13 +776,18 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               ) : null}
 
               <TouchableOpacity
-                style={[styles.modalSubmitBtn, modalType === 'checkout' && styles.modalSubmitBtnCheckout]}
+                style={[styles.modalSubmitBtn, modalType === 'checkout' && styles.modalSubmitBtnCheckout, submitting && { opacity: 0.7 }]}
                 onPress={submitModal}
                 activeOpacity={0.8}
+                disabled={submitting}
               >
-                <Text style={styles.modalSubmitText}>
-                  {modalType === 'checkin' ? 'CHECK IN' : 'CHECK OUT'}
-                </Text>
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalSubmitText}>
+                    {modalType === 'checkin' ? 'CHECK IN' : 'CHECK OUT'}
+                  </Text>
+                )}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -871,11 +885,16 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               </View>
 
               <TouchableOpacity
-                style={styles.vendorSubmitBtn}
+                style={[styles.vendorSubmitBtn, submitting && { opacity: 0.7 }]}
                 onPress={submitVendor}
                 activeOpacity={0.8}
+                disabled={submitting}
               >
-                <Text style={styles.modalSubmitText}>ADD VENDOR VISIT</Text>
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalSubmitText}>ADD VENDOR VISIT</Text>
+                )}
               </TouchableOpacity>
             </ScrollView>
           </View>

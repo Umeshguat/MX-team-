@@ -18,7 +18,8 @@
       "Bash(mkdir -p android/app/src/main/assets)",
       "Bash(npx react-native:*)",
       "Read(//e/project_after_1_dec_2025/**)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\salesmens/src' -type f \\\\\\(-name *.js -o -name *.tsx -o -name *.ts -o -name *.jsx \\\\\\))"
     ]
   }
 }
