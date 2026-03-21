@@ -16,7 +16,9 @@
       "Bash(npx eas-cli:*)",
       "Bash(./gradlew assembleDebug)",
       "Bash(mkdir -p android/app/src/main/assets)",
-      "Bash(npx react-native:*)"
+      "Bash(npx react-native:*)",
+      "Read(//e/project_after_1_dec_2025/**)",
+      "Bash(xargs grep:*)"
     ]
   }
 }
