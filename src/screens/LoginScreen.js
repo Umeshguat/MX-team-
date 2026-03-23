@@ -10,6 +10,8 @@ import {
   Alert,
   Dimensions,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -75,10 +77,15 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         bounces={false}
+        showsVerticalScrollIndicator={false}
       >
         {/* Top gradient-like background */}
         <View style={styles.topSection}>
@@ -162,6 +169,7 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -219,6 +227,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 35,
     paddingHorizontal: 30,
     paddingTop: 35,
+    paddingBottom: 40,
   },
   cardTitle: {
     fontSize: 24,
