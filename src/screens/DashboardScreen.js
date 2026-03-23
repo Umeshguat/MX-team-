@@ -844,10 +844,6 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                     <Text style={styles.uploadIcon}>📷</Text>
                     <Text style={styles.uploadText}>Camera</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.uploadBtn} onPress={pickVendorSelfie}>
-                    <Text style={styles.uploadIcon}>🖼</Text>
-                    <Text style={styles.uploadText}>Gallery</Text>
-                  </TouchableOpacity>
                 </View>
               )}
 
