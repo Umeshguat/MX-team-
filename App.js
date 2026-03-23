@@ -15,8 +15,15 @@ import VisitsScreen from './src/screens/VisitsScreen';
 import VendorMapScreen from './src/screens/VendorMapScreen';
 import AdminEmployeeListScreen from './src/screens/AdminEmployeeListScreen';
 import AdminAttendanceListScreen from './src/screens/AdminAttendanceListScreen';
+import InventoryDashboardScreen from './src/screens/InventoryDashboardScreen';
 
 const SESSION_KEY = 'user_session';
+
+function getHomeDashboard(role) {
+  if (role === 'admin') return 'adminDashboard';
+  if (role === 'Warehouse') return 'inventory';
+  return 'dashboard';
+}
 
 export default function App() {
   const [screen, setScreen] = useState('loading');
@@ -30,7 +37,7 @@ export default function App() {
         if (data) {
           const userData = JSON.parse(data);
           setUser(userData);
-          setScreen(userData.role === 'admin' ? 'adminDashboard' : 'dashboard');
+          setScreen(getHomeDashboard(userData.role));
         } else {
           setScreen('login');
         }
@@ -44,7 +51,7 @@ export default function App() {
   const handleLogin = (userData) => {
     AsyncStorage.setItem(SESSION_KEY, JSON.stringify(userData)).catch(() => {});
     setUser(userData);
-    setScreen(userData.role === 'admin' ? 'adminDashboard' : 'dashboard');
+    setScreen(getHomeDashboard(userData.role));
   };
 
   // Clear session on logout
@@ -55,7 +62,7 @@ export default function App() {
   };
 
   // Determine which dashboard to go back to
-  const homeDashboard = user && user.role === 'admin' ? 'adminDashboard' : 'dashboard';
+  const homeDashboard = user ? getHomeDashboard(user.role) : 'dashboard';
 
   if (screen === 'loading') {
     return (
@@ -79,6 +86,7 @@ export default function App() {
         onGoToVendorMap={() => setScreen('vendorMap')}
         onGoToEmployeeList={() => setScreen('adminEmployeeList')}
         onGoToAttendanceList={() => setScreen('adminAttendanceList')}
+        onGoToInventory={() => setScreen('inventory')}
       />
     );
   }
@@ -159,6 +167,18 @@ export default function App() {
         onGoToAttendance={() => setScreen('attendance')}
         onGoToDailyAllowance={() => setScreen('dailyAllowance')}
         onGoToVisits={() => setScreen('visits')}
+        onGoToInventory={() => setScreen('inventory')}
+      />
+    );
+  }
+
+  if (screen === 'inventory') {
+    const isWarehouse = user && user.role === 'Warehouse';
+    return (
+      <InventoryDashboardScreen
+        user={user}
+        onGoBack={isWarehouse ? null : () => setScreen(homeDashboard)}
+        onLogout={isWarehouse ? handleLogout : null}
       />
     );
   }

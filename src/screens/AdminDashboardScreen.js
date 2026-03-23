@@ -85,7 +85,7 @@ var getImageFile = function(uri, prefix) {
   return { uri: uri, name: prefix + '_' + Date.now() + '.jpg', type: 'image/jpeg' };
 };
 
-export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits, onGoToVendorMap, onGoToEmployeeList, onGoToAttendanceList, vendors, onVendorsChange }) {
+export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits, onGoToVendorMap, onGoToEmployeeList, onGoToAttendanceList, onGoToInventory, vendors, onVendorsChange }) {
   var [activeTab, setActiveTab] = useState('overview');
   var [selectedEmployee, setSelectedEmployee] = useState(null);
   var [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -803,6 +803,28 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
           </View>
           <Text style={styles.quickActionLabel}>Profile</Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.quickActionsRow}>
+        <TouchableOpacity style={styles.quickActionItem} onPress={onGoToInventory}>
+          <View style={[styles.quickActionIconBox, { backgroundColor: '#e0f7fa' }]}>
+            <Text style={styles.quickActionEmoji}>📦</Text>
+          </View>
+          <Text style={styles.quickActionLabel}>Inventory</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickActionItem} onPress={onGoToEmployeeList}>
+          <View style={[styles.quickActionIconBox, { backgroundColor: '#e8eaf6' }]}>
+            <Text style={styles.quickActionEmoji}>📋</Text>
+          </View>
+          <Text style={styles.quickActionLabel}>Employees</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickActionItem} onPress={onGoToAttendanceList}>
+          <View style={[styles.quickActionIconBox, { backgroundColor: '#fbe9e7' }]}>
+            <Text style={styles.quickActionEmoji}>📊</Text>
+          </View>
+          <Text style={styles.quickActionLabel}>Reports</Text>
+        </TouchableOpacity>
+        <View style={styles.quickActionItem} />
       </View>
 
       {/* Vendor Map Button */}

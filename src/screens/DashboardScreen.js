@@ -21,7 +21,7 @@ import * as Location from 'expo-location';
 import GPSCameraScreen from '../components/GPSCameraScreen';
 import { extractKmFromImage } from '../utils/ocrHelper';
 
-export default function DashboardScreen({ user, onLogout, vendors, onVendorsChange, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits }) {
+export default function DashboardScreen({ user, onLogout, vendors, onVendorsChange, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits, onGoToInventory }) {
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState(null);
   const [checkOutTime, setCheckOutTime] = useState(null);
@@ -595,6 +595,20 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               <Text style={styles.actionEmoji}>👤</Text>
             </View>
             <Text style={styles.actionText}>Profile</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionCard} onPress={onGoToInventory}>
+            <View style={[styles.actionIcon, { backgroundColor: '#f3e5f5' }]}>
+              <Text style={styles.actionEmoji}>📦</Text>
+            </View>
+            <Text style={styles.actionText}>Inventory</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionCard} onPress={onGoToDailyAllowance}>
+            <View style={[styles.actionIcon, { backgroundColor: '#e0f7fa' }]}>
+              <Text style={styles.actionEmoji}>💰</Text>
+            </View>
+            <Text style={styles.actionText}>Allowance</Text>
           </TouchableOpacity>
         </View>
 

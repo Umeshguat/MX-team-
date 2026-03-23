@@ -49,11 +49,18 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
       const data = await response.json();
 
       if (response.ok) {
+        var role = 'employee';
+        if (data.role_name) {
+          var rn = data.role_name.toLowerCase();
+          if (rn === 'admin') role = 'admin';
+          else if (rn === 'warehouse') role = 'Warehouse';
+          else role = 'employee';
+        }
         onLoginSuccess({
           _id: data._id,
           email: data.email || email.trim(),
           fullName: data.full_name || email.trim().split('@')[0],
-          role: data.role_name && data.role_name.toLowerCase() === 'employee' ? 'employee' : 'admin',
+          role: role,
           role_name: data.role_name || '',
           designation: data.designation_name || '',
           headquarter: data.headquarter_name || '',
