@@ -12,6 +12,8 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -266,9 +268,10 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
         animationType="slide"
         onRequestClose={function() { setShowAddModal(false); resetForm(); }}
       >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Add Daily Allowance</Text>
                 <TouchableOpacity onPress={function() { setShowAddModal(false); resetForm(); }}>
@@ -405,6 +408,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* District Dropdown Modal */}

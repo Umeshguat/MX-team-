@@ -12,6 +12,8 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
@@ -1218,9 +1220,10 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
         animationType="slide"
         onRequestClose={function() { setShowCheckModal(false); resetCheckFields(); }}
       >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
                   {checkModalType === 'checkin' ? 'Check In Details' : 'Check Out Details'}
@@ -1245,10 +1248,6 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
                       <Text style={styles.uploadIcon}>🤳</Text>
                       <Text style={styles.uploadText}>Take Selfie</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.uploadBtn} onPress={pickSelfie}>
-                      <Text style={styles.uploadIcon}>🖼</Text>
-                      <Text style={styles.uploadText}>Gallery</Text>
-                    </TouchableOpacity>
                   </View>
                 )}
               </View>
@@ -1266,10 +1265,6 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
                   <TouchableOpacity style={styles.uploadBtn} onPress={takePhoto}>
                     <Text style={styles.uploadIcon}>📷</Text>
                     <Text style={styles.uploadText}>Camera</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.uploadBtn} onPress={pickImage}>
-                    <Text style={styles.uploadIcon}>🖼</Text>
-                    <Text style={styles.uploadText}>Gallery</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -1356,10 +1351,6 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
                         <Text style={styles.uploadIcon}>📷</Text>
                         <Text style={styles.uploadText}>Camera</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={function() { pickBillImage(setStayBillImage); }}>
-                        <Text style={styles.uploadIcon}>🖼</Text>
-                        <Text style={styles.uploadText}>Gallery</Text>
-                      </TouchableOpacity>
                     </View>
                   )}
 
@@ -1385,10 +1376,6 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
                       <TouchableOpacity style={styles.uploadBtn} onPress={function() { takeBillPhoto(setFoodBillImage); }}>
                         <Text style={styles.uploadIcon}>📷</Text>
                         <Text style={styles.uploadText}>Camera</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={function() { pickBillImage(setFoodBillImage); }}>
-                        <Text style={styles.uploadIcon}>🖼</Text>
-                        <Text style={styles.uploadText}>Gallery</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -1424,10 +1411,6 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
                         <Text style={styles.uploadIcon}>📷</Text>
                         <Text style={styles.uploadText}>Camera</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={function() { pickBillImage(setOtherBillImage); }}>
-                        <Text style={styles.uploadIcon}>🖼</Text>
-                        <Text style={styles.uploadText}>Gallery</Text>
-                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -1450,6 +1433,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Visit Vendor Modal */}
@@ -1459,9 +1443,10 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
         animationType="slide"
         onRequestClose={function() { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}
       >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Visit Vendor</Text>
                 <TouchableOpacity onPress={function() { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}>
@@ -1554,6 +1539,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* GPS Camera Modal */}

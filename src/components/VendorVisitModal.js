@@ -11,6 +11,8 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -192,9 +194,10 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
       animationType="slide"
       onRequestClose={handleClose}
     >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Visit Vendor</Text>
               <TouchableOpacity onPress={handleClose}>
@@ -310,6 +313,7 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
           </ScrollView>
         </View>
       </View>
+      </KeyboardAvoidingView>
 
       {/* GPS Map Camera */}
       <Modal

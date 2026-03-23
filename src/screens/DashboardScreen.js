@@ -12,6 +12,8 @@ import {
   TextInput,
   Image,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
@@ -613,9 +615,10 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         animationType="slide"
         onRequestClose={() => { setShowModal(false); resetModalFields(); }}
       >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
                   {modalType === 'checkin' ? 'Check In Details' : 'Check Out Details'}
@@ -640,10 +643,6 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                       <Text style={styles.uploadIcon}>🤳</Text>
                       <Text style={styles.uploadText}>Take Selfie</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.uploadBtn} onPress={pickSelfie}>
-                      <Text style={styles.uploadIcon}>🖼</Text>
-                      <Text style={styles.uploadText}>Gallery</Text>
-                    </TouchableOpacity>
                   </View>
                 )}
               </View>
@@ -661,10 +660,6 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   <TouchableOpacity style={styles.uploadBtn} onPress={takePhoto}>
                     <Text style={styles.uploadIcon}>📷</Text>
                     <Text style={styles.uploadText}>Camera</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.uploadBtn} onPress={pickImage}>
-                    <Text style={styles.uploadIcon}>🖼</Text>
-                    <Text style={styles.uploadText}>Gallery</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -737,7 +732,6 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   ) : (
                     <View style={styles.uploadRow}>
                       <TouchableOpacity style={styles.uploadBtn} onPress={() => takeBillPhoto(setStayBillImage)}><Text style={styles.uploadIcon}>📷</Text><Text style={styles.uploadText}>Camera</Text></TouchableOpacity>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={() => pickBillImage(setStayBillImage)}><Text style={styles.uploadIcon}>🖼</Text><Text style={styles.uploadText}>Gallery</Text></TouchableOpacity>
                     </View>
                   )}
 
@@ -752,7 +746,6 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   ) : (
                     <View style={styles.uploadRow}>
                       <TouchableOpacity style={styles.uploadBtn} onPress={() => takeBillPhoto(setFoodBillImage)}><Text style={styles.uploadIcon}>📷</Text><Text style={styles.uploadText}>Camera</Text></TouchableOpacity>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={() => pickBillImage(setFoodBillImage)}><Text style={styles.uploadIcon}>🖼</Text><Text style={styles.uploadText}>Gallery</Text></TouchableOpacity>
                     </View>
                   )}
 
@@ -769,7 +762,6 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   ) : (
                     <View style={styles.uploadRow}>
                       <TouchableOpacity style={styles.uploadBtn} onPress={() => takeBillPhoto(setOtherBillImage)}><Text style={styles.uploadIcon}>📷</Text><Text style={styles.uploadText}>Camera</Text></TouchableOpacity>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={() => pickBillImage(setOtherBillImage)}><Text style={styles.uploadIcon}>🖼</Text><Text style={styles.uploadText}>Gallery</Text></TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -792,6 +784,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Visit Vendor Modal */}
@@ -801,9 +794,10 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         animationType="slide"
         onRequestClose={() => { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}
       >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Visit Vendor</Text>
                 <TouchableOpacity onPress={() => { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}>
@@ -895,6 +889,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal
