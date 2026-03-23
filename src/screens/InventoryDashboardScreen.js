@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { BASE_URL } from '../config';
 import {
   StyleSheet,
@@ -18,6 +18,89 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+
+// ======================== CALENDAR DATE PICKER ========================
+function CalendarPicker({ value, onSelect, onClose }) {
+  const parsed = value ? new Date(value) : new Date();
+  const [viewYear, setViewYear] = useState(parsed.getFullYear());
+  const [viewMonth, setViewMonth] = useState(parsed.getMonth());
+
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+  const daysInMonth = useMemo(() => new Date(viewYear, viewMonth + 1, 0).getDate(), [viewYear, viewMonth]);
+  const firstDay = useMemo(() => new Date(viewYear, viewMonth, 1).getDay(), [viewYear, viewMonth]);
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
+    else setViewMonth(viewMonth - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
+    else setViewMonth(viewMonth + 1);
+  };
+
+  const selectDate = (day) => {
+    const m = String(viewMonth + 1).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    onSelect(`${viewYear}-${m}-${d}`);
+    onClose();
+  };
+
+  const selectedStr = value || '';
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  return (
+    <View style={calStyles.container}>
+      <View style={calStyles.header}>
+        <TouchableOpacity onPress={prevMonth} style={calStyles.navBtn}><Text style={calStyles.navText}>◀</Text></TouchableOpacity>
+        <Text style={calStyles.monthText}>{MONTHS[viewMonth]} {viewYear}</Text>
+        <TouchableOpacity onPress={nextMonth} style={calStyles.navBtn}><Text style={calStyles.navText}>▶</Text></TouchableOpacity>
+      </View>
+      <View style={calStyles.daysRow}>
+        {DAYS.map((d) => <Text key={d} style={calStyles.dayLabel}>{d}</Text>)}
+      </View>
+      <View style={calStyles.grid}>
+        {cells.map((day, idx) => {
+          if (!day) return <View key={'e' + idx} style={calStyles.cell} />;
+          const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          const isSelected = dateStr === selectedStr;
+          const isToday = dateStr === new Date().toISOString().split('T')[0];
+          return (
+            <TouchableOpacity
+              key={day}
+              style={[calStyles.cell, isSelected && calStyles.cellSelected, isToday && !isSelected && calStyles.cellToday]}
+              onPress={() => selectDate(day)}
+              activeOpacity={0.6}
+            >
+              <Text style={[calStyles.cellText, isSelected && calStyles.cellTextSelected, isToday && !isSelected && calStyles.cellTextToday]}>{day}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const calStyles = StyleSheet.create({
+  container: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e0e0e0', marginTop: 4, marginBottom: 8, padding: 10, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  navBtn: { padding: 6 },
+  navText: { fontSize: 16, color: '#e53935', fontWeight: '700' },
+  monthText: { fontSize: 15, fontWeight: '700', color: '#333' },
+  daysRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 4 },
+  dayLabel: { width: '14.28%', textAlign: 'center', fontSize: 12, fontWeight: '700', color: '#888' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  cell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 20 },
+  cellSelected: { backgroundColor: '#e53935' },
+  cellToday: { backgroundColor: '#fff3e0' },
+  cellText: { fontSize: 14, color: '#333' },
+  cellTextSelected: { color: '#fff', fontWeight: '700' },
+  cellTextToday: { color: '#e65100', fontWeight: '700' },
+});
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -427,6 +510,8 @@ function ProductsTab({ user, refreshing, onRefresh }) {
   const [stockBatchNumber, setStockBatchNumber] = useState('');
   const [stockMfgDate, setStockMfgDate] = useState('');
   const [stockExpDate, setStockExpDate] = useState('');
+  const [showMfgCal, setShowMfgCal] = useState(false);
+  const [showExpCal, setShowExpCal] = useState(false);
   const [stockPurchasePrice, setStockPurchasePrice] = useState('');
   const [stockReference, setStockReference] = useState('');
   const [stockNote, setStockNote] = useState('');
@@ -555,6 +640,8 @@ function ProductsTab({ user, refreshing, onRefresh }) {
     setStockPurchasePrice('');
     setStockReference('');
     setStockNote('');
+    setShowMfgCal(false);
+    setShowExpCal(false);
   };
 
   const submitProduct = async () => {
@@ -936,11 +1023,17 @@ function ProductsTab({ user, refreshing, onRefresh }) {
                     <Text style={styles.modalLabel}>Batch Number *</Text>
                     <TextInput style={styles.modalInput} placeholder="Enter batch number" placeholderTextColor="#999" value={stockBatchNumber} onChangeText={setStockBatchNumber} />
 
-                    <Text style={styles.modalLabel}>Manufacturing Date * (YYYY-MM-DD)</Text>
-                    <TextInput style={styles.modalInput} placeholder="e.g. 2026-01-15" placeholderTextColor="#999" value={stockMfgDate} onChangeText={setStockMfgDate} />
+                    <Text style={styles.modalLabel}>Manufacturing Date *</Text>
+                    <TouchableOpacity style={[styles.modalInput, { justifyContent: 'center' }]} onPress={() => { setShowMfgCal(!showMfgCal); setShowExpCal(false); }} activeOpacity={0.7}>
+                      <Text style={{ fontSize: 15, color: stockMfgDate ? '#333' : '#999' }}>{stockMfgDate || 'Select manufacturing date'}</Text>
+                    </TouchableOpacity>
+                    {showMfgCal && <CalendarPicker value={stockMfgDate} onSelect={setStockMfgDate} onClose={() => setShowMfgCal(false)} />}
 
-                    <Text style={styles.modalLabel}>Expiry Date * (YYYY-MM-DD)</Text>
-                    <TextInput style={styles.modalInput} placeholder="e.g. 2027-01-15" placeholderTextColor="#999" value={stockExpDate} onChangeText={setStockExpDate} />
+                    <Text style={styles.modalLabel}>Expiry Date *</Text>
+                    <TouchableOpacity style={[styles.modalInput, { justifyContent: 'center' }]} onPress={() => { setShowExpCal(!showExpCal); setShowMfgCal(false); }} activeOpacity={0.7}>
+                      <Text style={{ fontSize: 15, color: stockExpDate ? '#333' : '#999' }}>{stockExpDate || 'Select expiry date'}</Text>
+                    </TouchableOpacity>
+                    {showExpCal && <CalendarPicker value={stockExpDate} onSelect={setStockExpDate} onClose={() => setShowExpCal(false)} />}
 
                     <Text style={styles.modalLabel}>Purchase Price *</Text>
                     <TextInput style={styles.modalInput} placeholder="Enter purchase price per unit" placeholderTextColor="#999" value={stockPurchasePrice} onChangeText={setStockPurchasePrice} keyboardType="numeric" />
