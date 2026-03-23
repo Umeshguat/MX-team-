@@ -18,7 +18,6 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import * as ImagePicker from 'expo-image-picker';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -26,7 +25,7 @@ const screenWidth = Dimensions.get('window').width;
 function AlertsTab({ user, refreshing, onRefresh }) {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, low_stock, expiring, out_of_stock
+  const [filter, setFilter] = useState('all'); // all, low_stock, expiring
 
   useEffect(() => {
     fetchAlerts();
@@ -36,32 +35,60 @@ function AlertsTab({ user, refreshing, onRefresh }) {
     try {
       setLoading(true);
       const token = user && user.token ? user.token : '';
-      const response = await fetch(`${BASE_URL}/api/inventory/alerts`, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json',
-        },
-      });
-      const text = await response.text();
-      console.log('Inventory alerts API:', text);
-      const result = JSON.parse(text);
-      if (result.status === 200 && result.data) {
-        setAlerts(result.data);
+      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+      // Fetch both low-stock and near-expiry alerts in parallel
+      const [lowStockRes, expiryRes] = await Promise.all([
+        fetch(`${BASE_URL}/api/inventory/alerts/low-stock`, { headers }),
+        fetch(`${BASE_URL}/api/inventory/alerts/near-expiry?days=60`, { headers }),
+      ]);
+
+      const lowStockData = await lowStockRes.json();
+      const expiryData = await expiryRes.json();
+
+      const combined = [];
+
+      // Map low stock products
+      if (lowStockData.status === 200 && lowStockData.lowStockProducts) {
+        lowStockData.lowStockProducts.forEach((p) => {
+          combined.push({
+            id: p._id,
+            type: p.total_quantity === 0 ? 'out_of_stock' : 'low_stock',
+            product: p.product_name,
+            productCode: p.product_code,
+            currentStock: p.total_quantity,
+            minStock: p.reorder_level,
+            severity: p.total_quantity === 0 ? 'critical' : (p.deficit > 20 ? 'high' : 'medium'),
+            brand: p.brand,
+            category: p.category,
+          });
+        });
       }
+
+      // Map near expiry alerts
+      if (expiryData.status === 200 && expiryData.alerts) {
+        expiryData.alerts.forEach((a) => {
+          a.batches.forEach((b) => {
+            combined.push({
+              id: a._id + '_' + b.batch_id,
+              type: 'expiring',
+              product: a.product_name,
+              productCode: a.product_code,
+              currentStock: b.quantity,
+              expiryDate: b.expiry_date ? b.expiry_date.split('T')[0] : '',
+              daysToExpiry: b.days_to_expiry,
+              batchNumber: b.batch_number,
+              severity: b.days_to_expiry <= 0 ? 'critical' : (b.days_to_expiry <= 15 ? 'high' : (b.days_to_expiry <= 30 ? 'medium' : 'low')),
+              brand: a.brand,
+            });
+          });
+        });
+      }
+
+      setAlerts(combined);
     } catch (e) {
       console.log('Inventory alerts fetch error:', e);
-      // Sample data for UI display
-      setAlerts([
-        { id: '1', type: 'low_stock', product: 'Paracetamol 500mg', currentStock: 15, minStock: 50, severity: 'high', date: '2026-03-23' },
-        { id: '2', type: 'expiring', product: 'Amoxicillin 250mg', currentStock: 200, expiryDate: '2026-04-15', severity: 'medium', date: '2026-03-23' },
-        { id: '3', type: 'out_of_stock', product: 'Vitamin D3 1000IU', currentStock: 0, minStock: 30, severity: 'critical', date: '2026-03-22' },
-        { id: '4', type: 'low_stock', product: 'Cetrizine 10mg', currentStock: 8, minStock: 25, severity: 'high', date: '2026-03-22' },
-        { id: '5', type: 'expiring', product: 'Ibuprofen 400mg', currentStock: 150, expiryDate: '2026-05-01', severity: 'low', date: '2026-03-21' },
-        { id: '6', type: 'out_of_stock', product: 'Omeprazole 20mg', currentStock: 0, minStock: 40, severity: 'critical', date: '2026-03-21' },
-        { id: '7', type: 'low_stock', product: 'Metformin 500mg', currentStock: 12, minStock: 60, severity: 'high', date: '2026-03-20' },
-        { id: '8', type: 'expiring', product: 'Azithromycin 500mg', currentStock: 80, expiryDate: '2026-04-10', severity: 'medium', date: '2026-03-20' },
-      ]);
+      setAlerts([]);
     } finally {
       setLoading(false);
     }
@@ -114,7 +141,6 @@ function AlertsTab({ user, refreshing, onRefresh }) {
     { key: 'out_of_stock', label: 'Out of Stock' },
   ];
 
-  // Summary counts
   const lowStockCount = alerts.filter(a => a.type === 'low_stock').length;
   const expiringCount = alerts.filter(a => a.type === 'expiring').length;
   const outOfStockCount = alerts.filter(a => a.type === 'out_of_stock').length;
@@ -203,7 +229,7 @@ function AlertsTab({ user, refreshing, onRefresh }) {
 function ReportsTab({ user, refreshing, onRefresh }) {
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState(null);
-  const [selectedReport, setSelectedReport] = useState(null);
+  const [agingReport, setAgingReport] = useState([]);
 
   useEffect(() => {
     fetchReportData();
@@ -213,43 +239,46 @@ function ReportsTab({ user, refreshing, onRefresh }) {
     try {
       setLoading(true);
       const token = user && user.token ? user.token : '';
-      const response = await fetch(`${BASE_URL}/api/inventory/reports`, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json',
-        },
-      });
-      const text = await response.text();
-      console.log('Inventory reports API:', text);
-      const result = JSON.parse(text);
-      if (result.status === 200 && result.data) {
-        setReportData(result.data);
+      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+      const [dashRes, agingRes] = await Promise.all([
+        fetch(`${BASE_URL}/api/inventory/dashboard`, { headers }),
+        fetch(`${BASE_URL}/api/inventory/reports/stock-aging`, { headers }),
+      ]);
+
+      const dashData = await dashRes.json();
+      const agingData = await agingRes.json();
+
+      if (dashData.status === 200 && dashData.dashboard) {
+        const d = dashData.dashboard;
+        // Build brand summary for category chart
+        const brandSummary = [];
+        if (d.brandWise) {
+          Object.keys(d.brandWise).forEach((brand) => {
+            brandSummary.push({
+              name: brand,
+              count: d.brandWise[brand].products,
+              quantity: d.brandWise[brand].total_quantity,
+              value: d.brandWise[brand].value,
+            });
+          });
+        }
+        setReportData({
+          totalProducts: d.totalProducts || 0,
+          totalValue: d.totalStockValue || 0,
+          lowStockItems: d.lowStockCount || 0,
+          expiringItems: d.nearExpiryCount || 0,
+          expiredItems: d.expiredCount || 0,
+          brandSummary,
+        });
+      }
+
+      if (agingData.status === 200 && agingData.report) {
+        setAgingReport(agingData.report);
       }
     } catch (e) {
       console.log('Inventory reports fetch error:', e);
-      // Sample data for UI
-      setReportData({
-        totalProducts: 1250,
-        totalValue: 4850000,
-        lowStockItems: 23,
-        expiringItems: 15,
-        categorySummary: [
-          { name: 'Tablets', count: 450, value: 1800000 },
-          { name: 'Capsules', count: 280, value: 1200000 },
-          { name: 'Syrups', count: 180, value: 650000 },
-          { name: 'Injections', count: 120, value: 800000 },
-          { name: 'Ointments', count: 100, value: 200000 },
-          { name: 'Others', count: 120, value: 200000 },
-        ],
-        recentMovements: [
-          { id: '1', product: 'Paracetamol 500mg', type: 'out', quantity: 500, date: '2026-03-23', party: 'MedPlus Pharmacy' },
-          { id: '2', product: 'Amoxicillin 250mg', type: 'in', quantity: 1000, date: '2026-03-22', party: 'PharmaCorp Ltd' },
-          { id: '3', product: 'Vitamin D3', type: 'out', quantity: 200, date: '2026-03-22', party: 'Apollo Pharmacy' },
-          { id: '4', product: 'Cetrizine 10mg', type: 'in', quantity: 800, date: '2026-03-21', party: 'Cipla Distributors' },
-          { id: '5', product: 'Omeprazole 20mg', type: 'out', quantity: 300, date: '2026-03-21', party: 'Wellness Store' },
-        ],
-      });
+      setReportData(null);
     } finally {
       setLoading(false);
     }
@@ -311,37 +340,18 @@ function ReportsTab({ user, refreshing, onRefresh }) {
         </View>
       </View>
 
-      {/* Report Menu Grid */}
-      <Text style={styles.sectionTitle}>Reports</Text>
-      <View style={styles.reportMenuGrid}>
-        {reportMenus.map((menu) => (
-          <TouchableOpacity
-            key={menu.key}
-            style={styles.reportMenuItem}
-            onPress={() => setSelectedReport(selectedReport === menu.key ? null : menu.key)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.reportMenuIcon, { backgroundColor: menu.color }]}>
-              <Text style={styles.reportMenuEmoji}>{menu.icon}</Text>
-            </View>
-            <Text style={styles.reportMenuLabel}>{menu.label}</Text>
-            <Text style={styles.reportMenuDesc}>{menu.desc}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Category Summary */}
-      {reportData && reportData.categorySummary ? (
+      {/* Brand Summary */}
+      {reportData && reportData.brandSummary && reportData.brandSummary.length > 0 ? (
         <>
-          <Text style={styles.sectionTitle}>Category Breakdown</Text>
-          {reportData.categorySummary.map((cat, idx) => {
-            const maxCount = Math.max(...reportData.categorySummary.map(c => c.count));
+          <Text style={styles.sectionTitle}>Brand Breakdown</Text>
+          {reportData.brandSummary.map((cat, idx) => {
+            const maxCount = Math.max(...reportData.brandSummary.map(c => c.count), 1);
             const barWidth = (cat.count / maxCount) * 100;
             return (
               <View key={idx} style={styles.categoryRow}>
                 <View style={styles.categoryInfo}>
                   <Text style={styles.categoryName}>{cat.name}</Text>
-                  <Text style={styles.categoryCount}>{cat.count} items</Text>
+                  <Text style={styles.categoryCount}>{cat.count} products | {cat.quantity} units</Text>
                 </View>
                 <View style={styles.categoryBarBg}>
                   <View style={[styles.categoryBar, { width: barWidth + '%' }]} />
@@ -353,27 +363,46 @@ function ReportsTab({ user, refreshing, onRefresh }) {
         </>
       ) : null}
 
-      {/* Recent Movements */}
-      {reportData && reportData.recentMovements ? (
+      {/* Stock Aging Report */}
+      {agingReport.length > 0 ? (
         <>
-          <Text style={styles.sectionTitle}>Recent Stock Movements</Text>
-          {reportData.recentMovements.map((mov) => (
-            <View key={mov.id} style={styles.movementCard}>
-              <View style={[styles.movementIcon, { backgroundColor: mov.type === 'in' ? '#e8f5e9' : '#ffebee' }]}>
-                <Text style={styles.movementArrow}>{mov.type === 'in' ? '↓' : '↑'}</Text>
-              </View>
+          <Text style={styles.sectionTitle}>Stock Aging Report</Text>
+          {agingReport.map((item) => (
+            <View key={item._id} style={styles.movementCard}>
               <View style={styles.movementInfo}>
-                <Text style={styles.movementProduct} numberOfLines={1}>{mov.product}</Text>
-                <Text style={styles.movementParty}>{mov.party}</Text>
+                <Text style={styles.movementProduct} numberOfLines={1}>{item.product_name}</Text>
+                <Text style={styles.movementParty}>{item.product_code} | {item.category}</Text>
               </View>
-              <View style={styles.movementRight}>
-                <Text style={[styles.movementQty, { color: mov.type === 'in' ? '#4caf50' : '#e53935' }]}>
-                  {mov.type === 'in' ? '+' : '-'}{mov.quantity}
-                </Text>
-                <Text style={styles.movementDate}>{mov.date}</Text>
+              <View style={styles.agingBadges}>
+                {item.aging.green.total_qty > 0 ? (
+                  <View style={[styles.agingBadge, { backgroundColor: '#e8f5e9' }]}>
+                    <Text style={[styles.agingBadgeText, { color: '#4caf50' }]}>{item.aging.green.total_qty}</Text>
+                  </View>
+                ) : null}
+                {item.aging.yellow.total_qty > 0 ? (
+                  <View style={[styles.agingBadge, { backgroundColor: '#fff3e0' }]}>
+                    <Text style={[styles.agingBadgeText, { color: '#ff9800' }]}>{item.aging.yellow.total_qty}</Text>
+                  </View>
+                ) : null}
+                {item.aging.red.total_qty > 0 ? (
+                  <View style={[styles.agingBadge, { backgroundColor: '#ffebee' }]}>
+                    <Text style={[styles.agingBadgeText, { color: '#e53935' }]}>{item.aging.red.total_qty}</Text>
+                  </View>
+                ) : null}
+                {item.aging.expired.total_qty > 0 ? (
+                  <View style={[styles.agingBadge, { backgroundColor: '#f5f5f5' }]}>
+                    <Text style={[styles.agingBadgeText, { color: '#999' }]}>{item.aging.expired.total_qty}</Text>
+                  </View>
+                ) : null}
               </View>
             </View>
           ))}
+          <View style={styles.agingLegend}>
+            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: '#4caf50' }]} /><Text style={styles.agingLegendText}>Good</Text></View>
+            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: '#ff9800' }]} /><Text style={styles.agingLegendText}>{'<60d'}</Text></View>
+            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: '#e53935' }]} /><Text style={styles.agingLegendText}>{'<30d'}</Text></View>
+            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: '#999' }]} /><Text style={styles.agingLegendText}>Expired</Text></View>
+          </View>
         </>
       ) : null}
     </ScrollView>
@@ -391,15 +420,26 @@ function ProductsTab({ user, refreshing, onRefresh }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Stock In/Out modal
+  const [showStockModal, setShowStockModal] = useState(false);
+  const [stockModalType, setStockModalType] = useState('in'); // 'in' or 'out'
+  const [stockQty, setStockQty] = useState('');
+  const [stockBatchNumber, setStockBatchNumber] = useState('');
+  const [stockMfgDate, setStockMfgDate] = useState('');
+  const [stockExpDate, setStockExpDate] = useState('');
+  const [stockPurchasePrice, setStockPurchasePrice] = useState('');
+  const [stockReference, setStockReference] = useState('');
+  const [stockNote, setStockNote] = useState('');
+
   // Add product form states
   const [productName, setProductName] = useState('');
   const [productSKU, setProductSKU] = useState('');
   const [productCategory, setProductCategory] = useState('');
+  const [productBrand, setProductBrand] = useState('');
   const [productPrice, setProductPrice] = useState('');
-  const [productStock, setProductStock] = useState('');
   const [productMinStock, setProductMinStock] = useState('');
   const [productUnit, setProductUnit] = useState('');
-  const [productImage, setProductImage] = useState(null);
+  const [productShelfLife, setProductShelfLife] = useState('');
   const [productDescription, setProductDescription] = useState('');
 
   useEffect(() => {
@@ -411,35 +451,39 @@ function ProductsTab({ user, refreshing, onRefresh }) {
       setLoading(true);
       const token = user && user.token ? user.token : '';
       const response = await fetch(`${BASE_URL}/api/inventory/products`, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       });
-      const text = await response.text();
-      console.log('Inventory products API:', text);
-      const result = JSON.parse(text);
-      if (result.status === 200 && result.data) {
-        setProducts(result.data);
+      const result = await response.json();
+      console.log('Inventory products API:', JSON.stringify(result).substring(0, 200));
+      if (result.status === 200 && result.products) {
+        // Map backend fields to UI fields
+        const mapped = result.products.map((p) => {
+          var status = 'in_stock';
+          if (p.total_quantity === 0) status = 'out_of_stock';
+          else if (p.total_quantity <= p.reorder_level) status = 'low_stock';
+          return {
+            id: p._id,
+            name: p.product_name,
+            sku: p.product_code,
+            brand: p.brand,
+            category: p.category,
+            price: p.selling_price,
+            stock: p.total_quantity,
+            minStock: p.reorder_level,
+            unit: p.unit,
+            status: status,
+            description: p.description,
+            shelfLife: p.shelf_life_days,
+            batches: p.batches,
+            image: p.image,
+            is_active: p.is_active,
+          };
+        });
+        setProducts(mapped);
       }
     } catch (e) {
       console.log('Inventory products fetch error:', e);
-      // Sample data for UI
-      setProducts([
-        { id: '1', name: 'Paracetamol 500mg', sku: 'PCM500', category: 'Tablets', price: 25, stock: 15, minStock: 50, unit: 'strips', status: 'low_stock' },
-        { id: '2', name: 'Amoxicillin 250mg', sku: 'AMX250', category: 'Capsules', price: 85, stock: 200, minStock: 30, unit: 'strips', status: 'in_stock' },
-        { id: '3', name: 'Vitamin D3 1000IU', sku: 'VTD1000', category: 'Tablets', price: 320, stock: 0, minStock: 30, unit: 'bottles', status: 'out_of_stock' },
-        { id: '4', name: 'Cetrizine 10mg', sku: 'CTZ10', category: 'Tablets', price: 35, stock: 8, minStock: 25, unit: 'strips', status: 'low_stock' },
-        { id: '5', name: 'Ibuprofen 400mg', sku: 'IBU400', category: 'Tablets', price: 42, stock: 150, minStock: 20, unit: 'strips', status: 'in_stock' },
-        { id: '6', name: 'Omeprazole 20mg', sku: 'OMP20', category: 'Capsules', price: 65, stock: 0, minStock: 40, unit: 'strips', status: 'out_of_stock' },
-        { id: '7', name: 'Metformin 500mg', sku: 'MTF500', category: 'Tablets', price: 30, stock: 12, minStock: 60, unit: 'strips', status: 'low_stock' },
-        { id: '8', name: 'Azithromycin 500mg', sku: 'AZT500', category: 'Tablets', price: 120, stock: 80, minStock: 20, unit: 'strips', status: 'in_stock' },
-        { id: '9', name: 'Cough Syrup', sku: 'CGH100', category: 'Syrups', price: 95, stock: 65, minStock: 15, unit: 'bottles', status: 'in_stock' },
-        { id: '10', name: 'Betadine Ointment', sku: 'BTD50', category: 'Ointments', price: 78, stock: 45, minStock: 10, unit: 'tubes', status: 'in_stock' },
-        { id: '11', name: 'Insulin Injection', sku: 'INS100', category: 'Injections', price: 450, stock: 25, minStock: 10, unit: 'vials', status: 'in_stock' },
-        { id: '12', name: 'Dolo 650', sku: 'DLO650', category: 'Tablets', price: 32, stock: 300, minStock: 50, unit: 'strips', status: 'in_stock' },
-      ]);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -472,7 +516,7 @@ function ProductsTab({ user, refreshing, onRefresh }) {
     }
   };
 
-  const categories = ['all', ...new Set(products.map(p => p.category))];
+  const categories = ['all', ...new Set(products.map(p => p.category).filter(Boolean))];
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = searchQuery === '' || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
@@ -495,53 +539,59 @@ function ProductsTab({ user, refreshing, onRefresh }) {
     setProductName('');
     setProductSKU('');
     setProductCategory('');
+    setProductBrand('');
     setProductPrice('');
-    setProductStock('');
     setProductMinStock('');
     setProductUnit('');
-    setProductImage(null);
+    setProductShelfLife('');
     setProductDescription('');
+  };
+
+  const resetStockForm = () => {
+    setStockQty('');
+    setStockBatchNumber('');
+    setStockMfgDate('');
+    setStockExpDate('');
+    setStockPurchasePrice('');
+    setStockReference('');
+    setStockNote('');
   };
 
   const submitProduct = async () => {
     if (!productName.trim()) { Alert.alert('Error', 'Product name is required'); return; }
-    if (!productSKU.trim()) { Alert.alert('Error', 'SKU is required'); return; }
-    if (!productPrice.trim()) { Alert.alert('Error', 'Price is required'); return; }
-    if (!productStock.trim()) { Alert.alert('Error', 'Stock quantity is required'); return; }
+    if (!productSKU.trim()) { Alert.alert('Error', 'Product code is required'); return; }
+    if (!productBrand.trim()) { Alert.alert('Error', 'Brand is required'); return; }
+    if (!productCategory.trim()) { Alert.alert('Error', 'Category is required'); return; }
+    if (!productPrice.trim()) { Alert.alert('Error', 'Selling price is required'); return; }
+    if (!productUnit.trim()) { Alert.alert('Error', 'Unit is required'); return; }
+    if (!productMinStock.trim()) { Alert.alert('Error', 'Reorder level is required'); return; }
+    if (!productShelfLife.trim()) { Alert.alert('Error', 'Shelf life is required'); return; }
 
     try {
       setSubmitting(true);
       const token = user && user.token ? user.token : '';
-      const formData = new FormData();
-      formData.append('name', productName.trim());
-      formData.append('sku', productSKU.trim());
-      formData.append('category', productCategory.trim());
-      formData.append('price', productPrice.trim());
-      formData.append('stock', productStock.trim());
-      formData.append('minStock', productMinStock.trim());
-      formData.append('unit', productUnit.trim());
-      formData.append('description', productDescription.trim());
-
-      if (productImage) {
-        formData.append('image', {
-          uri: productImage,
-          type: 'image/jpeg',
-          name: 'product_image.jpg',
-        });
-      }
-
       const response = await fetch(`${BASE_URL}/api/inventory/products`, {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json',
         },
-        body: formData,
+        body: JSON.stringify({
+          product_name: productName.trim(),
+          product_code: productSKU.trim(),
+          brand: productBrand.trim(),
+          category: productCategory.trim(),
+          description: productDescription.trim(),
+          unit: productUnit.trim(),
+          selling_price: parseFloat(productPrice),
+          reorder_level: parseInt(productMinStock),
+          shelf_life_days: parseInt(productShelfLife),
+        }),
       });
-      const text = await response.text();
-      console.log('Add product API:', text);
-      const result = JSON.parse(text);
-      if (result.status === 200 || result.status === 201) {
-        Alert.alert('Success', 'Product added successfully');
+      const result = await response.json();
+      console.log('Add product API:', JSON.stringify(result));
+      if (result.status === 201) {
+        Alert.alert('Success', 'Product created successfully');
         setShowAddModal(false);
         resetForm();
         fetchProducts();
@@ -551,6 +601,84 @@ function ProductsTab({ user, refreshing, onRefresh }) {
     } catch (e) {
       console.log('Add product error:', e);
       Alert.alert('Error', 'Failed to add product. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitStockIn = async () => {
+    if (!stockBatchNumber.trim()) { Alert.alert('Error', 'Batch number is required'); return; }
+    if (!stockQty.trim()) { Alert.alert('Error', 'Quantity is required'); return; }
+    if (!stockMfgDate.trim()) { Alert.alert('Error', 'Manufacturing date is required (YYYY-MM-DD)'); return; }
+    if (!stockExpDate.trim()) { Alert.alert('Error', 'Expiry date is required (YYYY-MM-DD)'); return; }
+    if (!stockPurchasePrice.trim()) { Alert.alert('Error', 'Purchase price is required'); return; }
+
+    try {
+      setSubmitting(true);
+      const token = user && user.token ? user.token : '';
+      const response = await fetch(`${BASE_URL}/api/inventory/products/${selectedProduct.id}/batches`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          batch_number: stockBatchNumber.trim(),
+          quantity: parseInt(stockQty),
+          manufacturing_date: stockMfgDate.trim(),
+          expiry_date: stockExpDate.trim(),
+          purchase_price: parseFloat(stockPurchasePrice),
+          reference: stockReference.trim(),
+          note: stockNote.trim(),
+        }),
+      });
+      const result = await response.json();
+      if (result.status === 201) {
+        Alert.alert('Success', 'Stock added successfully');
+        setShowStockModal(false);
+        resetStockForm();
+        fetchProducts();
+      } else {
+        Alert.alert('Error', result.message || 'Failed to add stock');
+      }
+    } catch (e) {
+      console.log('Stock in error:', e);
+      Alert.alert('Error', 'Failed to add stock. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitStockOut = async () => {
+    if (!stockQty.trim()) { Alert.alert('Error', 'Quantity is required'); return; }
+
+    try {
+      setSubmitting(true);
+      const token = user && user.token ? user.token : '';
+      const response = await fetch(`${BASE_URL}/api/inventory/products/${selectedProduct.id}/stock-out`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          quantity: parseInt(stockQty),
+          reference: stockReference.trim(),
+          note: stockNote.trim(),
+        }),
+      });
+      const result = await response.json();
+      if (result.status === 200) {
+        Alert.alert('Success', result.lowStockAlert || 'Stock out processed successfully');
+        setShowStockModal(false);
+        resetStockForm();
+        fetchProducts();
+      } else {
+        Alert.alert('Error', result.message || 'Failed to process stock out');
+      }
+    } catch (e) {
+      console.log('Stock out error:', e);
+      Alert.alert('Error', 'Failed to process stock out. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -666,23 +794,26 @@ function ProductsTab({ user, refreshing, onRefresh }) {
                 <Text style={styles.modalLabel}>Product Name *</Text>
                 <TextInput style={styles.modalInput} placeholder="Enter product name" placeholderTextColor="#999" value={productName} onChangeText={setProductName} />
 
-                <Text style={styles.modalLabel}>SKU Code *</Text>
-                <TextInput style={styles.modalInput} placeholder="Enter SKU code" placeholderTextColor="#999" value={productSKU} onChangeText={setProductSKU} autoCapitalize="characters" />
+                <Text style={styles.modalLabel}>Product Code *</Text>
+                <TextInput style={styles.modalInput} placeholder="Enter product code" placeholderTextColor="#999" value={productSKU} onChangeText={setProductSKU} autoCapitalize="characters" />
 
-                <Text style={styles.modalLabel}>Category</Text>
+                <Text style={styles.modalLabel}>Brand *</Text>
+                <TextInput style={styles.modalInput} placeholder="Enter brand name" placeholderTextColor="#999" value={productBrand} onChangeText={setProductBrand} />
+
+                <Text style={styles.modalLabel}>Category *</Text>
                 <TextInput style={styles.modalInput} placeholder="e.g. Tablets, Syrups, Capsules" placeholderTextColor="#999" value={productCategory} onChangeText={setProductCategory} />
 
-                <Text style={styles.modalLabel}>Price (₹) *</Text>
-                <TextInput style={styles.modalInput} placeholder="Enter price" placeholderTextColor="#999" value={productPrice} onChangeText={setProductPrice} keyboardType="numeric" />
+                <Text style={styles.modalLabel}>Selling Price (₹) *</Text>
+                <TextInput style={styles.modalInput} placeholder="Enter selling price" placeholderTextColor="#999" value={productPrice} onChangeText={setProductPrice} keyboardType="numeric" />
 
-                <Text style={styles.modalLabel}>Stock Quantity *</Text>
-                <TextInput style={styles.modalInput} placeholder="Enter current stock" placeholderTextColor="#999" value={productStock} onChangeText={setProductStock} keyboardType="numeric" />
+                <Text style={styles.modalLabel}>Unit *</Text>
+                <TextInput style={styles.modalInput} placeholder="e.g. strips, bottles, tubes, vials" placeholderTextColor="#999" value={productUnit} onChangeText={setProductUnit} />
 
-                <Text style={styles.modalLabel}>Minimum Stock Level</Text>
-                <TextInput style={styles.modalInput} placeholder="Enter minimum stock alert level" placeholderTextColor="#999" value={productMinStock} onChangeText={setProductMinStock} keyboardType="numeric" />
+                <Text style={styles.modalLabel}>Reorder Level *</Text>
+                <TextInput style={styles.modalInput} placeholder="Minimum stock alert level" placeholderTextColor="#999" value={productMinStock} onChangeText={setProductMinStock} keyboardType="numeric" />
 
-                <Text style={styles.modalLabel}>Unit</Text>
-                <TextInput style={styles.modalInput} placeholder="e.g. strips, bottles, tubes" placeholderTextColor="#999" value={productUnit} onChangeText={setProductUnit} />
+                <Text style={styles.modalLabel}>Shelf Life (days) *</Text>
+                <TextInput style={styles.modalInput} placeholder="e.g. 365, 730" placeholderTextColor="#999" value={productShelfLife} onChangeText={setProductShelfLife} keyboardType="numeric" />
 
                 <Text style={styles.modalLabel}>Description</Text>
                 <TextInput
@@ -694,23 +825,6 @@ function ProductsTab({ user, refreshing, onRefresh }) {
                   multiline={true}
                   numberOfLines={3}
                 />
-
-                <Text style={styles.modalLabel}>Product Image</Text>
-                {productImage ? (
-                  <View style={styles.imagePreviewWrapper}>
-                    <Image source={{ uri: productImage }} style={styles.imagePreview} />
-                    <TouchableOpacity style={styles.removeImageBtn} onPress={() => setProductImage(null)}>
-                      <Text style={styles.removeImageText}>✕</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={styles.uploadRow}>
-                    <TouchableOpacity style={styles.uploadBtn} onPress={pickProductImage}>
-                      <Text style={styles.uploadIcon}>📷</Text>
-                      <Text style={styles.uploadText}>Camera</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
 
                 <TouchableOpacity
                   style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
@@ -749,7 +863,7 @@ function ProductsTab({ user, refreshing, onRefresh }) {
                       <Text style={styles.detailThumbText}>{selectedProduct.name.charAt(0)}</Text>
                     </View>
                     <Text style={styles.detailName}>{selectedProduct.name}</Text>
-                    <Text style={styles.detailSKU}>SKU: {selectedProduct.sku}</Text>
+                    <Text style={styles.detailSKU}>{selectedProduct.sku} | {selectedProduct.brand}</Text>
                     <View style={[styles.stockBadge, { backgroundColor: getStockStatusBg(selectedProduct.status), alignSelf: 'center', marginTop: 8 }]}>
                       <Text style={[styles.stockBadgeText, { color: getStockStatusColor(selectedProduct.status) }]}>{getStockStatusLabel(selectedProduct.status)}</Text>
                     </View>
@@ -761,7 +875,7 @@ function ProductsTab({ user, refreshing, onRefresh }) {
                       <Text style={styles.detailValue}>{selectedProduct.category}</Text>
                     </View>
                     <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Price</Text>
+                      <Text style={styles.detailLabel}>Selling Price</Text>
                       <Text style={styles.detailValue}>₹{selectedProduct.price}</Text>
                     </View>
                     <View style={styles.detailItem}>
@@ -769,16 +883,24 @@ function ProductsTab({ user, refreshing, onRefresh }) {
                       <Text style={[styles.detailValue, { color: getStockStatusColor(selectedProduct.status) }]}>{selectedProduct.stock} {selectedProduct.unit}</Text>
                     </View>
                     <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Min Stock</Text>
+                      <Text style={styles.detailLabel}>Reorder Level</Text>
                       <Text style={styles.detailValue}>{selectedProduct.minStock} {selectedProduct.unit}</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Shelf Life</Text>
+                      <Text style={styles.detailValue}>{selectedProduct.shelfLife} days</Text>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Batches</Text>
+                      <Text style={styles.detailValue}>{selectedProduct.batches ? selectedProduct.batches.filter(b => b.is_active).length : 0}</Text>
                     </View>
                   </View>
 
                   <View style={styles.detailActions}>
-                    <TouchableOpacity style={[styles.detailActionBtn, { backgroundColor: '#4caf50' }]} activeOpacity={0.7}>
+                    <TouchableOpacity style={[styles.detailActionBtn, { backgroundColor: '#4caf50' }]} activeOpacity={0.7} onPress={() => { setStockModalType('in'); resetStockForm(); setShowStockModal(true); }}>
                       <Text style={styles.detailActionText}>Stock In</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.detailActionBtn, { backgroundColor: '#e53935' }]} activeOpacity={0.7}>
+                    <TouchableOpacity style={[styles.detailActionBtn, { backgroundColor: '#e53935' }]} activeOpacity={0.7} onPress={() => { setStockModalType('out'); resetStockForm(); setShowStockModal(true); }}>
                       <Text style={styles.detailActionText}>Stock Out</Text>
                     </TouchableOpacity>
                   </View>
@@ -788,26 +910,186 @@ function ProductsTab({ user, refreshing, onRefresh }) {
           </View>
         </View>
       </Modal>
+
+      {/* Stock In / Stock Out Modal */}
+      <Modal visible={showStockModal} transparent={true} animationType="slide" onRequestClose={() => { setShowStockModal(false); resetStockForm(); }}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{stockModalType === 'in' ? 'Stock In (Add Batch)' : 'Stock Out (FIFO)'}</Text>
+                  <TouchableOpacity onPress={() => { setShowStockModal(false); resetStockForm(); }}>
+                    <Text style={styles.modalClose}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {selectedProduct ? (
+                  <Text style={{ fontSize: 14, color: '#555', marginBottom: 12, fontWeight: '600' }}>{selectedProduct.name} | Current: {selectedProduct.stock} {selectedProduct.unit}</Text>
+                ) : null}
+
+                <Text style={styles.modalLabel}>Quantity *</Text>
+                <TextInput style={styles.modalInput} placeholder="Enter quantity" placeholderTextColor="#999" value={stockQty} onChangeText={setStockQty} keyboardType="numeric" />
+
+                {stockModalType === 'in' ? (
+                  <>
+                    <Text style={styles.modalLabel}>Batch Number *</Text>
+                    <TextInput style={styles.modalInput} placeholder="Enter batch number" placeholderTextColor="#999" value={stockBatchNumber} onChangeText={setStockBatchNumber} />
+
+                    <Text style={styles.modalLabel}>Manufacturing Date * (YYYY-MM-DD)</Text>
+                    <TextInput style={styles.modalInput} placeholder="e.g. 2026-01-15" placeholderTextColor="#999" value={stockMfgDate} onChangeText={setStockMfgDate} />
+
+                    <Text style={styles.modalLabel}>Expiry Date * (YYYY-MM-DD)</Text>
+                    <TextInput style={styles.modalInput} placeholder="e.g. 2027-01-15" placeholderTextColor="#999" value={stockExpDate} onChangeText={setStockExpDate} />
+
+                    <Text style={styles.modalLabel}>Purchase Price *</Text>
+                    <TextInput style={styles.modalInput} placeholder="Enter purchase price per unit" placeholderTextColor="#999" value={stockPurchasePrice} onChangeText={setStockPurchasePrice} keyboardType="numeric" />
+                  </>
+                ) : null}
+
+                <Text style={styles.modalLabel}>Reference</Text>
+                <TextInput style={styles.modalInput} placeholder="Invoice/PO number (optional)" placeholderTextColor="#999" value={stockReference} onChangeText={setStockReference} />
+
+                <Text style={styles.modalLabel}>Note</Text>
+                <TextInput style={[styles.modalInput, { height: 70, textAlignVertical: 'top' }]} placeholder="Note (optional)" placeholderTextColor="#999" value={stockNote} onChangeText={setStockNote} multiline={true} />
+
+                <TouchableOpacity
+                  style={[styles.submitBtn, { backgroundColor: stockModalType === 'in' ? '#4caf50' : '#e53935' }, submitting && { opacity: 0.7 }]}
+                  onPress={stockModalType === 'in' ? submitStockIn : submitStockOut}
+                  activeOpacity={0.8}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.submitBtnText}>{stockModalType === 'in' ? 'ADD STOCK' : 'REMOVE STOCK'}</Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </View>
+  );
+}
+
+// ======================== SUB SCREEN WRAPPER ========================
+function SubScreenWrapper({ title, onGoBack, user, children }) {
+  return (
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      <View style={styles.subHeader}>
+        <View style={styles.circle1} />
+        <View style={styles.circle2} />
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity style={styles.backBtn} onPress={onGoBack} activeOpacity={0.7}>
+              <Text style={styles.backBtnText}>{'<'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{title}</Text>
+          </View>
+        </View>
+      </View>
+      <View style={styles.body}>
+        {children}
+      </View>
     </View>
   );
 }
 
 // ======================== MAIN SCREEN ========================
 export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
-  const [activeTab, setActiveTab] = useState('alerts');
+  const [currentScreen, setCurrentScreen] = useState('home');
   const [refreshing, setRefreshing] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+    fetchDashboardStats();
     setTimeout(() => setRefreshing(false), 1500);
   }, []);
 
-  const tabs = [
-    { key: 'alerts', label: 'Alerts', icon: '🔔' },
-    { key: 'reports', label: 'Reports', icon: '📊' },
-    { key: 'products', label: 'Products', icon: '📦' },
-  ];
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const token = user && user.token ? user.token : '';
+      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+      const response = await fetch(`${BASE_URL}/api/inventory/dashboard`, { headers });
+      const result = await response.json();
+      console.log('Inventory dashboard API:', JSON.stringify(result).substring(0, 300));
+      if (result.status === 200 && result.dashboard) {
+        const d = result.dashboard;
+        setDashboardStats({
+          totalProducts: d.totalProducts || 0,
+          totalValue: d.totalStockValue || 0,
+          lowStockItems: d.lowStockCount || 0,
+          outOfStockItems: 0,
+          expiringItems: d.nearExpiryCount || 0,
+          totalAlerts: (d.lowStockCount || 0) + (d.nearExpiryCount || 0) + (d.expiredCount || 0),
+          expiredItems: d.expiredCount || 0,
+        });
+      }
+    } catch (e) {
+      console.log('Inventory dashboard fetch error:', e);
+      setDashboardStats(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (val) => {
+    if (!val) return '₹0';
+    if (val >= 100000) return '₹' + (val / 100000).toFixed(1) + 'L';
+    if (val >= 1000) return '₹' + (val / 1000).toFixed(1) + 'K';
+    return '₹' + val;
+  };
+
+  const formatDate = (d) => {
+    return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatTime = (d) => {
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  };
+
+  // Sub-screens
+  if (currentScreen === 'alerts') {
+    return (
+      <SubScreenWrapper title="Alerts" onGoBack={() => setCurrentScreen('home')} user={user}>
+        <AlertsTab user={user} refreshing={refreshing} onRefresh={onRefresh} />
+      </SubScreenWrapper>
+    );
+  }
+
+  if (currentScreen === 'reports') {
+    return (
+      <SubScreenWrapper title="Reports" onGoBack={() => setCurrentScreen('home')} user={user}>
+        <ReportsTab user={user} refreshing={refreshing} onRefresh={onRefresh} />
+      </SubScreenWrapper>
+    );
+  }
+
+  if (currentScreen === 'products') {
+    return (
+      <SubScreenWrapper title="Products" onGoBack={() => setCurrentScreen('home')} user={user}>
+        <ProductsTab user={user} refreshing={refreshing} onRefresh={onRefresh} />
+      </SubScreenWrapper>
+    );
+  }
+
+  // Home Dashboard
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -824,8 +1106,8 @@ export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
               </TouchableOpacity>
             ) : null}
             <View>
-              <Text style={styles.headerTitle}>Inventory</Text>
-              <Text style={styles.headerSubtitle}>Manage your stock & products</Text>
+              <Text style={styles.greeting}>Welcome Back,</Text>
+              <Text style={styles.userName}>{user && user.fullName ? user.fullName : 'Warehouse'}</Text>
             </View>
           </View>
           {onLogout ? (
@@ -834,29 +1116,117 @@ export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
             </TouchableOpacity>
           ) : null}
         </View>
+        <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
+        <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+      </View>
 
-        {/* Tab Bar */}
-        <View style={styles.tabBar}>
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-              onPress={() => setActiveTab(tab.key)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.tabIcon}>{tab.icon}</Text>
-              <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>{tab.label}</Text>
-            </TouchableOpacity>
-          ))}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.dashboardBody}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e53935']} />}
+      >
+        {/* Stats Overview */}
+        <View style={styles.statsRow}>
+          <View style={styles.statsCard}>
+            <Text style={styles.statsIcon}>📦</Text>
+            <Text style={styles.statsValue}>{loading ? '--' : (dashboardStats ? dashboardStats.totalProducts : 0)}</Text>
+            <Text style={styles.statsLabel}>Total Products</Text>
+          </View>
+          <View style={styles.statsCard}>
+            <Text style={styles.statsIcon}>💰</Text>
+            <Text style={styles.statsValue}>{loading ? '--' : (dashboardStats ? formatCurrency(dashboardStats.totalValue) : '₹0')}</Text>
+            <Text style={styles.statsLabel}>Stock Value</Text>
+          </View>
         </View>
-      </View>
 
-      {/* Body */}
-      <View style={styles.body}>
-        {activeTab === 'alerts' && <AlertsTab user={user} refreshing={refreshing} onRefresh={onRefresh} />}
-        {activeTab === 'reports' && <ReportsTab user={user} refreshing={refreshing} onRefresh={onRefresh} />}
-        {activeTab === 'products' && <ProductsTab user={user} refreshing={refreshing} onRefresh={onRefresh} />}
-      </View>
+        <View style={styles.statsRow}>
+          <View style={[styles.statsCard, styles.statsCardAlert]}>
+            <Text style={styles.statsIcon}>⚠</Text>
+            <Text style={[styles.statsValue, { color: '#ff9800' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.lowStockItems : 0)}</Text>
+            <Text style={styles.statsLabel}>Low Stock</Text>
+          </View>
+          <View style={[styles.statsCard, styles.statsCardDanger]}>
+            <Text style={styles.statsIcon}>🚫</Text>
+            <Text style={[styles.statsValue, { color: '#e53935' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.outOfStockItems : 0)}</Text>
+            <Text style={styles.statsLabel}>Out of Stock</Text>
+          </View>
+        </View>
+
+        <View style={styles.statsRow}>
+          <View style={styles.statsCard}>
+            <Text style={styles.statsIcon}>⏰</Text>
+            <Text style={[styles.statsValue, { color: '#1565c0' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.expiringItems : 0)}</Text>
+            <Text style={styles.statsLabel}>Expiring Soon</Text>
+          </View>
+          <View style={styles.statsCard}>
+            <Text style={styles.statsIcon}>🔔</Text>
+            <Text style={[styles.statsValue, { color: '#e53935' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.totalAlerts : 0)}</Text>
+            <Text style={styles.statsLabel}>Total Alerts</Text>
+          </View>
+        </View>
+
+        {/* Expired Items */}
+        <View style={styles.activityRow}>
+          <View style={[styles.activityCard, { borderLeftColor: '#9c27b0' }]}>
+            <Text style={styles.activityIcon}>⏰</Text>
+            <View>
+              <Text style={[styles.activityValue, { color: '#9c27b0' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.expiringItems : 0)}</Text>
+              <Text style={styles.activityLabel}>Near Expiry</Text>
+            </View>
+          </View>
+          <View style={[styles.activityCard, { borderLeftColor: '#795548' }]}>
+            <Text style={styles.activityIcon}>🚫</Text>
+            <View>
+              <Text style={[styles.activityValue, { color: '#795548' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.expiredItems : 0)}</Text>
+              <Text style={styles.activityLabel}>Expired</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Menu Options */}
+        <Text style={styles.sectionTitle}>Manage Inventory</Text>
+        <View style={styles.menuGrid}>
+          <TouchableOpacity style={styles.menuCard} onPress={() => setCurrentScreen('alerts')} activeOpacity={0.7}>
+            <View style={[styles.menuIconBox, { backgroundColor: '#ffebee' }]}>
+              <Text style={styles.menuEmoji}>🔔</Text>
+            </View>
+            <View style={styles.menuTextWrap}>
+              <Text style={styles.menuLabel}>Alerts</Text>
+              <Text style={styles.menuDesc}>Low stock & expiry alerts</Text>
+            </View>
+            <View style={styles.menuArrow}>
+              <Text style={styles.menuArrowText}>→</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuCard} onPress={() => setCurrentScreen('reports')} activeOpacity={0.7}>
+            <View style={[styles.menuIconBox, { backgroundColor: '#e3f2fd' }]}>
+              <Text style={styles.menuEmoji}>📊</Text>
+            </View>
+            <View style={styles.menuTextWrap}>
+              <Text style={styles.menuLabel}>Reports</Text>
+              <Text style={styles.menuDesc}>Stock & valuation reports</Text>
+            </View>
+            <View style={styles.menuArrow}>
+              <Text style={styles.menuArrowText}>→</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuCard} onPress={() => setCurrentScreen('products')} activeOpacity={0.7}>
+            <View style={[styles.menuIconBox, { backgroundColor: '#e8f5e9' }]}>
+              <Text style={styles.menuEmoji}>📦</Text>
+            </View>
+            <View style={styles.menuTextWrap}>
+              <Text style={styles.menuLabel}>Products</Text>
+              <Text style={styles.menuDesc}>View & manage products</Text>
+            </View>
+            <View style={styles.menuArrow}>
+              <Text style={styles.menuArrowText}>→</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -870,8 +1240,17 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#1a1a2e',
     paddingTop: 50,
+    paddingHorizontal: 25,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: 'hidden',
+  },
+  subHeader: {
+    backgroundColor: '#1a1a2e',
+    paddingTop: 50,
     paddingHorizontal: 20,
-    paddingBottom: 0,
+    paddingBottom: 16,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
     overflow: 'hidden',
@@ -939,25 +1318,159 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     marginTop: 2,
   },
-  tabBar: {
-    flexDirection: 'row',
-    marginTop: 8,
+  greeting: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
   },
-  tab: {
+  userName: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#fff',
+    marginTop: 2,
+  },
+  dateText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  timeText: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#fff',
+    marginTop: 4,
+    letterSpacing: 2,
+  },
+  dashboardBody: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+
+  // Stats Cards
+  statsRow: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  statsCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 16,
+    marginHorizontal: 5,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  statsCardAlert: {},
+  statsCardDanger: {},
+  statsIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  statsValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1a1a2e',
+  },
+  statsLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#999',
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+
+  // Today's Activity
+  activityRow: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  activityCard: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 16,
+    marginHorizontal: 5,
+    borderLeftWidth: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  activityIcon: {
+    fontSize: 22,
+    fontWeight: '900',
+    marginRight: 12,
+  },
+  activityValue: {
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  activityLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#999',
+    marginTop: 2,
+  },
+
+  // Menu Grid
+  menuGrid: {
+    marginBottom: 10,
+  },
+  menuCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  menuIconBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
+    alignItems: 'center',
+    marginRight: 14,
   },
-  tabActive: {
-    borderBottomColor: '#e53935',
+  menuEmoji: {
+    fontSize: 24,
   },
-  tabIcon: {
+  menuTextWrap: {
+    flex: 1,
+    marginRight: 10,
+  },
+  menuLabel: {
     fontSize: 16,
-    marginRight: 6,
+    fontWeight: '700',
+    color: '#1a1a2e',
+  },
+  menuDesc: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  },
+  menuArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#f5f5f7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuArrowText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a1a2e',
   },
   tabLabel: {
     fontSize: 14,
@@ -1311,6 +1824,43 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#999',
     marginTop: 2,
+  },
+
+  // Aging Report
+  agingBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  agingBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 4,
+  },
+  agingBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  agingLegend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  agingLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  agingLegendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 4,
+  },
+  agingLegendText: {
+    fontSize: 11,
+    color: '#777',
   },
 
   // Search Row (Products)
