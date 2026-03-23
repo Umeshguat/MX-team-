@@ -1013,9 +1013,10 @@ export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
   }, []);
 
   useEffect(() => {
+    if (currentScreen !== 'home') return;
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [currentScreen]);
 
   useEffect(() => {
     fetchDashboardStats();
