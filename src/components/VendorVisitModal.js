@@ -236,10 +236,6 @@ export default function VendorVisitModal({ visible, onClose, user, onSubmitSucce
                   <Text style={styles.uploadIcon}>📷</Text>
                   <Text style={styles.uploadText}>GPS Camera</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.uploadBtn} onPress={pickSelfie}>
-                  <Text style={styles.uploadIcon}>🖼</Text>
-                  <Text style={styles.uploadText}>Gallery</Text>
-                </TouchableOpacity>
               </View>
             )}
 
