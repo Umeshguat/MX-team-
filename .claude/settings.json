@@ -21,7 +21,9 @@
       "Bash(xargs grep:*)",
       "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\salesmens/src' -type f \\\\\\(-name *.js -o -name *.tsx -o -name *.ts -o -name *.jsx \\\\\\))",
       "Read(//e/project_after_1_/ dec_2025/salesmens/src/components/**)",
-      "Read(//e/project_after_1_/ dec_2025/salesmens/src/screens/**)"
+      "Read(//e/project_after_1_/ dec_2025/salesmens/src/screens/**)",
+      "Bash(find ./src -type f -name \"*.js\" -exec wc -l {} +)",
+      "Bash(grep -n \"export\\\\|function\\\\|const.*=\" ./src/screens/*.js)"
     ]
   }
 }

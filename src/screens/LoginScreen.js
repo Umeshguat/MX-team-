@@ -54,6 +54,7 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
           var rn = data.role_name.toLowerCase();
           if (rn === 'admin') role = 'admin';
           else if (rn === 'warehouse') role = 'Warehouse';
+          else if (rn === 'sales') role = 'Sales';
           else role = 'employee';
         }
         onLoginSuccess({

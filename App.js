@@ -16,12 +16,14 @@ import VendorMapScreen from './src/screens/VendorMapScreen';
 import AdminEmployeeListScreen from './src/screens/AdminEmployeeListScreen';
 import AdminAttendanceListScreen from './src/screens/AdminAttendanceListScreen';
 import InventoryDashboardScreen from './src/screens/InventoryDashboardScreen';
+import OrderDashboardScreen from './src/screens/OrderDashboardScreen';
 
 const SESSION_KEY = 'user_session';
 
 function getHomeDashboard(role) {
   if (role === 'admin') return 'adminDashboard';
   if (role === 'Warehouse') return 'inventory';
+  if (role === 'Sales') return 'orderDashboard';
   return 'dashboard';
 }
 
@@ -163,6 +165,21 @@ export default function App() {
         onLogout={handleLogout}
         vendors={vendors}
         onVendorsChange={setVendors}
+        onGoToProfile={() => setScreen('profile')}
+        onGoToAttendance={() => setScreen('attendance')}
+        onGoToDailyAllowance={() => setScreen('dailyAllowance')}
+        onGoToVisits={() => setScreen('visits')}
+        onGoToInventory={() => setScreen('inventory')}
+      />
+    );
+  }
+
+  if (screen === 'orderDashboard') {
+    return (
+      <OrderDashboardScreen
+        user={user}
+        onLogout={handleLogout}
+        onGoBack={null}
         onGoToProfile={() => setScreen('profile')}
         onGoToAttendance={() => setScreen('attendance')}
         onGoToDailyAllowance={() => setScreen('dailyAllowance')}
