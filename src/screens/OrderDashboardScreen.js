@@ -156,12 +156,24 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
 
   const totalAmount = selectedProducts.reduce((sum, p) => sum + ((p.selling_price || 0) * parseInt(p.orderQty || 0)), 0);
   const scrollViewRef = useRef(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardHeight(0)
+    );
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
         <View style={modalStyles.overlay}>
-          <View style={modalStyles.container}>
+          <View style={[modalStyles.container, keyboardHeight > 0 && { maxHeight: '95%', paddingBottom: keyboardHeight }]}>
             <View style={modalStyles.header}>
               <Text style={modalStyles.headerTitle}>Create New Order</Text>
               <TouchableOpacity onPress={onClose} style={modalStyles.closeBtn}>
@@ -169,7 +181,7 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
               </TouchableOpacity>
             </View>
 
-            <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }} keyboardShouldPersistTaps="handled">
+            <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? 40 : 20 }} keyboardShouldPersistTaps="handled">
               {/* Distributor Details */}
               <Text style={modalStyles.sectionLabel}>Distributor Details</Text>
               <TextInput
@@ -313,7 +325,6 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -391,15 +402,15 @@ function OrderDetailModal({ visible, order, onClose }) {
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#1a1a2e' }}>#{order.order_number || order._id?.slice(-6) || '--'}</Text>
-              <View style={{ backgroundColor: getStatusBg(order.status), paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: getStatusColor(order.status) }}>{(order.status || 'Pending').toUpperCase()}</Text>
+              <View style={{ backgroundColor: getStatusBg(order.order_status), paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: getStatusColor(order.order_status) }}>{(order.order_status || 'Pending').toUpperCase()}</Text>
               </View>
             </View>
 
             <View style={{ marginTop: 14, padding: 14, backgroundColor: '#f8f8f8', borderRadius: 12 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#333' }}>{order.distributor_name || '--'}</Text>
-              <Text style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{order.distributor_mobile || '--'}</Text>
-              {order.distributor_address ? <Text style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{order.distributor_address}</Text> : null}
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#333' }}>{order.vendor_name || '--'}</Text>
+              <Text style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{order.vendor_mobile || '--'}</Text>
+              {order.vendor_address ? <Text style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{order.vendor_address}</Text> : null}
             </View>
 
             <Text style={modalStyles.sectionLabel}>Items ({(order.items || []).length})</Text>
@@ -415,13 +426,13 @@ function OrderDetailModal({ visible, order, onClose }) {
 
             <View style={modalStyles.totalRow}>
               <Text style={modalStyles.totalLabel}>Total Amount</Text>
-              <Text style={modalStyles.totalValue}>Rs. {order.total_amount || 0}</Text>
+              <Text style={modalStyles.totalValue}>Rs. {order.grand_total || 0}</Text>
             </View>
 
-            {order.notes ? (
+            {order.note ? (
               <View style={{ marginTop: 10, padding: 12, backgroundColor: '#fff3e0', borderRadius: 10 }}>
                 <Text style={{ fontSize: 12, fontWeight: '600', color: '#e65100' }}>Notes:</Text>
-                <Text style={{ fontSize: 12, color: '#333', marginTop: 4 }}>{order.notes}</Text>
+                <Text style={{ fontSize: 12, color: '#333', marginTop: 4 }}>{order.note}</Text>
               </View>
             ) : null}
 
@@ -481,10 +492,10 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
 
   const computeStats = (orderList) => {
     const total = orderList.length;
-    const pending = orderList.filter(o => (o.status || '').toLowerCase() === 'pending').length;
-    const confirmed = orderList.filter(o => ['confirmed', 'approved'].includes((o.status || '').toLowerCase())).length;
-    const delivered = orderList.filter(o => ['delivered', 'completed'].includes((o.status || '').toLowerCase())).length;
-    const totalAmount = orderList.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+    const pending = orderList.filter(o => (o.order_status || '').toLowerCase() === 'pending').length;
+    const confirmed = orderList.filter(o => ['confirmed', 'approved'].includes((o.order_status || '').toLowerCase())).length;
+    const delivered = orderList.filter(o => ['delivered', 'completed'].includes((o.order_status || '').toLowerCase())).length;
+    const totalAmount = orderList.reduce((sum, o) => sum + (o.grand_total || 0), 0);
     setStats({ total, pending, confirmed, delivered, totalAmount });
   };
 
@@ -528,7 +539,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
   const filteredOrders = filter === 'all'
     ? orders
     : orders.filter(o => {
-        const s = (o.status || '').toLowerCase();
+        const s = (o.order_status || '').toLowerCase();
         if (filter === 'pending') return s === 'pending';
         if (filter === 'confirmed') return s === 'confirmed' || s === 'approved';
         if (filter === 'delivered') return s === 'delivered' || s === 'completed';
@@ -691,14 +702,14 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
             >
               <View style={styles.orderCardHeader}>
                 <Text style={styles.orderNumber}>#{order.order_number || order._id?.slice(-6) || '--'}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusBg(order.status) }]}>
-                  <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>{(order.status || 'Pending').toUpperCase()}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusBg(order.order_status) }]}>
+                  <Text style={[styles.statusText, { color: getStatusColor(order.order_status) }]}>{(order.order_status || 'Pending').toUpperCase()}</Text>
                 </View>
               </View>
-              <Text style={styles.orderDistributor}>{order.distributor_name || '--'}</Text>
+              <Text style={styles.orderDistributor}>{order.vendor_name || '--'}</Text>
               <View style={styles.orderCardFooter}>
                 <Text style={styles.orderItems}>{(order.items || []).length} items</Text>
-                <Text style={styles.orderAmount}>Rs. {order.total_amount || 0}</Text>
+                <Text style={styles.orderAmount}>Rs. {order.grand_total || 0}</Text>
               </View>
               <Text style={styles.orderDate}>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '--'}</Text>
             </TouchableOpacity>
