@@ -181,9 +181,6 @@ export default function App() {
         onLogout={handleLogout}
         onGoBack={null}
         onGoToProfile={() => setScreen('profile')}
-        onGoToAttendance={() => setScreen('attendance')}
-        onGoToDailyAllowance={() => setScreen('dailyAllowance')}
-        onGoToVisits={() => setScreen('visits')}
         onGoToInventory={() => setScreen('inventory')}
       />
     );

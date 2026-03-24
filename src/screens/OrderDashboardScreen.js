@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { BASE_URL } from '../config';
 import {
   StyleSheet,
@@ -15,6 +15,7 @@ import {
   RefreshControl,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -102,16 +103,18 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
     setSubmitting(true);
     try {
       const token = user && user.token ? user.token : '';
-      const orderItems = selectedProducts.map(p => ({
-        product_id: p._id,
-        product_name: p.product_name,
-        product_code: p.product_code || '',
-        quantity: parseInt(p.orderQty),
-        price: p.price || 0,
-        total: (p.price || 0) * parseInt(p.orderQty),
-      }));
-
-      const totalAmount = orderItems.reduce((sum, item) => sum + item.total, 0);
+      const orderItems = selectedProducts.map(p => {
+        const activeBatch = (p.batches || []).find(b => b.is_active && b.quantity > 0);
+        return {
+          product_id: p._id,
+          batch_id: activeBatch ? activeBatch._id : null,
+          product_name: p.product_name,
+          product_code: p.product_code || '',
+          quantity: parseInt(p.orderQty),
+          unit_price: p.selling_price || 0,
+          total_price: (p.selling_price || 0) * parseInt(p.orderQty),
+        };
+      });
 
       const response = await fetch(`${BASE_URL}/api/orders`, {
         method: 'POST',
@@ -120,12 +123,11 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          distributor_name: distributorName.trim(),
-          distributor_mobile: distributorMobile.trim(),
-          distributor_address: distributorAddress.trim(),
+          vendor_name: distributorName.trim(),
+          vendor_mobile: distributorMobile.trim(),
+          vendor_address: distributorAddress.trim(),
           items: orderItems,
-          total_amount: totalAmount,
-          notes: notes.trim(),
+          note: notes.trim(),
         }),
       });
 
@@ -152,11 +154,12 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
       )
     : products;
 
-  const totalAmount = selectedProducts.reduce((sum, p) => sum + ((p.price || 0) * parseInt(p.orderQty || 0)), 0);
+  const totalAmount = selectedProducts.reduce((sum, p) => sum + ((p.selling_price || 0) * parseInt(p.orderQty || 0)), 0);
+  const scrollViewRef = useRef(null);
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
         <View style={modalStyles.overlay}>
           <View style={modalStyles.container}>
             <View style={modalStyles.header}>
@@ -166,7 +169,7 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+            <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }} keyboardShouldPersistTaps="handled">
               {/* Distributor Details */}
               <Text style={modalStyles.sectionLabel}>Distributor Details</Text>
               <TextInput
@@ -220,7 +223,7 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
                         <View style={{ flex: 1 }}>
                           <Text style={modalStyles.productName}>{product.product_name}</Text>
                           <Text style={modalStyles.productCode}>{product.product_code || ''} {product.brand ? '| ' + product.brand : ''}</Text>
-                          <Text style={modalStyles.productPrice}>Rs. {product.price || 0}</Text>
+                          <Text style={modalStyles.productPrice}>Rs. {product.selling_price || 0}</Text>
                         </View>
                         <View style={[modalStyles.checkBox, isSelected && modalStyles.checkBoxSelected]}>
                           {isSelected && <Text style={{ color: '#fff', fontWeight: '700' }}>+</Text>}
@@ -242,7 +245,7 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
                     <View key={p._id} style={modalStyles.orderItem}>
                       <View style={{ flex: 1 }}>
                         <Text style={modalStyles.orderItemName}>{p.product_name}</Text>
-                        <Text style={modalStyles.orderItemPrice}>Rs. {p.price || 0} each</Text>
+                        <Text style={modalStyles.orderItemPrice}>Rs. {p.selling_price || 0} each</Text>
                       </View>
                       <View style={modalStyles.qtyRow}>
                         <TouchableOpacity
@@ -270,7 +273,7 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
                           <Text style={modalStyles.qtyBtnText}>+</Text>
                         </TouchableOpacity>
                       </View>
-                      <Text style={modalStyles.itemTotal}>Rs. {(p.price || 0) * parseInt(p.orderQty || 0)}</Text>
+                      <Text style={modalStyles.itemTotal}>Rs. {(p.selling_price || 0) * parseInt(p.orderQty || 0)}</Text>
                     </View>
                   ))}
                   <View style={modalStyles.totalRow}>
@@ -288,6 +291,11 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
                 value={notes}
                 onChangeText={setNotes}
                 multiline
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 300);
+                }}
               />
             </ScrollView>
 
@@ -399,9 +407,9 @@ function OrderDetailModal({ visible, order, onClose }) {
               <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10, backgroundColor: '#f8f8f8', borderRadius: 8, marginBottom: 4 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 13, fontWeight: '600', color: '#333' }}>{item.product_name}</Text>
-                  <Text style={{ fontSize: 11, color: '#999' }}>Qty: {item.quantity} x Rs. {item.price || 0}</Text>
+                  <Text style={{ fontSize: 11, color: '#999' }}>Qty: {item.quantity} x Rs. {item.unit_price || 0}</Text>
                 </View>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#1a1a2e' }}>Rs. {item.total || 0}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#1a1a2e' }}>Rs. {item.total_price || 0}</Text>
               </View>
             ))}
 
@@ -428,7 +436,7 @@ function OrderDetailModal({ visible, order, onClose }) {
 }
 
 // ======================== MAIN ORDER DASHBOARD ========================
-export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits, onGoToInventory }) {
+export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToProfile, onGoToInventory }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -626,51 +634,6 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
               <Text style={styles.menuArrowText}>→</Text>
             </View>
           </TouchableOpacity>
-
-          {onGoToVisits ? (
-            <TouchableOpacity style={styles.menuCard} onPress={onGoToVisits} activeOpacity={0.7}>
-              <View style={[styles.menuIconBox, { backgroundColor: '#e3f2fd' }]}>
-                <Text style={styles.menuEmoji}>📍</Text>
-              </View>
-              <View style={styles.menuTextWrap}>
-                <Text style={styles.menuLabel}>Visits</Text>
-                <Text style={styles.menuDesc}>Vendor visits</Text>
-              </View>
-              <View style={styles.menuArrow}>
-                <Text style={styles.menuArrowText}>→</Text>
-              </View>
-            </TouchableOpacity>
-          ) : null}
-
-          {onGoToAttendance ? (
-            <TouchableOpacity style={styles.menuCard} onPress={onGoToAttendance} activeOpacity={0.7}>
-              <View style={[styles.menuIconBox, { backgroundColor: '#e8f5e9' }]}>
-                <Text style={styles.menuEmoji}>📅</Text>
-              </View>
-              <View style={styles.menuTextWrap}>
-                <Text style={styles.menuLabel}>Attendance</Text>
-                <Text style={styles.menuDesc}>View attendance</Text>
-              </View>
-              <View style={styles.menuArrow}>
-                <Text style={styles.menuArrowText}>→</Text>
-              </View>
-            </TouchableOpacity>
-          ) : null}
-
-          {onGoToDailyAllowance ? (
-            <TouchableOpacity style={styles.menuCard} onPress={onGoToDailyAllowance} activeOpacity={0.7}>
-              <View style={[styles.menuIconBox, { backgroundColor: '#fff3e0' }]}>
-                <Text style={styles.menuEmoji}>💵</Text>
-              </View>
-              <View style={styles.menuTextWrap}>
-                <Text style={styles.menuLabel}>Daily Allowance</Text>
-                <Text style={styles.menuDesc}>Track allowances</Text>
-              </View>
-              <View style={styles.menuArrow}>
-                <Text style={styles.menuArrowText}>→</Text>
-              </View>
-            </TouchableOpacity>
-          ) : null}
 
           {onGoToInventory ? (
             <TouchableOpacity style={styles.menuCard} onPress={onGoToInventory} activeOpacity={0.7}>
