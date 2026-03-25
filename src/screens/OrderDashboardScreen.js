@@ -464,50 +464,66 @@ function OrderDetailModal({ visible, order, onClose, onOpenPayment }) {
 // ======================== PAYMENT CREDIT MODAL ========================
 function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user }) {
   const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentMode, setPaymentMode] = useState('Cash');
+  const [paymentMode, setPaymentMode] = useState('cash');
   const [paymentNote, setPaymentNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [payments, setPayments] = useState([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
-  const [currentOrder, setCurrentOrder] = useState(null);
+  const [paymentCreditId, setPaymentCreditId] = useState(null);
+  const [creditData, setCreditData] = useState(null);
 
-  const paymentModes = ['Cash', 'UPI', 'Credit', 'Bank Transfer', 'Cheque'];
+  const paymentModes = [
+    { label: 'Cash', value: 'cash' },
+    { label: 'UPI', value: 'upi' },
+    { label: 'Bank Transfer', value: 'bank_transfer' },
+    { label: 'Cheque', value: 'cheque' },
+  ];
 
   useEffect(() => {
     if (visible && order) {
       setPaymentAmount('');
-      setPaymentMode('Cash');
+      setPaymentMode('cash');
       setPaymentNote('');
-      setCurrentOrder(order);
-      fetchOrderDetails();
+      fetchPaymentCredit();
     }
   }, [visible, order]);
 
-  const fetchOrderDetails = async () => {
+  const fetchPaymentCredit = async () => {
     try {
       setLoadingPayments(true);
       const token = user && user.token ? user.token : '';
       const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-      const response = await fetch(`${BASE_URL}/api/orders/${order._id}`, { headers });
+
+      // Fetch payment credit linked to this order
+      const response = await fetch(`${BASE_URL}/api/payment-credits?order_id=${order._id}`, { headers });
       const result = await response.json();
+
       if (response.ok || result.status === 200) {
-        const orderData = result.order || result.data || result;
-        setCurrentOrder(orderData);
-        setPayments(orderData.payments || []);
+        const credits = result.paymentCredits || [];
+        const credit = credits.find(c => c.order_id === order._id || c.order_id?._id === order._id);
+        if (credit) {
+          setPaymentCreditId(credit._id);
+          setCreditData(credit);
+          setPayments(credit.payment_history || []);
+        } else {
+          setPaymentCreditId(null);
+          setCreditData(null);
+          setPayments([]);
+        }
       } else {
-        setPayments(order.payments || []);
+        setPayments([]);
       }
     } catch (e) {
-      console.log('Fetch order details error:', e);
-      setPayments(order.payments || []);
+      console.log('Fetch payment credit error:', e);
+      setPayments([]);
     } finally {
       setLoadingPayments(false);
     }
   };
 
-  const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const grandTotal = currentOrder ? (currentOrder.grand_total || 0) : (order ? (order.grand_total || 0) : 0);
-  const balance = grandTotal - totalPaid;
+  const totalPaid = creditData ? (creditData.paid_amount || 0) : payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const grandTotal = creditData ? (creditData.total_amount || 0) : (order ? (order.grand_total || 0) : 0);
+  const balance = creditData ? (creditData.remaining_amount || 0) : (grandTotal - totalPaid);
 
   const handleSubmitPayment = async () => {
     const amount = parseFloat(paymentAmount);
@@ -519,35 +535,32 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
       Alert.alert('Error', 'Payment amount cannot exceed the balance of Rs. ' + balance);
       return;
     }
+
+    if (!paymentCreditId) {
+      Alert.alert('Error', 'No payment credit found for this order. Please ensure the order was created with credit payment mode.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const token = user && user.token ? user.token : '';
       const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-      const newPayment = {
+      const body = JSON.stringify({
         amount,
         payment_mode: paymentMode,
         note: paymentNote.trim(),
-        date: new Date().toISOString(),
-      };
-      const updatedPayments = [...payments, newPayment];
-      const newTotalPaid = updatedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-      const body = JSON.stringify({
-        payments: updatedPayments,
-        amount_paid: newTotalPaid,
-        balance_amount: grandTotal - newTotalPaid,
-        payment_status: newTotalPaid >= grandTotal ? 'paid' : newTotalPaid > 0 ? 'partial' : 'unpaid',
       });
-      const response = await fetch(`${BASE_URL}/api/orders/${order._id}`, {
-        method: 'PUT',
+      const response = await fetch(`${BASE_URL}/api/payment-credits/${paymentCreditId}/pay`, {
+        method: 'POST',
         headers,
         body,
       });
       const result = await response.json();
       if (response.ok || result.status === 200 || result.status === 201) {
-        Alert.alert('Success', 'Payment recorded successfully');
+        Alert.alert('Success', result.message || 'Payment recorded successfully');
         setPaymentAmount('');
         setPaymentNote('');
-        setPayments(updatedPayments);
+        fetchPaymentCredit();
         if (onPaymentSuccess) onPaymentSuccess();
       } else {
         Alert.alert('Error', result.message || 'Failed to record payment');
@@ -612,7 +625,7 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
                     <Text style={{ fontSize: 13, fontWeight: '600', color: '#333' }}>Rs. {p.amount || 0}</Text>
                     <Text style={{ fontSize: 11, color: '#999' }}>{p.payment_mode || 'Cash'} {p.note ? '- ' + p.note : ''}</Text>
                   </View>
-                  <Text style={{ fontSize: 10, color: '#bbb' }}>{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '--'}</Text>
+                  <Text style={{ fontSize: 10, color: '#bbb' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : (p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '--')}</Text>
                 </View>
               ))
             )}
@@ -626,18 +639,18 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
                   {paymentModes.map((mode) => (
                     <TouchableOpacity
-                      key={mode}
+                      key={mode.value}
                       style={{
                         paddingHorizontal: 16,
                         paddingVertical: 8,
                         borderRadius: 20,
-                        backgroundColor: paymentMode === mode ? '#1565c0' : '#f0f0f0',
+                        backgroundColor: paymentMode === mode.value ? '#1565c0' : '#f0f0f0',
                         marginRight: 8,
                       }}
-                      onPress={() => setPaymentMode(mode)}
+                      onPress={() => setPaymentMode(mode.value)}
                       activeOpacity={0.7}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: paymentMode === mode ? '#fff' : '#666' }}>{mode}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: paymentMode === mode.value ? '#fff' : '#666' }}>{mode.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
