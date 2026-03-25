@@ -141,7 +141,7 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
       }
     } catch (e) {
       console.log('Create order error:', e);
-      Alert.alert('Error', 'Unable to connect to server');
+      Alert.alert('Error', e.message || 'Unable to connect to server');
     } finally {
       setSubmitting(false);
     }
@@ -364,7 +364,7 @@ const modalStyles = StyleSheet.create({
 });
 
 // ======================== ORDER DETAIL MODAL ========================
-function OrderDetailModal({ visible, order, onClose }) {
+function OrderDetailModal({ visible, order, onClose, onOpenPayment }) {
   if (!order) return null;
 
   const getStatusColor = (status) => {
@@ -439,6 +439,248 @@ function OrderDetailModal({ visible, order, onClose }) {
             <Text style={{ fontSize: 11, color: '#999', marginTop: 14, textAlign: 'center' }}>
               Created: {order.createdAt ? new Date(order.createdAt).toLocaleString() : '--'}
             </Text>
+
+            {/* Payment / Credit Button */}
+            <TouchableOpacity
+              style={{
+                marginTop: 16,
+                backgroundColor: '#1565c0',
+                paddingVertical: 14,
+                borderRadius: 12,
+                alignItems: 'center',
+              }}
+              onPress={() => { if (onOpenPayment) onOpenPayment(order); }}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Payment / Credit</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ======================== PAYMENT CREDIT MODAL ========================
+function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user }) {
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMode, setPaymentMode] = useState('Cash');
+  const [paymentNote, setPaymentNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [payments, setPayments] = useState([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState(null);
+
+  const paymentModes = ['Cash', 'UPI', 'Credit', 'Bank Transfer', 'Cheque'];
+
+  useEffect(() => {
+    if (visible && order) {
+      setPaymentAmount('');
+      setPaymentMode('Cash');
+      setPaymentNote('');
+      setCurrentOrder(order);
+      fetchOrderDetails();
+    }
+  }, [visible, order]);
+
+  const fetchOrderDetails = async () => {
+    try {
+      setLoadingPayments(true);
+      const token = user && user.token ? user.token : '';
+      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+      const response = await fetch(`${BASE_URL}/api/orders/${order._id}`, { headers });
+      const result = await response.json();
+      if (response.ok || result.status === 200) {
+        const orderData = result.order || result.data || result;
+        setCurrentOrder(orderData);
+        setPayments(orderData.payments || []);
+      } else {
+        setPayments(order.payments || []);
+      }
+    } catch (e) {
+      console.log('Fetch order details error:', e);
+      setPayments(order.payments || []);
+    } finally {
+      setLoadingPayments(false);
+    }
+  };
+
+  const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const grandTotal = currentOrder ? (currentOrder.grand_total || 0) : (order ? (order.grand_total || 0) : 0);
+  const balance = grandTotal - totalPaid;
+
+  const handleSubmitPayment = async () => {
+    const amount = parseFloat(paymentAmount);
+    if (!amount || amount <= 0) {
+      Alert.alert('Error', 'Please enter a valid payment amount');
+      return;
+    }
+    if (amount > balance) {
+      Alert.alert('Error', 'Payment amount cannot exceed the balance of Rs. ' + balance);
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const token = user && user.token ? user.token : '';
+      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+      const newPayment = {
+        amount,
+        payment_mode: paymentMode,
+        note: paymentNote.trim(),
+        date: new Date().toISOString(),
+      };
+      const updatedPayments = [...payments, newPayment];
+      const newTotalPaid = updatedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const body = JSON.stringify({
+        payments: updatedPayments,
+        amount_paid: newTotalPaid,
+        balance_amount: grandTotal - newTotalPaid,
+        payment_status: newTotalPaid >= grandTotal ? 'paid' : newTotalPaid > 0 ? 'partial' : 'unpaid',
+      });
+      const response = await fetch(`${BASE_URL}/api/orders/${order._id}`, {
+        method: 'PUT',
+        headers,
+        body,
+      });
+      const result = await response.json();
+      if (response.ok || result.status === 200 || result.status === 201) {
+        Alert.alert('Success', 'Payment recorded successfully');
+        setPaymentAmount('');
+        setPaymentNote('');
+        setPayments(updatedPayments);
+        if (onPaymentSuccess) onPaymentSuccess();
+      } else {
+        Alert.alert('Error', result.message || 'Failed to record payment');
+      }
+    } catch (e) {
+      console.log('Payment submit error:', e);
+      Alert.alert('Error', 'Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!order) return null;
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={modalStyles.overlay}>
+        <View style={modalStyles.container}>
+          <View style={modalStyles.header}>
+            <Text style={modalStyles.headerTitle}>Payment / Credit</Text>
+            <TouchableOpacity onPress={onClose} style={modalStyles.closeBtn}>
+              <Text style={modalStyles.closeBtnText}>X</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+            {/* Order Summary */}
+            <View style={{ marginTop: 14, padding: 14, backgroundColor: '#f8f8f8', borderRadius: 12 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#333' }}>
+                Order #{order.order_number || order._id?.slice(-6) || '--'}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{order.vendor_name || '--'}</Text>
+            </View>
+
+            {/* Payment Summary Cards */}
+            <View style={{ flexDirection: 'row', marginTop: 14, gap: 8 }}>
+              <View style={{ flex: 1, backgroundColor: '#e3f2fd', borderRadius: 12, padding: 14, alignItems: 'center' }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#1565c0' }}>Total Amount</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: '#1565c0', marginTop: 4 }}>Rs. {grandTotal}</Text>
+              </View>
+              <View style={{ flex: 1, backgroundColor: '#e8f5e9', borderRadius: 12, padding: 14, alignItems: 'center' }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#4caf50' }}>Paid</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: '#4caf50', marginTop: 4 }}>Rs. {totalPaid}</Text>
+              </View>
+              <View style={{ flex: 1, backgroundColor: balance > 0 ? '#ffebee' : '#e8f5e9', borderRadius: 12, padding: 14, alignItems: 'center' }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: balance > 0 ? '#e53935' : '#4caf50' }}>Balance</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: balance > 0 ? '#e53935' : '#4caf50', marginTop: 4 }}>Rs. {balance}</Text>
+              </View>
+            </View>
+
+            {/* Payment History */}
+            <Text style={modalStyles.sectionLabel}>Payment History</Text>
+            {loadingPayments ? (
+              <ActivityIndicator size="small" color="#1565c0" style={{ marginVertical: 10 }} />
+            ) : payments.length === 0 ? (
+              <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#f8f8f8', borderRadius: 10 }}>
+                <Text style={{ fontSize: 13, color: '#999' }}>No payments recorded yet</Text>
+              </View>
+            ) : (
+              payments.map((p, idx) => (
+                <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: '#f8f8f8', borderRadius: 10, marginBottom: 4 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#333' }}>Rs. {p.amount || 0}</Text>
+                    <Text style={{ fontSize: 11, color: '#999' }}>{p.payment_mode || 'Cash'} {p.note ? '- ' + p.note : ''}</Text>
+                  </View>
+                  <Text style={{ fontSize: 10, color: '#bbb' }}>{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '--'}</Text>
+                </View>
+              ))
+            )}
+
+            {/* Add Payment Form */}
+            {balance > 0 && (
+              <>
+                <Text style={modalStyles.sectionLabel}>Record Payment</Text>
+
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 6 }}>Payment Mode</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                  {paymentModes.map((mode) => (
+                    <TouchableOpacity
+                      key={mode}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        backgroundColor: paymentMode === mode ? '#1565c0' : '#f0f0f0',
+                        marginRight: 8,
+                      }}
+                      onPress={() => setPaymentMode(mode)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: paymentMode === mode ? '#fff' : '#666' }}>{mode}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <TextInput
+                  style={modalStyles.input}
+                  placeholder="Payment Amount"
+                  placeholderTextColor="#bbb"
+                  keyboardType="numeric"
+                  value={paymentAmount}
+                  onChangeText={setPaymentAmount}
+                />
+
+                <TextInput
+                  style={[modalStyles.input, { height: 60, textAlignVertical: 'top', marginTop: 8 }]}
+                  placeholder="Payment Note (optional)"
+                  placeholderTextColor="#bbb"
+                  value={paymentNote}
+                  onChangeText={setPaymentNote}
+                  multiline
+                />
+
+                <TouchableOpacity
+                  style={[modalStyles.submitBtn, submitting && { opacity: 0.6 }]}
+                  onPress={handleSubmitPayment}
+                  disabled={submitting}
+                  activeOpacity={0.8}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={modalStyles.submitBtnText}>Record Payment</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+
+            {balance <= 0 && payments.length > 0 && (
+              <View style={{ marginTop: 14, padding: 16, backgroundColor: '#e8f5e9', borderRadius: 12, alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, fontWeight: '800', color: '#4caf50' }}>Fully Paid</Text>
+                <Text style={{ fontSize: 12, color: '#66bb6a', marginTop: 4 }}>All payments have been recorded</Text>
+              </View>
+            )}
           </ScrollView>
         </View>
       </View>
@@ -454,6 +696,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [paymentOrder, setPaymentOrder] = useState(null);
   const [filter, setFilter] = useState('all');
   const [stats, setStats] = useState({ total: 0, pending: 0, confirmed: 0, delivered: 0, totalAmount: 0 });
 
@@ -733,6 +976,17 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
         visible={!!selectedOrder}
         order={selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        onOpenPayment={(order) => {
+          setSelectedOrder(null);
+          setPaymentOrder(order);
+        }}
+      />
+      <PaymentCreditModal
+        visible={!!paymentOrder}
+        order={paymentOrder}
+        onClose={() => setPaymentOrder(null)}
+        onPaymentSuccess={fetchOrders}
+        user={user}
       />
     </View>
   );
