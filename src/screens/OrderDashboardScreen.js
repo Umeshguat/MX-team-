@@ -471,6 +471,20 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
   const [loadingPayments, setLoadingPayments] = useState(false);
   const [paymentCreditId, setPaymentCreditId] = useState(null);
   const [creditData, setCreditData] = useState(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const scrollViewRef = useRef(null);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardHeight(0)
+    );
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
 
   const paymentModes = [
     { label: 'Cash', value: 'cash' },
@@ -494,13 +508,12 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
       const token = user && user.token ? user.token : '';
       const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
 
-      // Fetch payment credit linked to this order
-      const response = await fetch(`${BASE_URL}/api/payment-credits?order_id=${order._id}`, { headers });
+      // Fetch order details with linked payment credit
+      const response = await fetch(`${BASE_URL}/api/orders/${order._id}`, { headers });
       const result = await response.json();
 
       if (response.ok || result.status === 200) {
-        const credits = result.paymentCredits || [];
-        const credit = credits.find(c => c.order_id === order._id || c.order_id?._id === order._id);
+        const credit = result.paymentCredit || null;
         if (credit) {
           setPaymentCreditId(credit._id);
           setCreditData(credit);
@@ -536,21 +549,43 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
       return;
     }
 
-    if (!paymentCreditId) {
-      Alert.alert('Error', 'No payment credit found for this order. Please ensure the order was created with credit payment mode.');
-      return;
-    }
-
     try {
       setSubmitting(true);
       const token = user && user.token ? user.token : '';
       const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+      // Auto-create PaymentCredit if not exists for this order
+      let creditId = paymentCreditId;
+      if (!creditId) {
+        const createRes = await fetch(`${BASE_URL}/api/payment-credits`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            vendor_name: order.vendor_name || '--',
+            vendor_mobile: order.vendor_mobile || '',
+            order_id: order._id,
+            total_amount: order.grand_total || 0,
+            paid_amount: 0,
+            payment_mode: 'cash',
+            note: `Auto-created credit for order ${order.order_number || order._id}`,
+          }),
+        });
+        const createResult = await createRes.json();
+        if (createRes.ok || createResult.status === 201 || createResult.status === 200) {
+          creditId = createResult.paymentCredit?._id || createResult.data?._id || createResult._id;
+          setPaymentCreditId(creditId);
+        } else {
+          Alert.alert('Error', createResult.message || 'Failed to create payment credit for this order');
+          return;
+        }
+      }
+
       const body = JSON.stringify({
         amount,
         payment_mode: paymentMode,
         note: paymentNote.trim(),
       });
-      const response = await fetch(`${BASE_URL}/api/payment-credits/${paymentCreditId}/pay`, {
+      const response = await fetch(`${BASE_URL}/api/payment-credits/${creditId}/pay`, {
         method: 'POST',
         headers,
         body,
@@ -578,14 +613,14 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={modalStyles.overlay}>
-        <View style={modalStyles.container}>
+        <View style={[modalStyles.container, keyboardHeight > 0 && { maxHeight: '95%', paddingBottom: keyboardHeight }]}>
           <View style={modalStyles.header}>
             <Text style={modalStyles.headerTitle}>Payment / Credit</Text>
             <TouchableOpacity onPress={onClose} style={modalStyles.closeBtn}>
               <Text style={modalStyles.closeBtnText}>X</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? 40 : 20 }} keyboardShouldPersistTaps="handled">
             {/* Order Summary */}
             <View style={{ marginTop: 14, padding: 14, backgroundColor: '#f8f8f8', borderRadius: 12 }}>
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#333' }}>
