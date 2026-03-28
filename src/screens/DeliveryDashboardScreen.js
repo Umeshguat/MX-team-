@@ -7,10 +7,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
-  FlatList,
   ActivityIndicator,
   Alert,
-  RefreshControl,
   Modal,
   TextInput,
   Image,
@@ -19,7 +17,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 
-const screenWidth = Dimensions.get('window').width;
+var screenWidth = Dimensions.get('window').width;
 
 const STATUS_COLORS = {
   assigned: '#FF9800',
@@ -51,7 +49,6 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
   const [updating, setUpdating] = useState(false);
   const [proofImage, setProofImage] = useState(null);
   const [receivedBy, setReceivedBy] = useState('');
-  const [showStatusOptions, setShowStatusOptions] = useState(false);
 
   const getNextStatuses = (current) => {
     switch (current) {
@@ -108,7 +105,6 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
         Alert.alert('Success', 'Delivery status updated to ' + STATUS_LABELS[newStatus]);
         setProofImage(null);
         setReceivedBy('');
-        setShowStatusOptions(false);
         onStatusUpdate();
         onClose();
       } else {
@@ -131,15 +127,13 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
       <View style={modalStyles.overlay}>
         <View style={modalStyles.container}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Header */}
             <View style={modalStyles.header}>
               <Text style={modalStyles.title}>Delivery Details</Text>
               <TouchableOpacity onPress={onClose}>
-                <Text style={modalStyles.closeBtn}>X</Text>
+                <Text style={modalStyles.closeBtn}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Order Info */}
             <View style={modalStyles.section}>
               <Text style={modalStyles.sectionTitle}>Order Information</Text>
               <View style={modalStyles.infoRow}>
@@ -174,7 +168,6 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
               )}
             </View>
 
-            {/* Delivery Address */}
             <View style={modalStyles.section}>
               <Text style={modalStyles.sectionTitle}>Delivery Address</Text>
               {addr.address ? <Text style={modalStyles.addressText}>{addr.address}</Text> : null}
@@ -183,7 +176,6 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
               </Text>
             </View>
 
-            {/* Order Items */}
             {delivery.order_id && delivery.order_id.items && delivery.order_id.items.length > 0 && (
               <View style={modalStyles.section}>
                 <Text style={modalStyles.sectionTitle}>Order Items</Text>
@@ -203,13 +195,10 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
               </View>
             )}
 
-            {/* Update Status */}
             {nextStatuses.length > 0 && (
               <View style={modalStyles.section}>
                 <Text style={modalStyles.sectionTitle}>Update Status</Text>
-
-                {/* Delivery Proof for delivered status */}
-                {(nextStatuses.includes('delivered') || showStatusOptions) && (
+                {nextStatuses.includes('delivered') && (
                   <View style={{ marginBottom: 12 }}>
                     <TouchableOpacity style={modalStyles.proofBtn} onPress={pickProofImage}>
                       <Text style={modalStyles.proofBtnText}>
@@ -228,7 +217,6 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
                     />
                   </View>
                 )}
-
                 <View style={modalStyles.statusBtnsRow}>
                   {nextStatuses.map((s) => (
                     <TouchableOpacity
@@ -256,20 +244,35 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
 
 // ======================== MAIN DASHBOARD ========================
 export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile, onGoToDeliveryList }) {
-  const [activeTab, setActiveTab] = useState('pending');
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
-  const [stats, setStats] = useState({ assigned: 0, picked_up: 0, in_transit: 0, delivered: 0, failed: 0 });
+  const [stats, setStats] = useState({ assigned: 0, picked_up: 0, in_transit: 0, delivered: 0, failed: 0, total: 0 });
 
-  const tabs = [
-    { key: 'pending', label: 'Pending' },
-    { key: 'in_transit', label: 'In Transit' },
-    { key: 'delivered', label: 'Delivered' },
-    { key: 'all', label: 'All' },
-  ];
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
 
   const fetchDeliveries = useCallback(async (showLoader) => {
     if (showLoader) setLoading(true);
@@ -286,8 +289,7 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
       if (response.ok) {
         const list = result.deliveries || result.data || [];
         setDeliveries(list);
-        // Calculate stats
-        const s = { assigned: 0, picked_up: 0, in_transit: 0, delivered: 0, failed: 0 };
+        const s = { assigned: 0, picked_up: 0, in_transit: 0, delivered: 0, failed: 0, total: list.length };
         list.forEach((d) => {
           if (s[d.delivery_status] !== undefined) s[d.delivery_status]++;
         });
@@ -299,7 +301,6 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
       console.log('Fetch deliveries error:', e);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, [user]);
 
@@ -307,158 +308,174 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
     fetchDeliveries(true);
   }, [fetchDeliveries]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchDeliveries(false);
-  };
-
-  const getFilteredDeliveries = () => {
-    if (activeTab === 'all') return deliveries;
-    if (activeTab === 'pending') return deliveries.filter((d) => ['assigned', 'picked_up'].includes(d.delivery_status));
-    if (activeTab === 'in_transit') return deliveries.filter((d) => d.delivery_status === 'in_transit');
-    if (activeTab === 'delivered') return deliveries.filter((d) => ['delivered', 'failed', 'returned'].includes(d.delivery_status));
-    return deliveries;
-  };
-
-  const filteredDeliveries = getFilteredDeliveries();
+  const pendingDeliveries = deliveries.filter((d) => ['assigned', 'picked_up'].includes(d.delivery_status));
+  const activeDeliveries = deliveries.filter((d) => d.delivery_status === 'in_transit');
+  const pendingCount = stats.assigned + stats.picked_up;
+  const activeCount = stats.in_transit;
 
   const openDetail = (delivery) => {
     setSelectedDelivery(delivery);
     setShowDetail(true);
   };
 
-  const renderDeliveryCard = ({ item }) => {
-    const addr = item.delivery_address || {};
-    const addressText = [addr.address, addr.city, addr.state, addr.pincode].filter(Boolean).join(', ');
+  // Get today's deliveries
+  const todayStr = new Date().toDateString();
+  const todayDelivered = deliveries.filter((d) => d.delivery_status === 'delivered' && d.delivered_at && new Date(d.delivered_at).toDateString() === todayStr).length;
 
-    return (
-      <TouchableOpacity style={styles.deliveryCard} onPress={() => openDetail(item)} activeOpacity={0.7}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.orderNumber}>{item.order_number || 'N/A'}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[item.delivery_status] || '#999' }]}>
-            <Text style={styles.statusBadgeText}>{STATUS_LABELS[item.delivery_status] || item.delivery_status}</Text>
-          </View>
-        </View>
-
-        <View style={styles.cardBody}>
-          <View style={styles.cardRow}>
-            <Text style={styles.cardLabel}>Vendor</Text>
-            <Text style={styles.cardValue}>{item.vendor_name || 'N/A'}</Text>
-          </View>
-          <View style={styles.cardRow}>
-            <Text style={styles.cardLabel}>Mobile</Text>
-            <Text style={styles.cardValue}>{item.vendor_mobile || 'N/A'}</Text>
-          </View>
-          {addressText ? (
-            <View style={styles.cardRow}>
-              <Text style={styles.cardLabel}>Address</Text>
-              <Text style={[styles.cardValue, { flex: 1 }]} numberOfLines={2}>{addressText}</Text>
-            </View>
-          ) : null}
-          <View style={styles.cardRow}>
-            <Text style={styles.cardLabel}>Priority</Text>
-            <View style={[styles.priorityBadge, { backgroundColor: PRIORITY_COLORS[item.priority] || '#999' }]}>
-              <Text style={styles.priorityText}>{(item.priority || 'medium').toUpperCase()}</Text>
-            </View>
-          </View>
-          {item.scheduled_date && (
-            <View style={styles.cardRow}>
-              <Text style={styles.cardLabel}>Scheduled</Text>
-              <Text style={styles.cardValue}>{new Date(item.scheduled_date).toLocaleDateString()}</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  // Recent deliveries (latest 5 pending/active)
+  const recentDeliveries = deliveries
+    .filter((d) => ['assigned', 'picked_up', 'in_transit'].includes(d.delivery_status))
+    .slice(0, 5);
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Header */}
+      {/* Header - same pattern as DashboardScreen */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Delivery Dashboard</Text>
-          <Text style={styles.userName}>{user ? user.fullName : 'Agent'}</Text>
-        </View>
-        <View style={styles.headerRight}>
-          {onGoToProfile && (
-            <TouchableOpacity style={styles.profileBtn} onPress={onGoToProfile}>
-              <Text style={styles.profileBtnText}>Profile</Text>
-            </TouchableOpacity>
-          )}
-          {onLogout && (
-            <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-              <Text style={styles.logoutBtnText}>Logout</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Stats Cards */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsRow} contentContainerStyle={{ paddingHorizontal: 12 }}>
-        <View style={[styles.statCard, { backgroundColor: '#FF9800' }]}>
-          <Text style={styles.statNumber}>{stats.assigned}</Text>
-          <Text style={styles.statLabel}>Assigned</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: '#2196F3' }]}>
-          <Text style={styles.statNumber}>{stats.picked_up}</Text>
-          <Text style={styles.statLabel}>Picked Up</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: '#9C27B0' }]}>
-          <Text style={styles.statNumber}>{stats.in_transit}</Text>
-          <Text style={styles.statLabel}>In Transit</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: '#4CAF50' }]}>
-          <Text style={styles.statNumber}>{stats.delivered}</Text>
-          <Text style={styles.statLabel}>Delivered</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: '#F44336' }]}>
-          <Text style={styles.statNumber}>{stats.failed}</Text>
-          <Text style={styles.statLabel}>Failed</Text>
-        </View>
-      </ScrollView>
-
-      {/* View All Button */}
-      {onGoToDeliveryList && (
-        <TouchableOpacity style={styles.viewAllBtn} onPress={onGoToDeliveryList}>
-          <Text style={styles.viewAllText}>View All Deliveries →</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Tabs */}
-      <View style={styles.tabRow}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
+        <View style={styles.circle1} />
+        <View style={styles.circle2} />
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.greeting}>Welcome Back,</Text>
+            <Text style={styles.userName}>{user && user.fullName ? user.fullName : 'Delivery Agent'}</Text>
+          </View>
+          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+            <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
-        ))}
+        </View>
+        <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
+        <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
       </View>
 
-      {/* Delivery List */}
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#e53935" />
-          <Text style={styles.loadingText}>Loading deliveries...</Text>
+      <ScrollView
+        style={styles.body}
+        contentContainerStyle={styles.bodyContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Status Card */}
+        <View style={styles.statusCard}>
+          <View style={[styles.statusDot, activeCount > 0 ? styles.dotActive : styles.dotInactive]} />
+          <Text style={styles.statusText}>
+            {activeCount > 0
+              ? activeCount + ' Deliver' + (activeCount > 1 ? 'ies' : 'y') + ' In Transit'
+              : pendingCount > 0
+                ? pendingCount + ' Pending Deliver' + (pendingCount > 1 ? 'ies' : 'y')
+                : 'No Active Deliveries'}
+          </Text>
         </View>
-      ) : filteredDeliveries.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.emptyText}>No deliveries found</Text>
+
+        {/* Info Cards Row */}
+        <View style={styles.infoRow}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>Pending</Text>
+            <Text style={styles.infoValue}>{pendingCount}</Text>
+          </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>In Transit</Text>
+            <Text style={styles.infoValue}>{activeCount}</Text>
+          </View>
         </View>
-      ) : (
-        <FlatList
-          data={filteredDeliveries}
-          keyExtractor={(item) => item._id}
-          renderItem={renderDeliveryCard}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 30 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e53935" />}
-        />
-      )}
+
+        <View style={styles.infoRow}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>Delivered Today</Text>
+            <Text style={styles.infoValue}>{todayDelivered}</Text>
+          </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>Total Delivered</Text>
+            <Text style={styles.infoValue}>{stats.delivered}</Text>
+          </View>
+        </View>
+
+        <View style={styles.infoRow}>
+          <View style={[styles.infoCard, styles.infoCardFull]}>
+            <Text style={styles.infoLabel}>Total Deliveries</Text>
+            <Text style={styles.infoValueLarge}>{stats.total}</Text>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.actionCard} onPress={onGoToDeliveryList}>
+            <View style={[styles.actionIcon, { backgroundColor: '#e3f2fd' }]}>
+              <Text style={styles.actionEmoji}>📋</Text>
+            </View>
+            <Text style={styles.actionText}>All Deliveries</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionCard} onPress={onGoToProfile}>
+            <View style={[styles.actionIcon, { backgroundColor: '#fff3e0' }]}>
+              <Text style={styles.actionEmoji}>👤</Text>
+            </View>
+            <Text style={styles.actionText}>Profile</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Recent Deliveries */}
+        <View style={styles.recentHeader}>
+          <Text style={styles.sectionTitle}>Recent Deliveries</Text>
+          {onGoToDeliveryList && (
+            <TouchableOpacity onPress={onGoToDeliveryList}>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {loading ? (
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color="#e53935" />
+            <Text style={styles.loadingText}>Loading deliveries...</Text>
+          </View>
+        ) : recentDeliveries.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>No pending deliveries</Text>
+          </View>
+        ) : (
+          recentDeliveries.map((item) => {
+            const addr = item.delivery_address || {};
+            const addressText = [addr.city, addr.state].filter(Boolean).join(', ');
+            return (
+              <TouchableOpacity
+                key={item._id}
+                style={styles.deliveryCard}
+                onPress={() => openDetail(item)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={styles.orderNumber}>{item.order_number || 'N/A'}</Text>
+                  <View style={[styles.cardStatusBadge, { backgroundColor: STATUS_COLORS[item.delivery_status] || '#999' }]}>
+                    <Text style={styles.cardStatusText}>{STATUS_LABELS[item.delivery_status] || item.delivery_status}</Text>
+                  </View>
+                </View>
+                <View style={styles.cardBody}>
+                  <View style={styles.cardRow}>
+                    <Text style={styles.cardLabel}>Vendor</Text>
+                    <Text style={styles.cardValue}>{item.vendor_name || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.cardRow}>
+                    <Text style={styles.cardLabel}>Mobile</Text>
+                    <Text style={styles.cardValue}>{item.vendor_mobile || 'N/A'}</Text>
+                  </View>
+                  {addressText ? (
+                    <View style={styles.cardRow}>
+                      <Text style={styles.cardLabel}>City</Text>
+                      <Text style={styles.cardValue}>{addressText}</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.cardRow}>
+                    <Text style={styles.cardLabel}>Priority</Text>
+                    <View style={[styles.priorityBadge, { backgroundColor: PRIORITY_COLORS[item.priority] || '#999' }]}>
+                      <Text style={styles.priorityText}>{(item.priority || 'medium').toUpperCase()}</Text>
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </ScrollView>
 
       {/* Detail Modal */}
       <DeliveryDetailModal
@@ -473,27 +490,47 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
 }
 
 // ======================== STYLES ========================
-const styles = StyleSheet.create({
+var styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f7',
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
   },
   header: {
+    backgroundColor: '#1a1a2e',
+    paddingTop: 50,
+    paddingBottom: 25,
+    paddingHorizontal: 25,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: 'hidden',
+  },
+  circle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(229, 57, 53, 0.2)',
+    top: -50,
+    right: -40,
+  },
+  circle2: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 87, 34, 0.15)',
+    top: 60,
+    left: -50,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#1a1a2e',
-    paddingTop: 12,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    marginBottom: 15,
   },
   greeting: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.7)',
-    letterSpacing: 1,
   },
   userName: {
     fontSize: 22,
@@ -501,100 +538,151 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: 2,
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  profileBtn: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  profileBtnText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
   logoutBtn: {
-    backgroundColor: '#e53935',
-    paddingHorizontal: 14,
+    backgroundColor: 'rgba(229, 57, 53, 0.3)',
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 20,
   },
-  logoutBtnText: {
-    color: '#fff',
+  logoutText: {
+    color: '#ff8a80',
     fontSize: 13,
     fontWeight: '700',
   },
-
-  // Stats
-  statsRow: {
-    marginTop: 16,
-    marginBottom: 8,
-    maxHeight: 90,
+  dateText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
   },
-  statCard: {
-    width: 100,
-    borderRadius: 14,
-    padding: 14,
-    marginRight: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statNumber: {
-    fontSize: 26,
+  timeText: {
+    fontSize: 28,
     fontWeight: '900',
     color: '#fff',
-  },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.9)',
     marginTop: 4,
+    letterSpacing: 2,
   },
-
-  // View All
-  viewAllBtn: {
+  body: {
+    flex: 1,
+  },
+  bodyContent: {
+    padding: 20,
+    paddingBottom: 80,
+  },
+  statusCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 20,
-    marginTop: 6,
-    marginBottom: 2,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  dotActive: {
+    backgroundColor: '#4caf50',
+  },
+  dotInactive: {
+    backgroundColor: '#bdbdbd',
+  },
+  statusText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  infoCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 16,
+    marginHorizontal: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  infoCardFull: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '600',
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  infoValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1a1a2e',
+  },
+  infoValueLarge: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#e53935',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a2e',
+    marginTop: 10,
+    marginBottom: 15,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  actionCard: {
+    width: (screenWidth - 52) / 2,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  actionIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  actionEmoji: {
+    fontSize: 24,
+  },
+  actionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#333',
+  },
+  recentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   viewAllText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#e53935',
-  },
-
-  // Tabs
-  tabRow: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginVertical: 12,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 12,
-    padding: 3,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  tabActive: {
-    backgroundColor: '#1a1a2e',
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666',
-  },
-  tabTextActive: {
-    color: '#fff',
   },
 
   // Delivery Card
@@ -603,11 +691,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 12,
     padding: 16,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 4,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -620,12 +708,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1a1a2e',
   },
-  statusBadge: {
+  cardStatusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  statusBadgeText: {
+  cardStatusText: {
     color: '#fff',
     fontSize: 11,
     fontWeight: '700',
@@ -660,7 +748,7 @@ const styles = StyleSheet.create({
 
   // Empty / Loading
   centered: {
-    flex: 1,
+    paddingVertical: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -669,15 +757,26 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 14,
   },
+  emptyCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 30,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
   emptyText: {
     color: '#888',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
   },
 });
 
 // ======================== MODAL STYLES ========================
-const modalStyles = StyleSheet.create({
+var modalStyles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -685,12 +784,12 @@ const modalStyles = StyleSheet.create({
   },
   container: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-    paddingHorizontal: 20,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    paddingHorizontal: 25,
     paddingTop: 20,
     paddingBottom: 40,
+    maxHeight: '85%',
   },
   header: {
     flexDirection: 'row',
@@ -704,10 +803,10 @@ const modalStyles = StyleSheet.create({
     color: '#1a1a2e',
   },
   closeBtn: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
     color: '#999',
-    padding: 8,
+    fontWeight: '700',
+    padding: 5,
   },
   section: {
     marginBottom: 20,
@@ -777,7 +876,7 @@ const modalStyles = StyleSheet.create({
   },
   proofBtn: {
     backgroundColor: '#1a1a2e',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     marginBottom: 10,
@@ -790,19 +889,19 @@ const modalStyles = StyleSheet.create({
   proofImage: {
     width: '100%',
     height: 150,
-    borderRadius: 10,
+    borderRadius: 14,
     marginBottom: 10,
     resizeMode: 'cover',
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
+    backgroundColor: '#f5f5f7',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    fontSize: 15,
     color: '#333',
+    borderWidth: 1,
+    borderColor: '#eee',
   },
   statusBtnsRow: {
     flexDirection: 'row',
@@ -812,13 +911,15 @@ const modalStyles = StyleSheet.create({
   statusUpdateBtn: {
     flex: 1,
     minWidth: 120,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
+    elevation: 6,
   },
   statusUpdateBtnText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '800',
+    letterSpacing: 2,
   },
 });
