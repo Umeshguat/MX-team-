@@ -26,9 +26,8 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState([]);
-  const [distributorName, setDistributorName] = useState('');
-  const [distributorMobile, setDistributorMobile] = useState('');
-  const [distributorAddress, setDistributorAddress] = useState('');
+  const [vendorName, setVendorName] = useState('');
+  const [vendorMobile, setVendorMobile] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,9 +52,8 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
     if (visible) {
       fetchProducts();
       setSelectedProducts([]);
-      setDistributorName('');
-      setDistributorMobile('');
-      setDistributorAddress('');
+      setVendorName('');
+      setVendorMobile('');
       setNotes('');
       setSearchQuery('');
       setDiscount('');
@@ -105,12 +103,12 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
   };
 
   const handleSubmit = async () => {
-    if (!distributorName.trim()) {
-      Alert.alert('Error', 'Please enter distributor name');
+    if (!vendorName.trim()) {
+      Alert.alert('Error', 'Please enter vendor name');
       return;
     }
-    if (!distributorMobile.trim()) {
-      Alert.alert('Error', 'Please enter distributor mobile number');
+    if (!vendorMobile.trim()) {
+      Alert.alert('Error', 'Please enter vendor mobile number');
       return;
     }
     if (selectedProducts.length === 0) {
@@ -134,9 +132,9 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
       }));
 
       const orderPayload = {
-        vendor_name: distributorName.trim(),
-        vendor_mobile: distributorMobile.trim(),
-        vendor_address: distributorAddress.trim(),
+        vendor_name: vendorName.trim(),
+        vendor_mobile: vendorMobile.trim(),
+        vendor_address: null,
         items: orderItems,
         discount: parseFloat(discount) || 0,
         tax: parseFloat(tax) || 0,
@@ -220,31 +218,23 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
             </View>
 
             <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? 40 : 20 }} keyboardShouldPersistTaps="handled">
-              {/* Distributor Details */}
-              <Text style={modalStyles.sectionLabel}>Distributor Details</Text>
+              {/* Vendor Details */}
+              <Text style={modalStyles.sectionLabel}>Vendor Details</Text>
               <TextInput
                 style={modalStyles.input}
-                placeholder="Distributor Name *"
+                placeholder="Vendor Name *"
                 placeholderTextColor="#999"
-                value={distributorName}
-                onChangeText={setDistributorName}
+                value={vendorName}
+                onChangeText={setVendorName}
               />
               <TextInput
                 style={modalStyles.input}
-                placeholder="Mobile Number *"
+                placeholder="Vendor Mobile *"
                 placeholderTextColor="#999"
-                value={distributorMobile}
-                onChangeText={setDistributorMobile}
+                value={vendorMobile}
+                onChangeText={setVendorMobile}
                 keyboardType="phone-pad"
                 maxLength={10}
-              />
-              <TextInput
-                style={modalStyles.input}
-                placeholder="Address"
-                placeholderTextColor="#999"
-                value={distributorAddress}
-                onChangeText={setDistributorAddress}
-                multiline
               />
 
               {/* Product Selection */}
@@ -387,7 +377,19 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
                       borderWidth: 1,
                       borderColor: paymentMode === mode.value ? '#e53935' : '#eee',
                     }}
-                    onPress={() => setPaymentMode(mode.value)}
+                    onPress={() => {
+                      setPaymentMode(mode.value);
+                      if (mode.value === 'credit') {
+                        const d = new Date();
+                        d.setDate(d.getDate() + 5);
+                        const yyyy = d.getFullYear();
+                        const mm = String(d.getMonth() + 1).padStart(2, '0');
+                        const dd = String(d.getDate()).padStart(2, '0');
+                        setDueDate(`${yyyy}-${mm}-${dd}`);
+                      } else {
+                        setDueDate('');
+                      }
+                    }}
                   >
                     <Text style={{
                       fontSize: 13,
