@@ -27,7 +27,8 @@
       "Read(//e//**)",
       "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\salesmens' -type f \\\\\\(-name *order* -o -name *Order* \\\\\\))",
       "Bash(grep -r \"order\\\\|Order\" 'e:\\\\project_after_1_ dec_2025\\\\salesmens/src' --include=*.js --include=*.jsx --include=*.ts --include=*.tsx)",
-      "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\Salesmensapi' -type f \\\\\\(-name *order* -o -name *Order* \\\\\\))"
+      "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\Salesmensapi' -type f \\\\\\(-name *order* -o -name *Order* \\\\\\))",
+      "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\Salesmensapi\\\\src\\\\controllers' -type f -name *.js -o -name *.ts)"
     ],
     "additionalDirectories": [
       "e:\\project_after_1_ dec_2025\\Salesmensapi\\src\\controllers"

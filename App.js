@@ -17,6 +17,8 @@ import AdminEmployeeListScreen from './src/screens/AdminEmployeeListScreen';
 import AdminAttendanceListScreen from './src/screens/AdminAttendanceListScreen';
 import InventoryDashboardScreen from './src/screens/InventoryDashboardScreen';
 import OrderDashboardScreen from './src/screens/OrderDashboardScreen';
+import DeliveryDashboardScreen from './src/screens/DeliveryDashboardScreen';
+import DeliveryListScreen from './src/screens/DeliveryListScreen';
 
 const SESSION_KEY = 'user_session';
 
@@ -24,6 +26,7 @@ function getHomeDashboard(role) {
   if (role === 'admin') return 'adminDashboard';
   if (role === 'Warehouse') return 'inventory';
   if (role === 'Sales') return 'orderDashboard';
+  if (role === 'DeliveryAgent') return 'deliveryDashboard';
   return 'dashboard';
 }
 
@@ -182,6 +185,26 @@ export default function App() {
         onGoBack={null}
         onGoToProfile={() => setScreen('profile')}
         onGoToInventory={() => setScreen('inventory')}
+      />
+    );
+  }
+
+  if (screen === 'deliveryDashboard') {
+    return (
+      <DeliveryDashboardScreen
+        user={user}
+        onLogout={handleLogout}
+        onGoToProfile={() => setScreen('profile')}
+        onGoToDeliveryList={() => setScreen('deliveryList')}
+      />
+    );
+  }
+
+  if (screen === 'deliveryList') {
+    return (
+      <DeliveryListScreen
+        user={user}
+        onGoBack={() => setScreen('deliveryDashboard')}
       />
     );
   }

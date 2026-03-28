@@ -55,6 +55,7 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
           if (rn === 'admin') role = 'admin';
           else if (rn === 'warehouse') role = 'Warehouse';
           else if (rn === 'sales') role = 'Sales';
+          else if (rn === 'delivery agent') role = 'DeliveryAgent';
           else role = 'employee';
         }
         onLoginSuccess({
