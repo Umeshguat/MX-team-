@@ -6,7 +6,6 @@ import {
   View,
   TouchableOpacity,
   ScrollView,
-  Dimensions,
   FlatList,
   ActivityIndicator,
   Alert,
@@ -14,14 +13,11 @@ import {
   Modal,
   TextInput,
   Image,
-  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 
-const screenWidth = Dimensions.get('window').width;
-
-const STATUS_COLORS = {
+var STATUS_COLORS = {
   assigned: '#FF9800',
   picked_up: '#2196F3',
   in_transit: '#9C27B0',
@@ -30,7 +26,7 @@ const STATUS_COLORS = {
   returned: '#795548',
 };
 
-const STATUS_LABELS = {
+var STATUS_LABELS = {
   assigned: 'Assigned',
   picked_up: 'Picked Up',
   in_transit: 'In Transit',
@@ -39,7 +35,16 @@ const STATUS_LABELS = {
   returned: 'Returned',
 };
 
-const PRIORITY_COLORS = {
+var STATUS_BG = {
+  assigned: '#fff3e0',
+  picked_up: '#e3f2fd',
+  in_transit: '#f3e5f5',
+  delivered: '#e8f5e9',
+  failed: '#ffebee',
+  returned: '#efebe9',
+};
+
+var PRIORITY_COLORS = {
   low: '#8BC34A',
   medium: '#FF9800',
   high: '#F44336',
@@ -48,11 +53,11 @@ const PRIORITY_COLORS = {
 
 // ======================== DELIVERY DETAIL MODAL ========================
 function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate }) {
-  const [updating, setUpdating] = useState(false);
-  const [proofImage, setProofImage] = useState(null);
-  const [receivedBy, setReceivedBy] = useState('');
+  var [updating, setUpdating] = useState(false);
+  var [proofImage, setProofImage] = useState(null);
+  var [receivedBy, setReceivedBy] = useState('');
 
-  const getNextStatuses = (current) => {
+  var getNextStatuses = function(current) {
     switch (current) {
       case 'assigned': return ['picked_up'];
       case 'picked_up': return ['in_transit'];
@@ -62,9 +67,9 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
     }
   };
 
-  const pickProofImage = async () => {
+  var pickProofImage = async function() {
     try {
-      const result = await ImagePicker.launchCameraAsync({
+      var result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
         quality: 0.5,
         base64: true,
@@ -77,15 +82,15 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
     }
   };
 
-  const handleStatusUpdate = async (newStatus) => {
+  var handleStatusUpdate = async function(newStatus) {
     if (newStatus === 'delivered' && !proofImage) {
       Alert.alert('Required', 'Please capture delivery proof photo before marking as delivered');
       return;
     }
     setUpdating(true);
     try {
-      const token = user && user.token ? user.token : '';
-      const body = { delivery_status: newStatus };
+      var token = user && user.token ? user.token : '';
+      var body = { delivery_status: newStatus };
       if (newStatus === 'delivered') {
         if (proofImage && proofImage.base64) {
           body.delivery_proof = {
@@ -94,7 +99,7 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
           };
         }
       }
-      const response = await fetch(`${BASE_URL}/api/deliveries/${delivery._id}/status`, {
+      var response = await fetch(BASE_URL + '/api/deliveries/' + delivery._id + '/status', {
         method: 'PUT',
         headers: {
           'Authorization': 'Bearer ' + token,
@@ -102,7 +107,7 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
         },
         body: JSON.stringify(body),
       });
-      const result = await response.json();
+      var result = await response.json();
       if (response.ok) {
         Alert.alert('Success', 'Delivery status updated to ' + STATUS_LABELS[newStatus]);
         setProofImage(null);
@@ -121,23 +126,21 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
 
   if (!delivery) return null;
 
-  const nextStatuses = getNextStatuses(delivery.delivery_status);
-  const addr = delivery.delivery_address || {};
+  var nextStatuses = getNextStatuses(delivery.delivery_status);
+  var addr = delivery.delivery_address || {};
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={modalStyles.overlay}>
         <View style={modalStyles.container}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Header */}
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <View style={modalStyles.header}>
               <Text style={modalStyles.title}>Delivery Details</Text>
               <TouchableOpacity onPress={onClose}>
-                <Text style={modalStyles.closeBtn}>X</Text>
+                <Text style={modalStyles.closeBtn}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Order Info */}
             <View style={modalStyles.section}>
               <Text style={modalStyles.sectionTitle}>Order Information</Text>
               <View style={modalStyles.infoRow}>
@@ -164,21 +167,20 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
                   <Text style={modalStyles.statusText}>{(delivery.priority || 'medium').toUpperCase()}</Text>
                 </View>
               </View>
-              {delivery.scheduled_date && (
+              {delivery.scheduled_date ? (
                 <View style={modalStyles.infoRow}>
                   <Text style={modalStyles.label}>Scheduled</Text>
                   <Text style={modalStyles.value}>{new Date(delivery.scheduled_date).toLocaleDateString()}</Text>
                 </View>
-              )}
-              {delivery.delivered_at && (
+              ) : null}
+              {delivery.delivered_at ? (
                 <View style={modalStyles.infoRow}>
                   <Text style={modalStyles.label}>Delivered</Text>
                   <Text style={modalStyles.value}>{new Date(delivery.delivered_at).toLocaleString()}</Text>
                 </View>
-              )}
+              ) : null}
             </View>
 
-            {/* Delivery Address */}
             <View style={modalStyles.section}>
               <Text style={modalStyles.sectionTitle}>Delivery Address</Text>
               {addr.address ? <Text style={modalStyles.addressText}>{addr.address}</Text> : null}
@@ -187,57 +189,55 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
               </Text>
             </View>
 
-            {/* Order Items */}
-            {delivery.order_id && delivery.order_id.items && delivery.order_id.items.length > 0 && (
+            {delivery.order_id && delivery.order_id.items && delivery.order_id.items.length > 0 ? (
               <View style={modalStyles.section}>
                 <Text style={modalStyles.sectionTitle}>Order Items</Text>
-                {delivery.order_id.items.map((item, idx) => (
-                  <View key={idx} style={modalStyles.itemRow}>
-                    <Text style={modalStyles.itemName}>{item.product_name || 'Product'}</Text>
-                    <Text style={modalStyles.itemQty}>x{item.quantity}</Text>
-                    <Text style={modalStyles.itemPrice}>Rs.{(item.total_price || 0).toFixed(2)}</Text>
-                  </View>
-                ))}
-                {delivery.order_id.grand_total != null && (
+                {delivery.order_id.items.map(function(item, idx) {
+                  return (
+                    <View key={idx} style={modalStyles.itemRow}>
+                      <Text style={modalStyles.itemName}>{item.product_name || 'Product'}</Text>
+                      <Text style={modalStyles.itemQty}>x{item.quantity}</Text>
+                      <Text style={modalStyles.itemPrice}>Rs.{(item.total_price || 0).toFixed(2)}</Text>
+                    </View>
+                  );
+                })}
+                {delivery.order_id.grand_total != null ? (
                   <View style={[modalStyles.itemRow, { borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 8, marginTop: 4 }]}>
                     <Text style={[modalStyles.itemName, { fontWeight: '700' }]}>Total</Text>
                     <Text style={[modalStyles.itemPrice, { fontWeight: '700' }]}>Rs.{delivery.order_id.grand_total.toFixed(2)}</Text>
                   </View>
-                )}
+                ) : null}
               </View>
-            )}
+            ) : null}
 
-            {/* Delivery Proof (if delivered) */}
-            {delivery.delivery_status === 'delivered' && delivery.delivery_proof && (
+            {delivery.delivery_status === 'delivered' && delivery.delivery_proof ? (
               <View style={modalStyles.section}>
                 <Text style={modalStyles.sectionTitle}>Delivery Proof</Text>
-                {delivery.delivery_proof.received_by && (
+                {delivery.delivery_proof.received_by ? (
                   <View style={modalStyles.infoRow}>
                     <Text style={modalStyles.label}>Received By</Text>
                     <Text style={modalStyles.value}>{delivery.delivery_proof.received_by}</Text>
                   </View>
-                )}
-                {delivery.delivery_proof.image_url && (
+                ) : null}
+                {delivery.delivery_proof.image_url ? (
                   <Image source={{ uri: delivery.delivery_proof.image_url }} style={modalStyles.proofImage} />
-                )}
+                ) : null}
               </View>
-            )}
+            ) : null}
 
-            {/* Update Status */}
-            {nextStatuses.length > 0 && (
+            {nextStatuses.length > 0 ? (
               <View style={modalStyles.section}>
                 <Text style={modalStyles.sectionTitle}>Update Status</Text>
-
-                {nextStatuses.includes('delivered') && (
+                {nextStatuses.includes('delivered') ? (
                   <View style={{ marginBottom: 12 }}>
                     <TouchableOpacity style={modalStyles.proofBtn} onPress={pickProofImage}>
                       <Text style={modalStyles.proofBtnText}>
                         {proofImage ? 'Retake Proof Photo' : 'Capture Delivery Proof'}
                       </Text>
                     </TouchableOpacity>
-                    {proofImage && (
+                    {proofImage ? (
                       <Image source={{ uri: proofImage.uri }} style={modalStyles.proofImage} />
-                    )}
+                    ) : null}
                     <TextInput
                       style={modalStyles.input}
                       placeholder="Received by (name)"
@@ -246,26 +246,27 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
                       onChangeText={setReceivedBy}
                     />
                   </View>
-                )}
-
+                ) : null}
                 <View style={modalStyles.statusBtnsRow}>
-                  {nextStatuses.map((s) => (
-                    <TouchableOpacity
-                      key={s}
-                      style={[modalStyles.statusUpdateBtn, { backgroundColor: STATUS_COLORS[s] }]}
-                      onPress={() => handleStatusUpdate(s)}
-                      disabled={updating}
-                    >
-                      {updating ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                      ) : (
-                        <Text style={modalStyles.statusUpdateBtnText}>{STATUS_LABELS[s]}</Text>
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                  {nextStatuses.map(function(s) {
+                    return (
+                      <TouchableOpacity
+                        key={s}
+                        style={[modalStyles.statusUpdateBtn, { backgroundColor: STATUS_COLORS[s] }]}
+                        onPress={function() { handleStatusUpdate(s); }}
+                        disabled={updating}
+                      >
+                        {updating ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <Text style={modalStyles.statusUpdateBtnText}>{STATUS_LABELS[s]}</Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
-            )}
+            ) : null}
           </ScrollView>
         </View>
       </View>
@@ -275,159 +276,187 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
 
 // ======================== MAIN LIST SCREEN ========================
 export default function DeliveryListScreen({ user, onGoBack }) {
-  const [deliveries, setDeliveries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedDelivery, setSelectedDelivery] = useState(null);
-  const [showDetail, setShowDetail] = useState(false);
+  var [deliveries, setDeliveries] = useState([]);
+  var [loading, setLoading] = useState(true);
+  var [refreshing, setRefreshing] = useState(false);
+  var [loadingMore, setLoadingMore] = useState(false);
+  var [selectedDelivery, setSelectedDelivery] = useState(null);
+  var [showDetail, setShowDetail] = useState(false);
+  var [activeFilter, setActiveFilter] = useState('all');
+  var [page, setPage] = useState(1);
+  var [totalPages, setTotalPages] = useState(1);
+  var [totalCount, setTotalCount] = useState(0);
+  var [pendingCount, setPendingCount] = useState(0);
+  var [inTransitCount, setInTransitCount] = useState(0);
+  var [deliveredCount, setDeliveredCount] = useState(0);
 
-  // Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeStatusFilter, setActiveStatusFilter] = useState('all');
+  var token = user && user.token ? user.token : '';
+  var LIMIT = 10;
 
-  const statusFilters = [
-    { key: 'all', label: 'All' },
-    { key: 'assigned', label: 'Assigned' },
-    { key: 'picked_up', label: 'Picked Up' },
-    { key: 'in_transit', label: 'In Transit' },
-    { key: 'delivered', label: 'Delivered' },
-    { key: 'failed', label: 'Failed' },
-    { key: 'returned', label: 'Returned' },
-  ];
-
-  const fetchDeliveries = useCallback(async (showLoader) => {
-    if (showLoader) setLoading(true);
-    try {
-      const token = user && user.token ? user.token : '';
-      const response = await fetch(`${BASE_URL}/api/deliveries/my-deliveries`, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json',
-        },
-      });
-      const result = await response.json();
-      if (response.ok) {
-        const list = result.deliveries || result.data || [];
-        setDeliveries(list);
-      } else {
-        setDeliveries([]);
-      }
-    } catch (e) {
-      console.log('Fetch deliveries error:', e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchDeliveries(true);
-  }, [fetchDeliveries]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchDeliveries(false);
+  var getStatusFilter = function(filter) {
+    if (filter === 'pending') return 'assigned';
+    if (filter === 'in_transit') return 'in_transit';
+    if (filter === 'delivered') return 'delivered';
+    if (filter === 'failed') return 'failed';
+    return '';
   };
 
-  const getFilteredDeliveries = () => {
-    let list = deliveries;
-
-    // Status filter
-    if (activeStatusFilter !== 'all') {
-      list = list.filter((d) => d.delivery_status === activeStatusFilter);
+  var fetchDeliveries = function(pageNum, isRefresh, filter) {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else if (pageNum === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
     }
 
-    // Search filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      list = list.filter((d) => {
-        const orderNum = (d.order_number || '').toLowerCase();
-        const vendor = (d.vendor_name || '').toLowerCase();
-        const mobile = (d.vendor_mobile || '').toLowerCase();
-        const city = (d.delivery_address && d.delivery_address.city || '').toLowerCase();
-        const address = (d.delivery_address && d.delivery_address.address || '').toLowerCase();
-        return orderNum.includes(q) || vendor.includes(q) || mobile.includes(q) || city.includes(q) || address.includes(q);
+    var payload = {
+      delivery_status: getStatusFilter(filter !== undefined ? filter : activeFilter),
+      priority: '',
+      from: '',
+      to: '',
+      page: pageNum,
+      limit: LIMIT,
+    };
+
+    fetch(BASE_URL + '/api/deliveries/my-deliveries', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(function(response) { return response.json(); })
+      .then(function(result) {
+        var list = result.deliveries || [];
+        if (pageNum === 1) {
+          setDeliveries(list);
+        } else {
+          setDeliveries(function(prev) { return prev.concat(list); });
+        }
+        setPage(result.page || pageNum);
+        setTotalPages(result.totalPages || 1);
+        setTotalCount(result.total || 0);
+        setPendingCount(result.totalPending || 0);
+        setInTransitCount(result.totalInTransit || 0);
+        setDeliveredCount(result.totalDelivered || 0);
+        setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
+      })
+      .catch(function(err) {
+        console.log('Fetch deliveries error:', err);
+        setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
       });
-    }
-
-    return list;
   };
 
-  const filteredDeliveries = getFilteredDeliveries();
+  useEffect(function() {
+    fetchDeliveries(1, false, activeFilter);
+  }, [activeFilter]);
 
-  // Count per status for filter badges
-  const statusCounts = {};
-  deliveries.forEach((d) => {
-    statusCounts[d.delivery_status] = (statusCounts[d.delivery_status] || 0) + 1;
-  });
+  var onRefresh = function() {
+    fetchDeliveries(1, true);
+  };
 
-  const openDetail = (delivery) => {
+  var loadMore = function() {
+    if (loadingMore || page >= totalPages) return;
+    fetchDeliveries(page + 1, false);
+  };
+
+  var filteredList = deliveries;
+
+  var openDetail = function(delivery) {
     setSelectedDelivery(delivery);
     setShowDetail(true);
   };
 
-  const renderDeliveryCard = ({ item }) => {
-    const addr = item.delivery_address || {};
-    const addressText = [addr.address, addr.city, addr.state, addr.pincode].filter(Boolean).join(', ');
-    const createdDate = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '';
-    const deliveredDate = item.delivered_at ? new Date(item.delivered_at).toLocaleString() : '';
+  var fullName = user && user.fullName ? user.fullName : (user && user.full_name ? user.full_name : 'Agent');
+
+  var renderRecord = function({ item, index }) {
+    var status = item.delivery_status || '';
+    var statusColor = STATUS_COLORS[status] || '#bdbdbd';
+    var statusBg = STATUS_BG[status] || '#f5f5f5';
+    var addr = item.delivery_address || {};
+    var cityText = [addr.city, addr.state].filter(Boolean).join(', ');
 
     return (
-      <TouchableOpacity style={styles.deliveryCard} onPress={() => openDetail(item)} activeOpacity={0.7}>
-        {/* Card Top Row */}
-        <View style={styles.cardHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.orderNumber}>{item.order_number || 'N/A'}</Text>
-            {createdDate ? <Text style={styles.dateText}>{createdDate}</Text> : null}
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[item.delivery_status] || '#999' }]}>
-              <Text style={styles.statusBadgeText}>{STATUS_LABELS[item.delivery_status] || item.delivery_status}</Text>
-            </View>
-            <View style={[styles.priorityBadge, { backgroundColor: PRIORITY_COLORS[item.priority] || '#999', marginTop: 6 }]}>
-              <Text style={styles.priorityText}>{(item.priority || 'medium').toUpperCase()}</Text>
-            </View>
+      <TouchableOpacity style={styles.recordCard} onPress={function() { openDetail(item); }} activeOpacity={0.7}>
+        <View style={styles.recordLeft}>
+          <View style={[styles.numBox, { backgroundColor: statusBg }]}>
+            <Text style={[styles.numText, { color: statusColor }]}>{index + 1}</Text>
           </View>
         </View>
-
-        {/* Card Body */}
-        <View style={styles.cardBody}>
-          <View style={styles.cardRow}>
-            <Text style={styles.cardIcon}>👤</Text>
-            <Text style={styles.cardValue}>{item.vendor_name || 'N/A'}</Text>
-            {item.vendor_mobile ? (
-              <Text style={styles.cardMobile}>{item.vendor_mobile}</Text>
-            ) : null}
+        <View style={styles.recordMiddle}>
+          <Text style={styles.vendorName} numberOfLines={1}>{item.order_number || 'N/A'}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
+            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+            <Text style={[styles.statusLabel, { color: statusColor }]}>{STATUS_LABELS[status] || status}</Text>
           </View>
-          {addressText ? (
-            <View style={styles.cardRow}>
-              <Text style={styles.cardIcon}>📍</Text>
-              <Text style={[styles.cardValue, { flex: 1 }]} numberOfLines={2}>{addressText}</Text>
-            </View>
+          <Text style={styles.vendorInfo}>{item.vendor_name || 'Unknown'}{item.vendor_mobile ? ' | ' + item.vendor_mobile : ''}</Text>
+          {cityText ? (
+            <Text style={styles.addressInfo}>📍 {cityText}</Text>
           ) : null}
-          {item.scheduled_date && (
-            <View style={styles.cardRow}>
-              <Text style={styles.cardIcon}>📅</Text>
-              <Text style={styles.cardValue}>Scheduled: {new Date(item.scheduled_date).toLocaleDateString()}</Text>
-            </View>
-          )}
-          {deliveredDate && item.delivery_status === 'delivered' ? (
-            <View style={styles.cardRow}>
-              <Text style={styles.cardIcon}>✅</Text>
-              <Text style={[styles.cardValue, { color: '#4CAF50' }]}>Delivered: {deliveredDate}</Text>
+        </View>
+        <View style={styles.recordRight}>
+          <View style={[styles.priorityBox, { backgroundColor: PRIORITY_COLORS[item.priority] || '#FF9800' }]}>
+            <Text style={styles.priorityText}>{(item.priority || 'med').substring(0, 3).toUpperCase()}</Text>
+          </View>
+          {item.order_id && item.order_id.grand_total != null ? (
+            <View style={styles.totalBox}>
+              <Text style={styles.totalValue}>Rs.{item.order_id.grand_total.toFixed(0)}</Text>
             </View>
           ) : null}
         </View>
-
-        {/* Order Total */}
-        {item.order_id && item.order_id.grand_total != null && (
-          <View style={styles.cardFooter}>
-            <Text style={styles.totalLabel}>Order Total</Text>
-            <Text style={styles.totalValue}>Rs.{item.order_id.grand_total.toFixed(2)}</Text>
-          </View>
-        )}
       </TouchableOpacity>
+    );
+  };
+
+  var renderHeader = function() {
+    return (
+      <View>
+        {/* Summary Cards */}
+        <View style={styles.summaryRow}>
+          <TouchableOpacity style={[styles.summaryCard, { backgroundColor: '#fff3e0' }]} onPress={function() { setActiveFilter('pending'); }}>
+            <Text style={[styles.summaryCount, { color: '#FF9800' }]}>{pendingCount}</Text>
+            <Text style={styles.summaryLabel}>Pending</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.summaryCard, { backgroundColor: '#f3e5f5' }]} onPress={function() { setActiveFilter('in_transit'); }}>
+            <Text style={[styles.summaryCount, { color: '#9C27B0' }]}>{inTransitCount}</Text>
+            <Text style={styles.summaryLabel}>In Transit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.summaryCard, { backgroundColor: '#e8f5e9' }]} onPress={function() { setActiveFilter('delivered'); }}>
+            <Text style={[styles.summaryCount, { color: '#4CAF50' }]}>{deliveredCount}</Text>
+            <Text style={styles.summaryLabel}>Delivered</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Filter Tabs */}
+        <View style={styles.filterRow}>
+          {[
+            { key: 'all', label: 'All' },
+            { key: 'pending', label: 'Pending' },
+            { key: 'in_transit', label: 'Transit' },
+            { key: 'delivered', label: 'Done' },
+            { key: 'failed', label: 'Failed' },
+          ].map(function(f) {
+            var isActive = activeFilter === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[styles.filterTab, isActive && styles.filterTabActive]}
+                onPress={function() { setActiveFilter(f.key); }}
+              >
+                <Text style={[styles.filterTabText, isActive && styles.filterTabTextActive]}>{f.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text style={styles.sectionTitle}>Delivery Records</Text>
+      </View>
     );
   };
 
@@ -437,459 +466,248 @@ export default function DeliveryListScreen({ user, onGoBack }) {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onGoBack} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Deliveries</Text>
-        <Text style={styles.headerCount}>{filteredDeliveries.length} items</Text>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by order #, vendor, mobile, city..."
-          placeholderTextColor="#999"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity style={styles.clearBtn} onPress={() => setSearchQuery('')}>
-            <Text style={styles.clearBtnText}>X</Text>
+        <View style={styles.circle1} />
+        <View style={styles.circle2} />
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
+            <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
-        )}
+          <Text style={styles.headerTitle}>All Deliveries</Text>
+          <View style={{ width: 60 }} />
+        </View>
+        <Text style={styles.headerSubtitle}>{fullName}</Text>
+
+        <View style={styles.locationBar}>
+          <Text style={styles.locationIcon}>📦</Text>
+          <Text style={styles.locationText}>
+            {totalCount} deliver{totalCount !== 1 ? 'ies' : 'y'} total
+          </Text>
+        </View>
       </View>
 
-      {/* Status Filter Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={{ paddingHorizontal: 16 }}>
-        {statusFilters.map((f) => {
-          const count = f.key === 'all' ? deliveries.length : (statusCounts[f.key] || 0);
-          const isActive = activeStatusFilter === f.key;
-          return (
-            <TouchableOpacity
-              key={f.key}
-              style={[
-                styles.filterChip,
-                isActive && styles.filterChipActive,
-                f.key !== 'all' && isActive && { backgroundColor: STATUS_COLORS[f.key] },
-              ]}
-              onPress={() => setActiveStatusFilter(f.key)}
-            >
-              <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
-                {f.label} ({count})
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      {/* Delivery List */}
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#e53935" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1565c0" />
           <Text style={styles.loadingText}>Loading deliveries...</Text>
-        </View>
-      ) : filteredDeliveries.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.emptyIcon}>📦</Text>
-          <Text style={styles.emptyText}>No deliveries found</Text>
-          {searchQuery || activeStatusFilter !== 'all' ? (
-            <TouchableOpacity
-              style={styles.clearFiltersBtn}
-              onPress={() => { setSearchQuery(''); setActiveStatusFilter('all'); }}
-            >
-              <Text style={styles.clearFiltersBtnText}>Clear Filters</Text>
-            </TouchableOpacity>
-          ) : null}
         </View>
       ) : (
         <FlatList
-          data={filteredDeliveries}
-          keyExtractor={(item) => item._id}
-          renderItem={renderDeliveryCard}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 30 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e53935" />}
+          data={filteredList}
+          renderItem={renderRecord}
+          keyExtractor={function(item, index) { return item._id || String(index); }}
+          contentContainerStyle={styles.bodyContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1565c0']} />
+          }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.3}
+          ListHeaderComponent={renderHeader}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color="#1565c0" />
+                <Text style={styles.footerLoaderText}>Loading more...</Text>
+              </View>
+            ) : page < totalPages ? (
+              <TouchableOpacity style={styles.loadMoreBtn} onPress={loadMore}>
+                <Text style={styles.loadMoreText}>Load More</Text>
+              </TouchableOpacity>
+            ) : deliveries.length > 0 ? (
+              <Text style={styles.endText}>No more deliveries</Text>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyIcon}>📦</Text>
+              <Text style={styles.emptyText}>No deliveries found</Text>
+              {activeFilter !== 'all' ? (
+                <TouchableOpacity style={styles.clearFilterBtn} onPress={function() { setActiveFilter('all'); }}>
+                  <Text style={styles.clearFilterText}>Show All</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          }
         />
       )}
 
       {/* Detail Modal */}
       <DeliveryDetailModal
         visible={showDetail}
-        onClose={() => { setShowDetail(false); setSelectedDelivery(null); }}
+        onClose={function() { setShowDetail(false); setSelectedDelivery(null); }}
         delivery={selectedDelivery}
         user={user}
-        onStatusUpdate={() => fetchDeliveries(false)}
+        onStatusUpdate={function() { fetchDeliveries(1, false); }}
       />
     </View>
   );
 }
 
 // ======================== STYLES ========================
-const styles = StyleSheet.create({
+var styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f7',
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
     backgroundColor: '#1a1a2e',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 25,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: 'hidden',
+  },
+  circle1: {
+    position: 'absolute', width: 200, height: 200, borderRadius: 100,
+    backgroundColor: 'rgba(229, 57, 53, 0.2)', top: -50, right: -40,
+  },
+  circle2: {
+    position: 'absolute', width: 150, height: 150, borderRadius: 75,
+    backgroundColor: 'rgba(255, 87, 34, 0.15)', top: 60, left: -50,
+  },
+  headerTop: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
   },
   backBtn: {
-    paddingRight: 12,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
   },
-  backBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  backText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  headerSubtitle: {
+    color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center', marginBottom: 15,
   },
-  headerTitle: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  headerCount: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '600',
-  },
-
-  // Search
-  searchContainer: {
-    marginHorizontal: 16,
-    marginTop: 14,
-    position: 'relative',
-  },
-  searchInput: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  clearBtn: {
-    position: 'absolute',
-    right: 14,
-    top: 12,
-    padding: 4,
-  },
-  clearBtnText: {
-    fontSize: 16,
-    color: '#999',
-    fontWeight: '700',
-  },
-
-  // Filter Chips
-  filterRow: {
-    marginTop: 12,
-    marginBottom: 8,
-    maxHeight: 44,
-  },
-  filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  filterChipActive: {
-    backgroundColor: '#1a1a2e',
-    borderColor: '#1a1a2e',
-  },
-  filterChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-  },
-  filterChipTextActive: {
-    color: '#fff',
-  },
-
-  // Delivery Card
-  deliveryCard: {
-    backgroundColor: '#fff',
+  locationBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 14,
-    marginBottom: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    paddingBottom: 10,
-  },
-  orderNumber: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1a1a2e',
-  },
-  dateText: {
-    fontSize: 12,
-    color: '#aaa',
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  statusBadgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  priorityText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  cardBody: {},
-  cardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  cardIcon: {
-    fontSize: 14,
-    width: 24,
-  },
-  cardValue: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-  },
-  cardMobile: {
-    fontSize: 13,
-    color: '#888',
-    marginLeft: 10,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  totalLabel: {
-    fontSize: 13,
-    color: '#888',
-    fontWeight: '500',
-  },
-  totalValue: {
-    fontSize: 16,
-    color: '#1a1a2e',
-    fontWeight: '800',
-  },
-
-  // Empty / Loading
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    color: '#888',
-    fontSize: 14,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyText: {
-    color: '#888',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  clearFiltersBtn: {
-    marginTop: 16,
-    backgroundColor: '#e53935',
-    paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: 20,
   },
-  clearFiltersBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
+  locationIcon: { fontSize: 16, marginRight: 8 },
+  locationText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '600' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 14, color: '#999', fontWeight: '600' },
+  bodyContent: { padding: 16, paddingBottom: 30 },
+
+  // Summary
+  summaryRow: {
+    flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16,
   },
+  summaryCard: {
+    flex: 1, borderRadius: 14, padding: 12, marginHorizontal: 4, alignItems: 'center',
+  },
+  summaryCount: { fontSize: 22, fontWeight: '900' },
+  summaryLabel: { fontSize: 11, fontWeight: '600', color: '#666', marginTop: 4 },
+
+  // Filter Tabs
+  filterRow: {
+    flexDirection: 'row', backgroundColor: '#e8e8ec', borderRadius: 12, padding: 3, marginBottom: 16,
+  },
+  filterTab: {
+    flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10,
+  },
+  filterTabActive: {
+    backgroundColor: '#1a1a2e',
+  },
+  filterTabText: { fontSize: 12, fontWeight: '600', color: '#666' },
+  filterTabTextActive: { color: '#fff' },
+
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a2e', marginBottom: 15 },
+
+  // Record Card
+  recordCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10,
+    flexDirection: 'row', alignItems: 'center',
+    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
+  },
+  recordLeft: { marginRight: 12 },
+  numBox: {
+    width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center',
+  },
+  numText: { fontSize: 18, fontWeight: '800' },
+  recordMiddle: { flex: 1 },
+  vendorName: { fontSize: 15, fontWeight: '700', color: '#1a1a2e', marginBottom: 4 },
+  statusBadge: {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 4,
+  },
+  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
+  statusLabel: { fontSize: 12, fontWeight: '700' },
+  vendorInfo: { fontSize: 12, color: '#999', fontWeight: '500' },
+  addressInfo: { fontSize: 12, color: '#666', fontWeight: '500', marginTop: 2 },
+  recordRight: { alignItems: 'center', minWidth: 55 },
+  priorityBox: {
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginBottom: 6,
+  },
+  priorityText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  totalBox: {
+    backgroundColor: '#f0f0f5', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  totalValue: { fontSize: 11, fontWeight: '700', color: '#555' },
+
+  // Empty
+  emptyCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 40, alignItems: 'center', elevation: 2,
+  },
+  emptyIcon: { fontSize: 40, marginBottom: 12 },
+  emptyText: { fontSize: 15, color: '#999', fontWeight: '600' },
+  clearFilterBtn: {
+    marginTop: 14, backgroundColor: '#e53935', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20,
+  },
+  clearFilterText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  footerLoader: { paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
+  footerLoaderText: { marginLeft: 8, fontSize: 13, color: '#999', fontWeight: '600' },
+  loadMoreBtn: {
+    backgroundColor: '#1a1a2e', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8, marginBottom: 8,
+  },
+  loadMoreText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  endText: { textAlign: 'center', color: '#bbb', fontSize: 13, paddingVertical: 16, fontWeight: '500' },
 });
 
 // ======================== MODAL STYLES ========================
-const modalStyles = StyleSheet.create({
+var modalStyles = StyleSheet.create({
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
+    backgroundColor: '#fff', borderTopLeftRadius: 25, borderTopRightRadius: 25,
+    paddingHorizontal: 25, paddingTop: 20, paddingBottom: 40, maxHeight: '85%',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#1a1a2e',
-  },
-  closeBtn: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#999',
-    padding: 8,
-  },
+  title: { fontSize: 20, fontWeight: '800', color: '#1a1a2e' },
+  closeBtn: { fontSize: 20, color: '#999', fontWeight: '700', padding: 5 },
   section: {
-    marginBottom: 20,
-    backgroundColor: '#f9f9fb',
-    borderRadius: 12,
-    padding: 14,
+    marginBottom: 20, backgroundColor: '#f9f9fb', borderRadius: 12, padding: 14,
   },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    marginBottom: 10,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 13,
-    color: '#888',
-    width: 85,
-    fontWeight: '500',
-  },
-  value: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
-    flex: 1,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  addressText: {
-    fontSize: 14,
-    color: '#555',
-    lineHeight: 20,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  itemName: {
-    flex: 1,
-    fontSize: 13,
-    color: '#333',
-    fontWeight: '500',
-  },
-  itemQty: {
-    fontSize: 13,
-    color: '#666',
-    marginRight: 12,
-    fontWeight: '600',
-  },
-  itemPrice: {
-    fontSize: 13,
-    color: '#1a1a2e',
-    fontWeight: '600',
-  },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a2e', marginBottom: 10 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  label: { fontSize: 13, color: '#888', width: 85, fontWeight: '500' },
+  value: { fontSize: 14, color: '#333', fontWeight: '600', flex: 1 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
+  statusText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  addressText: { fontSize: 14, color: '#555', lineHeight: 20 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  itemName: { flex: 1, fontSize: 13, color: '#333', fontWeight: '500' },
+  itemQty: { fontSize: 13, color: '#666', marginRight: 12, fontWeight: '600' },
+  itemPrice: { fontSize: 13, color: '#1a1a2e', fontWeight: '600' },
   proofBtn: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginBottom: 10,
+    backgroundColor: '#1a1a2e', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginBottom: 10,
   },
-  proofBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  proofBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   proofImage: {
-    width: '100%',
-    height: 150,
-    borderRadius: 10,
-    marginBottom: 10,
-    resizeMode: 'cover',
+    width: '100%', height: 150, borderRadius: 14, marginBottom: 10, resizeMode: 'cover',
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#333',
+    backgroundColor: '#f5f5f7', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 13,
+    fontSize: 15, color: '#333', borderWidth: 1, borderColor: '#eee',
   },
-  statusBtnsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
+  statusBtnsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   statusUpdateBtn: {
-    flex: 1,
-    minWidth: 120,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
+    flex: 1, minWidth: 120, borderRadius: 12, paddingVertical: 14, alignItems: 'center', elevation: 6,
   },
-  statusUpdateBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '800',
-  },
+  statusUpdateBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 2 },
 });

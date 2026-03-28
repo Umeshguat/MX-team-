@@ -274,11 +274,11 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
     });
   };
 
-  const fetchDeliveries = useCallback(async (showLoader) => {
+  const fetchDashboard = useCallback(async (showLoader) => {
     if (showLoader) setLoading(true);
     try {
       const token = user && user.token ? user.token : '';
-      const response = await fetch(`${BASE_URL}/api/deliveries/my-deliveries`, {
+      const response = await fetch(`${BASE_URL}/api/deliveries/dashboard`, {
         method: 'GET',
         headers: {
           'Authorization': 'Bearer ' + token,
@@ -286,27 +286,31 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
         },
       });
       const result = await response.json();
-      if (response.ok) {
-        const list = result.deliveries || result.data || [];
-        setDeliveries(list);
-        const s = { assigned: 0, picked_up: 0, in_transit: 0, delivered: 0, failed: 0, total: list.length };
-        list.forEach((d) => {
-          if (s[d.delivery_status] !== undefined) s[d.delivery_status]++;
+      if (response.ok && result.data) {
+        const d = result.data;
+        setStats({
+          assigned: d.pendingDeliveries || 0,
+          picked_up: 0,
+          in_transit: d.inTransitDeliveries || 0,
+          delivered: d.deliveredDeliveries || 0,
+          failed: 0,
+          total: d.totalDeliveries || 0,
+          deliveredToday: d.deliveredToday || 0,
         });
-        setStats(s);
+        setDeliveries(d.latestDeliveries || []);
       } else {
         setDeliveries([]);
       }
     } catch (e) {
-      console.log('Fetch deliveries error:', e);
+      console.log('Fetch dashboard error:', e);
     } finally {
       setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    fetchDeliveries(true);
-  }, [fetchDeliveries]);
+    fetchDashboard(true);
+  }, [fetchDashboard]);
 
   const pendingDeliveries = deliveries.filter((d) => ['assigned', 'picked_up'].includes(d.delivery_status));
   const activeDeliveries = deliveries.filter((d) => d.delivery_status === 'in_transit');
@@ -318,14 +322,10 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
     setShowDetail(true);
   };
 
-  // Get today's deliveries
-  const todayStr = new Date().toDateString();
-  const todayDelivered = deliveries.filter((d) => d.delivery_status === 'delivered' && d.delivered_at && new Date(d.delivered_at).toDateString() === todayStr).length;
+  const todayDelivered = stats.deliveredToday || 0;
 
-  // Recent deliveries (latest 5 pending/active)
-  const recentDeliveries = deliveries
-    .filter((d) => ['assigned', 'picked_up', 'in_transit'].includes(d.delivery_status))
-    .slice(0, 5);
+  // Recent deliveries (latest 5 from API)
+  const recentDeliveries = deliveries.slice(0, 5);
 
   return (
     <View style={styles.container}>
@@ -483,7 +483,7 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
         onClose={() => { setShowDetail(false); setSelectedDelivery(null); }}
         delivery={selectedDelivery}
         user={user}
-        onStatusUpdate={() => fetchDeliveries(false)}
+        onStatusUpdate={() => fetchDashboard(false)}
       />
     </View>
   );
