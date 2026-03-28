@@ -32,6 +32,22 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [discount, setDiscount] = useState('');
+  const [tax, setTax] = useState('');
+  const [paymentMode, setPaymentMode] = useState('cash');
+  const [dueDate, setDueDate] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryCity, setDeliveryCity] = useState('');
+  const [deliveryState, setDeliveryState] = useState('');
+  const [deliveryPincode, setDeliveryPincode] = useState('');
+
+  const paymentModes = [
+    { label: 'Cash', value: 'cash' },
+    { label: 'UPI', value: 'upi' },
+    { label: 'Bank Transfer', value: 'bank_transfer' },
+    { label: 'Cheque', value: 'cheque' },
+    { label: 'Credit', value: 'credit' },
+  ];
 
   useEffect(() => {
     if (visible) {
@@ -42,6 +58,14 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
       setDistributorAddress('');
       setNotes('');
       setSearchQuery('');
+      setDiscount('');
+      setTax('');
+      setPaymentMode('cash');
+      setDueDate('');
+      setDeliveryAddress('');
+      setDeliveryCity('');
+      setDeliveryState('');
+      setDeliveryPincode('');
     }
   }, [visible]);
 
@@ -103,18 +127,35 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
     setSubmitting(true);
     try {
       const token = user && user.token ? user.token : '';
-      const orderItems = selectedProducts.map(p => {
-        const activeBatch = (p.batches || []).find(b => b.is_active && b.quantity > 0);
-        return {
-          product_id: p._id,
-          batch_id: activeBatch ? activeBatch._id : null,
-          product_name: p.product_name,
-          product_code: p.product_code || '',
-          quantity: parseInt(p.orderQty),
-          unit_price: p.selling_price || 0,
-          total_price: (p.selling_price || 0) * parseInt(p.orderQty),
+      const orderItems = selectedProducts.map(p => ({
+        product_id: p._id,
+        quantity: parseInt(p.orderQty),
+        unit_price: p.selling_price || 0,
+      }));
+
+      const orderPayload = {
+        vendor_name: distributorName.trim(),
+        vendor_mobile: distributorMobile.trim(),
+        vendor_address: distributorAddress.trim(),
+        items: orderItems,
+        discount: parseFloat(discount) || 0,
+        tax: parseFloat(tax) || 0,
+        payment_mode: paymentMode,
+        note: notes.trim(),
+      };
+
+      if (paymentMode === 'credit' && dueDate.trim()) {
+        orderPayload.due_date = dueDate.trim();
+      }
+
+      if (deliveryAddress.trim() || deliveryCity.trim() || deliveryState.trim() || deliveryPincode.trim()) {
+        orderPayload.delivery_address = {
+          address: deliveryAddress.trim(),
+          city: deliveryCity.trim(),
+          state: deliveryState.trim(),
+          pincode: deliveryPincode.trim(),
         };
-      });
+      }
 
       const response = await fetch(`${BASE_URL}/api/orders`, {
         method: 'POST',
@@ -122,13 +163,7 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
           'Authorization': 'Bearer ' + token,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          vendor_name: distributorName.trim(),
-          vendor_mobile: distributorMobile.trim(),
-          vendor_address: distributorAddress.trim(),
-          items: orderItems,
-          note: notes.trim(),
-        }),
+        body: JSON.stringify(orderPayload),
       });
 
       const result = await response.json();
@@ -154,7 +189,10 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
       )
     : products;
 
-  const totalAmount = selectedProducts.reduce((sum, p) => sum + ((p.selling_price || 0) * parseInt(p.orderQty || 0)), 0);
+  const subtotal = selectedProducts.reduce((sum, p) => sum + ((p.selling_price || 0) * parseInt(p.orderQty || 0)), 0);
+  const discountVal = parseFloat(discount) || 0;
+  const taxVal = parseFloat(tax) || 0;
+  const grandTotal = subtotal - discountVal + taxVal;
   const scrollViewRef = useRef(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -288,12 +326,127 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
                       <Text style={modalStyles.itemTotal}>Rs. {(p.selling_price || 0) * parseInt(p.orderQty || 0)}</Text>
                     </View>
                   ))}
+                  {/* Subtotal, Discount, Tax, Grand Total */}
+                  <View style={{ padding: 14, backgroundColor: '#f8f8f8', borderRadius: 12, marginTop: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <Text style={{ fontSize: 13, color: '#666' }}>Subtotal</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#333' }}>Rs. {subtotal}</Text>
+                    </View>
+                    {discountVal > 0 && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13, color: '#4caf50' }}>Discount</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#4caf50' }}>- Rs. {discountVal}</Text>
+                      </View>
+                    )}
+                    {taxVal > 0 && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13, color: '#ff9800' }}>Tax</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#ff9800' }}>+ Rs. {taxVal}</Text>
+                      </View>
+                    )}
+                  </View>
                   <View style={modalStyles.totalRow}>
-                    <Text style={modalStyles.totalLabel}>Total Amount</Text>
-                    <Text style={modalStyles.totalValue}>Rs. {totalAmount}</Text>
+                    <Text style={modalStyles.totalLabel}>Grand Total</Text>
+                    <Text style={modalStyles.totalValue}>Rs. {grandTotal}</Text>
                   </View>
                 </View>
               )}
+
+              {/* Discount & Tax */}
+              <Text style={modalStyles.sectionLabel}>Discount & Tax</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TextInput
+                  style={[modalStyles.input, { flex: 1 }]}
+                  placeholder="Discount (Rs.)"
+                  placeholderTextColor="#999"
+                  value={discount}
+                  onChangeText={setDiscount}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={[modalStyles.input, { flex: 1 }]}
+                  placeholder="Tax (Rs.)"
+                  placeholderTextColor="#999"
+                  value={tax}
+                  onChangeText={setTax}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* Payment Mode */}
+              <Text style={modalStyles.sectionLabel}>Payment Mode</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                {paymentModes.map((mode) => (
+                  <TouchableOpacity
+                    key={mode.value}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor: paymentMode === mode.value ? '#e53935' : '#f8f8f8',
+                      borderWidth: 1,
+                      borderColor: paymentMode === mode.value ? '#e53935' : '#eee',
+                    }}
+                    onPress={() => setPaymentMode(mode.value)}
+                  >
+                    <Text style={{
+                      fontSize: 13,
+                      fontWeight: '600',
+                      color: paymentMode === mode.value ? '#fff' : '#666',
+                    }}>{mode.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Due Date (only for credit) */}
+              {paymentMode === 'credit' && (
+                <>
+                  <Text style={modalStyles.sectionLabel}>Due Date</Text>
+                  <TextInput
+                    style={modalStyles.input}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#999"
+                    value={dueDate}
+                    onChangeText={setDueDate}
+                  />
+                </>
+              )}
+
+              {/* Delivery Address */}
+              <Text style={modalStyles.sectionLabel}>Delivery Address</Text>
+              <TextInput
+                style={modalStyles.input}
+                placeholder="Address"
+                placeholderTextColor="#999"
+                value={deliveryAddress}
+                onChangeText={setDeliveryAddress}
+                multiline
+              />
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TextInput
+                  style={[modalStyles.input, { flex: 1 }]}
+                  placeholder="City"
+                  placeholderTextColor="#999"
+                  value={deliveryCity}
+                  onChangeText={setDeliveryCity}
+                />
+                <TextInput
+                  style={[modalStyles.input, { flex: 1 }]}
+                  placeholder="State"
+                  placeholderTextColor="#999"
+                  value={deliveryState}
+                  onChangeText={setDeliveryState}
+                />
+              </View>
+              <TextInput
+                style={modalStyles.input}
+                placeholder="Pincode"
+                placeholderTextColor="#999"
+                value={deliveryPincode}
+                onChangeText={setDeliveryPincode}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
 
               {/* Notes */}
               <TextInput
