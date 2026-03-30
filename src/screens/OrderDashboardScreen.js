@@ -85,6 +85,7 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
     { label: 'Bank Transfer', value: 'bank_transfer', emoji: '🏦' },
     { label: 'Cheque', value: 'cheque', emoji: '📝' },
     { label: 'Credit', value: 'credit', emoji: '💳' },
+    { label: 'MarginX Bharat', value: 'marginx_bharat', emoji: '🇮🇳' },
   ];
 
   useEffect(() => {
@@ -570,6 +571,7 @@ function OrderDetailModal({ visible, order, onClose, user, onPaymentSuccess }) {
     { label: 'UPI', value: 'upi', emoji: '📱' },
     { label: 'Bank Transfer', value: 'bank_transfer', emoji: '🏦' },
     { label: 'Cheque', value: 'cheque', emoji: '📝' },
+    { label: 'MarginX Bharat', value: 'marginx_bharat', emoji: '🇮🇳' },
   ];
 
   useEffect(() => {
