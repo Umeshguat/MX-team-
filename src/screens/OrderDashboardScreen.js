@@ -71,7 +71,6 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [discount, setDiscount] = useState('');
-  const [tax, setTax] = useState('');
   const [paymentMode, setPaymentMode] = useState('cash');
   const [dueDate, setDueDate] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -97,7 +96,6 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
       setNotes('');
       setSearchQuery('');
       setDiscount('');
-      setTax('');
       setPaymentMode('cash');
       setDueDate('');
       setDeliveryAddress('');
@@ -177,7 +175,6 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
         vendor_address: null,
         items: orderItems,
         discount: parseFloat(discount) || 0,
-        tax: parseFloat(tax) || 0,
         payment_mode: paymentMode,
         note: notes.trim(),
       };
@@ -229,8 +226,7 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
 
   const subtotal = selectedProducts.reduce((sum, p) => sum + ((p.selling_price || 0) * parseInt(p.orderQty || 0)), 0);
   const discountVal = parseFloat(discount) || 0;
-  const taxVal = parseFloat(tax) || 0;
-  const grandTotal = subtotal - discountVal + taxVal;
+  const grandTotal = subtotal - discountVal;
   const scrollViewRef = useRef(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -406,46 +402,30 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
                       </View>
                     </>
                   )}
-                  {taxVal > 0 && (
-                    <>
-                      <View style={{ height: 1, backgroundColor: theme.divider, marginBottom: 8 }} />
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <Text style={{ fontSize: 13, color: theme.warning }}>Tax</Text>
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.warning }}>+ Rs. {taxVal}</Text>
-                      </View>
-                    </>
-                  )}
                 </View>
 
                 {/* Grand Total */}
                 <View style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
                   padding: 16,
                   backgroundColor: theme.primary,
                   borderRadius: 16,
                   marginTop: 10,
                 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 18, marginRight: 8 }}>💰</Text>
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textOnPrimary }}>Grand Total</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 18, marginRight: 8 }}>💰</Text>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textOnPrimary }}>Grand Total</Text>
+                    </View>
+                    <Text style={{ fontSize: 20, fontWeight: '900', color: theme.textOnPrimary }}>Rs. {grandTotal}</Text>
                   </View>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: theme.textOnPrimary }}>Rs. {grandTotal}</Text>
+                  <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', textAlign: 'right', marginTop: 4 }}>GST Included</Text>
                 </View>
               </View>
             )}
 
             {/* Discount & Tax */}
-            <SectionHeader title="Discount & Tax" color={theme.success} theme={theme} />
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <ModalInput emoji="🏷️" placeholder="Discount (Rs.)" value={discount} onChangeText={setDiscount} theme={theme} keyboardType="numeric" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <ModalInput emoji="📊" placeholder="Tax (Rs.)" value={tax} onChangeText={setTax} theme={theme} keyboardType="numeric" />
-              </View>
-            </View>
+            <SectionHeader title="Discount" color={theme.success} theme={theme} />
+            <ModalInput emoji="🏷️" placeholder="Discount (Rs.)" value={discount} onChangeText={setDiscount} theme={theme} keyboardType="numeric" />
 
             {/* Payment Mode */}
             <SectionHeader title="Payment Mode" color={theme.warning} theme={theme} />
