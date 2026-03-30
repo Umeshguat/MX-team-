@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
+import { useTheme } from '../theme/ThemeContext';
 
 var screenWidth = Dimensions.get('window').width;
 
@@ -45,7 +46,7 @@ const PRIORITY_COLORS = {
 };
 
 // ======================== DELIVERY DETAIL MODAL ========================
-function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate }) {
+function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate, theme }) {
   const [updating, setUpdating] = useState(false);
   const [proofImage, setProofImage] = useState(null);
   const [receivedBy, setReceivedBy] = useState('');
@@ -121,114 +122,150 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
 
   const nextStatuses = getNextStatuses(delivery.delivery_status);
   const addr = delivery.delivery_address || {};
+  const statusColor = STATUS_COLORS[delivery.delivery_status] || theme.textTertiary;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={modalStyles.overlay}>
-        <View style={modalStyles.container}>
+      <View style={[mStyles.overlay, { backgroundColor: theme.overlay }]}>
+        <View style={[mStyles.container, { backgroundColor: theme.surface }]}>
+          {/* Handle bar */}
+          <View style={mStyles.handleBarWrap}>
+            <View style={[mStyles.handleBar, { backgroundColor: theme.divider }]} />
+          </View>
+
           <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={modalStyles.header}>
-              <Text style={modalStyles.title}>Delivery Details</Text>
-              <TouchableOpacity onPress={onClose}>
-                <Text style={modalStyles.closeBtn}>✕</Text>
+            {/* Modal header */}
+            <View style={mStyles.header}>
+              <Text style={[mStyles.title, { color: theme.primary }]}>Delivery Details</Text>
+              <TouchableOpacity
+                style={[mStyles.closeBtn, { backgroundColor: theme.surfaceVariant }]}
+                onPress={onClose}
+              >
+                <Text style={[mStyles.closeBtnText, { color: theme.textTertiary }]}>X</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={modalStyles.section}>
-              <Text style={modalStyles.sectionTitle}>Order Information</Text>
-              <View style={modalStyles.infoRow}>
-                <Text style={modalStyles.label}>Order #</Text>
-                <Text style={modalStyles.value}>{delivery.order_number || 'N/A'}</Text>
+            {/* Order Information */}
+            <View style={[mStyles.section, { backgroundColor: theme.surfaceVariant }]}>
+              <View style={mStyles.sectionTitleRow}>
+                <View style={[mStyles.sectionBar, { backgroundColor: theme.primary }]} />
+                <Text style={[mStyles.sectionTitle, { color: theme.primary }]}>Order Information</Text>
               </View>
-              <View style={modalStyles.infoRow}>
-                <Text style={modalStyles.label}>Vendor</Text>
-                <Text style={modalStyles.value}>{delivery.vendor_name || 'N/A'}</Text>
+              <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[mStyles.label, { color: theme.textTertiary }]}>Order #</Text>
+                <Text style={[mStyles.value, { color: theme.text }]}>{delivery.order_number || 'N/A'}</Text>
               </View>
-              <View style={modalStyles.infoRow}>
-                <Text style={modalStyles.label}>Mobile</Text>
-                <Text style={modalStyles.value}>{delivery.vendor_mobile || 'N/A'}</Text>
+              <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[mStyles.label, { color: theme.textTertiary }]}>Vendor</Text>
+                <Text style={[mStyles.value, { color: theme.text }]}>{delivery.vendor_name || 'N/A'}</Text>
               </View>
-              <View style={modalStyles.infoRow}>
-                <Text style={modalStyles.label}>Status</Text>
-                <View style={[modalStyles.statusBadge, { backgroundColor: STATUS_COLORS[delivery.delivery_status] || '#999' }]}>
-                  <Text style={modalStyles.statusText}>{STATUS_LABELS[delivery.delivery_status] || delivery.delivery_status}</Text>
+              <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[mStyles.label, { color: theme.textTertiary }]}>Mobile</Text>
+                <Text style={[mStyles.value, { color: theme.text }]}>{delivery.vendor_mobile || 'N/A'}</Text>
+              </View>
+              <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[mStyles.label, { color: theme.textTertiary }]}>Status</Text>
+                <View style={[mStyles.statusChip, { backgroundColor: statusColor }]}>
+                  <Text style={mStyles.statusChipText}>{STATUS_LABELS[delivery.delivery_status] || delivery.delivery_status}</Text>
                 </View>
               </View>
-              <View style={modalStyles.infoRow}>
-                <Text style={modalStyles.label}>Priority</Text>
-                <View style={[modalStyles.statusBadge, { backgroundColor: PRIORITY_COLORS[delivery.priority] || '#999' }]}>
-                  <Text style={modalStyles.statusText}>{(delivery.priority || 'medium').toUpperCase()}</Text>
+              <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[mStyles.label, { color: theme.textTertiary }]}>Priority</Text>
+                <View style={[mStyles.statusChip, { backgroundColor: PRIORITY_COLORS[delivery.priority] || theme.textTertiary }]}>
+                  <Text style={mStyles.statusChipText}>{(delivery.priority || 'medium').toUpperCase()}</Text>
                 </View>
               </View>
               {delivery.scheduled_date && (
-                <View style={modalStyles.infoRow}>
-                  <Text style={modalStyles.label}>Scheduled</Text>
-                  <Text style={modalStyles.value}>{new Date(delivery.scheduled_date).toLocaleDateString()}</Text>
+                <View style={[mStyles.infoRow, { borderBottomWidth: 0 }]}>
+                  <Text style={[mStyles.label, { color: theme.textTertiary }]}>Scheduled</Text>
+                  <Text style={[mStyles.value, { color: theme.text }]}>{new Date(delivery.scheduled_date).toLocaleDateString()}</Text>
                 </View>
               )}
             </View>
 
-            <View style={modalStyles.section}>
-              <Text style={modalStyles.sectionTitle}>Delivery Address</Text>
-              {addr.address ? <Text style={modalStyles.addressText}>{addr.address}</Text> : null}
-              <Text style={modalStyles.addressText}>
+            {/* Delivery Address */}
+            <View style={[mStyles.section, { backgroundColor: theme.surfaceVariant }]}>
+              <View style={mStyles.sectionTitleRow}>
+                <View style={[mStyles.sectionBar, { backgroundColor: theme.info }]} />
+                <Text style={[mStyles.sectionTitle, { color: theme.primary }]}>Delivery Address</Text>
+              </View>
+              {addr.address ? <Text style={[mStyles.addressText, { color: theme.textSecondary }]}>{addr.address}</Text> : null}
+              <Text style={[mStyles.addressText, { color: theme.textSecondary }]}>
                 {[addr.city, addr.state, addr.pincode].filter(Boolean).join(', ') || 'No address provided'}
               </Text>
             </View>
 
+            {/* Order Items */}
             {delivery.order_id && delivery.order_id.items && delivery.order_id.items.length > 0 && (
-              <View style={modalStyles.section}>
-                <Text style={modalStyles.sectionTitle}>Order Items</Text>
+              <View style={[mStyles.section, { backgroundColor: theme.surfaceVariant }]}>
+                <View style={mStyles.sectionTitleRow}>
+                  <View style={[mStyles.sectionBar, { backgroundColor: theme.warning }]} />
+                  <Text style={[mStyles.sectionTitle, { color: theme.primary }]}>Order Items</Text>
+                </View>
                 {delivery.order_id.items.map((item, idx) => (
-                  <View key={idx} style={modalStyles.itemRow}>
-                    <Text style={modalStyles.itemName}>{item.product_name || 'Product'}</Text>
-                    <Text style={modalStyles.itemQty}>x{item.quantity}</Text>
-                    <Text style={modalStyles.itemPrice}>Rs.{(item.total_price || 0).toFixed(2)}</Text>
+                  <View
+                    key={idx}
+                    style={[
+                      mStyles.itemRow,
+                      idx < delivery.order_id.items.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.divider },
+                    ]}
+                  >
+                    <Text style={[mStyles.itemName, { color: theme.text }]}>{item.product_name || 'Product'}</Text>
+                    <Text style={[mStyles.itemQty, { color: theme.textSecondary }]}>x{item.quantity}</Text>
+                    <Text style={[mStyles.itemPrice, { color: theme.primary }]}>Rs.{(item.total_price || 0).toFixed(2)}</Text>
                   </View>
                 ))}
                 {delivery.order_id.grand_total != null && (
-                  <View style={[modalStyles.itemRow, { borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 8, marginTop: 4 }]}>
-                    <Text style={[modalStyles.itemName, { fontWeight: '700' }]}>Total</Text>
-                    <Text style={[modalStyles.itemPrice, { fontWeight: '700' }]}>Rs.{delivery.order_id.grand_total.toFixed(2)}</Text>
+                  <View style={[mStyles.totalRow, { borderTopColor: theme.divider }]}>
+                    <Text style={[mStyles.totalLabel, { color: theme.text }]}>Total</Text>
+                    <Text style={[mStyles.totalPrice, { color: theme.primary }]}>Rs.{delivery.order_id.grand_total.toFixed(2)}</Text>
                   </View>
                 )}
               </View>
             )}
 
+            {/* Update Status */}
             {nextStatuses.length > 0 && (
-              <View style={modalStyles.section}>
-                <Text style={modalStyles.sectionTitle}>Update Status</Text>
+              <View style={[mStyles.section, { backgroundColor: theme.surfaceVariant }]}>
+                <View style={mStyles.sectionTitleRow}>
+                  <View style={[mStyles.sectionBar, { backgroundColor: theme.success }]} />
+                  <Text style={[mStyles.sectionTitle, { color: theme.primary }]}>Update Status</Text>
+                </View>
                 {nextStatuses.includes('delivered') && (
                   <View style={{ marginBottom: 12 }}>
-                    <TouchableOpacity style={modalStyles.proofBtn} onPress={pickProofImage}>
-                      <Text style={modalStyles.proofBtnText}>
+                    <TouchableOpacity
+                      style={[mStyles.proofBtn, { backgroundColor: theme.primary }]}
+                      onPress={pickProofImage}
+                    >
+                      <Text style={mStyles.proofBtnIcon}>📷</Text>
+                      <Text style={mStyles.proofBtnText}>
                         {proofImage ? 'Retake Proof Photo' : 'Capture Delivery Proof'}
                       </Text>
                     </TouchableOpacity>
                     {proofImage && (
-                      <Image source={{ uri: proofImage.uri }} style={modalStyles.proofImage} />
+                      <Image source={{ uri: proofImage.uri }} style={mStyles.proofImage} />
                     )}
                     <TextInput
-                      style={modalStyles.input}
+                      style={[mStyles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.divider }]}
                       placeholder="Received by (name)"
-                      placeholderTextColor="#999"
+                      placeholderTextColor={theme.textTertiary}
                       value={receivedBy}
                       onChangeText={setReceivedBy}
                     />
                   </View>
                 )}
-                <View style={modalStyles.statusBtnsRow}>
+                <View style={mStyles.statusBtnsRow}>
                   {nextStatuses.map((s) => (
                     <TouchableOpacity
                       key={s}
-                      style={[modalStyles.statusUpdateBtn, { backgroundColor: STATUS_COLORS[s] }]}
+                      style={[mStyles.statusUpdateBtn, { backgroundColor: STATUS_COLORS[s] }]}
                       onPress={() => handleStatusUpdate(s)}
                       disabled={updating}
                     >
                       {updating ? (
                         <ActivityIndicator color="#fff" size="small" />
                       ) : (
-                        <Text style={modalStyles.statusUpdateBtnText}>{STATUS_LABELS[s]}</Text>
+                        <Text style={mStyles.statusUpdateBtnText}>{STATUS_LABELS[s]}</Text>
                       )}
                     </TouchableOpacity>
                   ))}
@@ -244,6 +281,7 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
 
 // ======================== MAIN DASHBOARD ========================
 export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile, onGoToDeliveryList }) {
+  const { theme, isDark, toggleTheme } = useTheme();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -323,27 +361,41 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
   };
 
   const todayDelivered = stats.deliveredToday || 0;
-
-  // Recent deliveries (latest 5 from API)
   const recentDeliveries = deliveries.slice(0, 5);
+  const firstLetter = user && user.fullName ? user.fullName.charAt(0).toUpperCase() : 'D';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      {/* Header - same pattern as DashboardScreen */}
-      <View style={styles.header}>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+        {/* Decorative circles */}
         <View style={styles.circle1} />
         <View style={styles.circle2} />
+        <View style={styles.circle3} />
+
         <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.greeting}>Welcome Back,</Text>
-            <Text style={styles.userName}>{user && user.fullName ? user.fullName : 'Delivery Agent'}</Text>
+          <View style={styles.headerLeft}>
+            {/* User avatar */}
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{firstLetter}</Text>
+            </View>
+            <View style={styles.greetingWrap}>
+              <Text style={styles.greeting}>Welcome Back,</Text>
+              <Text style={styles.userName}>{user && user.fullName ? user.fullName : 'Delivery Agent'}</Text>
+            </View>
           </View>
-          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
+              <Text style={styles.themeToggleText}>{isDark ? '☀️' : '🌙'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
         <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
         <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
       </View>
@@ -353,10 +405,10 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Status Card */}
-        <View style={styles.statusCard}>
-          <View style={[styles.statusDot, activeCount > 0 ? styles.dotActive : styles.dotInactive]} />
-          <Text style={styles.statusText}>
+        {/* Live status bar */}
+        <View style={[styles.statusCard, { backgroundColor: theme.surface }]}>
+          <View style={[styles.statusDot, activeCount > 0 ? { backgroundColor: theme.success } : { backgroundColor: theme.textTertiary }]} />
+          <Text style={[styles.statusTextLabel, { color: theme.text }]}>
             {activeCount > 0
               ? activeCount + ' Deliver' + (activeCount > 1 ? 'ies' : 'y') + ' In Transit'
               : pendingCount > 0
@@ -365,109 +417,143 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
           </Text>
         </View>
 
-        {/* Info Cards Row */}
-        <View style={styles.infoRow}>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>Pending</Text>
-            <Text style={styles.infoValue}>{pendingCount}</Text>
+        {/* Stats cards */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statsEmojiWrap, { backgroundColor: theme.warningBg }]}>
+              <Text style={styles.statsEmoji}>⏳</Text>
+            </View>
+            <Text style={[styles.statsNumber, { color: theme.primary }]}>{pendingCount}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>PENDING</Text>
           </View>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>In Transit</Text>
-            <Text style={styles.infoValue}>{activeCount}</Text>
-          </View>
-        </View>
-
-        <View style={styles.infoRow}>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>Delivered Today</Text>
-            <Text style={styles.infoValue}>{todayDelivered}</Text>
-          </View>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>Total Delivered</Text>
-            <Text style={styles.infoValue}>{stats.delivered}</Text>
+          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statsEmojiWrap, { backgroundColor: theme.infoBg }]}>
+              <Text style={styles.statsEmoji}>🚚</Text>
+            </View>
+            <Text style={[styles.statsNumber, { color: theme.primary }]}>{activeCount}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>IN TRANSIT</Text>
           </View>
         </View>
 
-        <View style={styles.infoRow}>
-          <View style={[styles.infoCard, styles.infoCardFull]}>
-            <Text style={styles.infoLabel}>Total Deliveries</Text>
-            <Text style={styles.infoValueLarge}>{stats.total}</Text>
+        <View style={styles.statsRow}>
+          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statsEmojiWrap, { backgroundColor: theme.successBg }]}>
+              <Text style={styles.statsEmoji}>📦</Text>
+            </View>
+            <Text style={[styles.statsNumber, { color: theme.primary }]}>{todayDelivered}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>TODAY</Text>
+          </View>
+          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statsEmojiWrap, { backgroundColor: theme.successBg }]}>
+              <Text style={styles.statsEmoji}>✅</Text>
+            </View>
+            <Text style={[styles.statsNumber, { color: theme.primary }]}>{stats.delivered}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>DELIVERED</Text>
+          </View>
+        </View>
+
+        {/* Total card full-width */}
+        <View style={[styles.totalCard, { backgroundColor: theme.surface }]}>
+          <View style={[styles.statsEmojiWrap, { backgroundColor: theme.infoBg }]}>
+            <Text style={styles.statsEmoji}>📊</Text>
+          </View>
+          <View style={styles.totalCardText}>
+            <Text style={[styles.totalCardNumber, { color: theme.primary }]}>{stats.total}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>TOTAL DELIVERIES</Text>
           </View>
         </View>
 
         {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.sectionHeader}>
+          <View style={[styles.sectionBar, { backgroundColor: theme.primary }]} />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Actions</Text>
+        </View>
         <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionCard} onPress={onGoToDeliveryList}>
-            <View style={[styles.actionIcon, { backgroundColor: '#e3f2fd' }]}>
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: theme.surface }]} onPress={onGoToDeliveryList}>
+            <View style={[styles.actionIcon, { backgroundColor: theme.infoBg }]}>
               <Text style={styles.actionEmoji}>📋</Text>
             </View>
-            <Text style={styles.actionText}>All Deliveries</Text>
+            <Text style={[styles.actionText, { color: theme.text }]}>All Deliveries</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={onGoToProfile}>
-            <View style={[styles.actionIcon, { backgroundColor: '#fff3e0' }]}>
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: theme.surface }]} onPress={onGoToProfile}>
+            <View style={[styles.actionIcon, { backgroundColor: theme.warningBg }]}>
               <Text style={styles.actionEmoji}>👤</Text>
             </View>
-            <Text style={styles.actionText}>Profile</Text>
+            <Text style={[styles.actionText, { color: theme.text }]}>Profile</Text>
           </TouchableOpacity>
         </View>
 
         {/* Recent Deliveries */}
         <View style={styles.recentHeader}>
-          <Text style={styles.sectionTitle}>Recent Deliveries</Text>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionBar, { backgroundColor: theme.primary }]} />
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent Deliveries</Text>
+          </View>
           {onGoToDeliveryList && (
             <TouchableOpacity onPress={onGoToDeliveryList}>
-              <Text style={styles.viewAllText}>View All</Text>
+              <Text style={[styles.viewAllText, { color: theme.primary }]}>View All</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {loading ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#e53935" />
-            <Text style={styles.loadingText}>Loading deliveries...</Text>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.textTertiary }]}>Loading deliveries...</Text>
           </View>
         ) : recentDeliveries.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>No pending deliveries</Text>
+          <View style={[styles.emptyCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.emptyIconWrap, { backgroundColor: theme.warningBg }]}>
+              <Text style={styles.emptyIconText}>📦</Text>
+            </View>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No Deliveries</Text>
+            <Text style={[styles.emptySubtitle, { color: theme.textTertiary }]}>No pending deliveries at the moment</Text>
           </View>
         ) : (
           recentDeliveries.map((item) => {
             const addr = item.delivery_address || {};
             const addressText = [addr.city, addr.state].filter(Boolean).join(', ');
+            const statusColor = STATUS_COLORS[item.delivery_status] || theme.textTertiary;
+            const itemCount = item.order_id && item.order_id.items ? item.order_id.items.length : 0;
             return (
               <TouchableOpacity
                 key={item._id}
-                style={styles.deliveryCard}
+                style={[styles.deliveryCard, { backgroundColor: theme.surface }]}
                 onPress={() => openDetail(item)}
                 activeOpacity={0.7}
               >
-                <View style={styles.cardHeader}>
-                  <Text style={styles.orderNumber}>{item.order_number || 'N/A'}</Text>
-                  <View style={[styles.cardStatusBadge, { backgroundColor: STATUS_COLORS[item.delivery_status] || '#999' }]}>
-                    <Text style={styles.cardStatusText}>{STATUS_LABELS[item.delivery_status] || item.delivery_status}</Text>
-                  </View>
-                </View>
-                <View style={styles.cardBody}>
-                  <View style={styles.cardRow}>
-                    <Text style={styles.cardLabel}>Vendor</Text>
-                    <Text style={styles.cardValue}>{item.vendor_name || 'N/A'}</Text>
-                  </View>
-                  <View style={styles.cardRow}>
-                    <Text style={styles.cardLabel}>Mobile</Text>
-                    <Text style={styles.cardValue}>{item.vendor_mobile || 'N/A'}</Text>
-                  </View>
-                  {addressText ? (
-                    <View style={styles.cardRow}>
-                      <Text style={styles.cardLabel}>City</Text>
-                      <Text style={styles.cardValue}>{addressText}</Text>
+                {/* Left accent bar */}
+                <View style={[styles.cardAccentBar, { backgroundColor: statusColor }]} />
+                <View style={styles.cardInner}>
+                  <View style={styles.cardHeader}>
+                    <Text style={[styles.orderNumber, { color: theme.primary }]}>{item.order_number || 'N/A'}</Text>
+                    <View style={[styles.cardStatusChip, { backgroundColor: statusColor }]}>
+                      <Text style={styles.cardStatusText}>{STATUS_LABELS[item.delivery_status] || item.delivery_status}</Text>
                     </View>
-                  ) : null}
-                  <View style={styles.cardRow}>
-                    <Text style={styles.cardLabel}>Priority</Text>
-                    <View style={[styles.priorityBadge, { backgroundColor: PRIORITY_COLORS[item.priority] || '#999' }]}>
-                      <Text style={styles.priorityText}>{(item.priority || 'medium').toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.cardBody}>
+                    <View style={[styles.cardRow, { borderBottomColor: theme.divider }]}>
+                      <Text style={[styles.cardLabel, { color: theme.textTertiary }]}>Vendor</Text>
+                      <Text style={[styles.cardValue, { color: theme.text }]}>{item.vendor_name || 'N/A'}</Text>
+                    </View>
+                    {itemCount > 0 && (
+                      <View style={[styles.cardRow, { borderBottomColor: theme.divider }]}>
+                        <Text style={[styles.cardLabel, { color: theme.textTertiary }]}>Items</Text>
+                        <Text style={[styles.cardValue, { color: theme.text }]}>{itemCount} item{itemCount !== 1 ? 's' : ''}</Text>
+                      </View>
+                    )}
+                    {addressText ? (
+                      <View style={[styles.cardRow, { borderBottomColor: theme.divider }]}>
+                        <Text style={[styles.cardLabel, { color: theme.textTertiary }]}>City</Text>
+                        <Text style={[styles.cardValue, { color: theme.text }]}>{addressText}</Text>
+                      </View>
+                    ) : null}
+                    <View style={[styles.cardRow, { borderBottomWidth: 0 }]}>
+                      <Text style={[styles.cardLabel, { color: theme.textTertiary }]}>Priority</Text>
+                      <View style={[styles.priorityBadge, { backgroundColor: PRIORITY_COLORS[item.priority] || theme.textTertiary }]}>
+                        <Text style={styles.priorityText}>{(item.priority || 'medium').toUpperCase()}</Text>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -484,6 +570,7 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
         delivery={selectedDelivery}
         user={user}
         onStatusUpdate={() => fetchDashboard(false)}
+        theme={theme}
       />
     </View>
   );
@@ -493,15 +580,15 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
 var styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
   },
+
+  // Header
   header: {
-    backgroundColor: '#1a1a2e',
     paddingTop: 50,
     paddingBottom: 25,
     paddingHorizontal: 25,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
   circle1: {
@@ -509,18 +596,27 @@ var styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(229, 57, 53, 0.2)',
     top: -50,
     right: -40,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   circle2: {
     position: 'absolute',
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(255, 87, 34, 0.15)',
     top: 60,
     left: -50,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  circle3: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    bottom: -30,
+    right: 60,
+    backgroundColor: 'rgba(139,92,246,0.15)',
   },
   headerContent: {
     flexDirection: 'row',
@@ -528,21 +624,56 @@ var styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  greetingWrap: {},
   greeting: {
-    fontSize: 14,
+    fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
   },
   userName: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '800',
     color: '#fff',
     marginTop: 2,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  themeToggle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  themeToggleText: {
+    fontSize: 16,
+  },
   logoutBtn: {
     backgroundColor: 'rgba(229, 57, 53, 0.3)',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 12,
   },
   logoutText: {
     color: '#ff8a80',
@@ -560,6 +691,8 @@ var styles = StyleSheet.create({
     marginTop: 4,
     letterSpacing: 2,
   },
+
+  // Body
   body: {
     flex: 1,
   },
@@ -567,13 +700,14 @@ var styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 80,
   },
+
+  // Status card
   statusCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
-    marginBottom: 14,
+    marginBottom: 16,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -586,68 +720,98 @@ var styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: 12,
   },
-  dotActive: {
-    backgroundColor: '#4caf50',
-  },
-  dotInactive: {
-    backgroundColor: '#bdbdbd',
-  },
-  statusText: {
+  statusTextLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#333',
   },
-  infoRow: {
+
+  // Stats cards
+  statsRow: {
     flexDirection: 'row',
     marginBottom: 12,
   },
-  infoCard: {
+  statsCard: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     marginHorizontal: 4,
-    elevation: 2,
+    alignItems: 'center',
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
-  infoCardFull: {
-    flex: 1,
+  statsEmojiWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  infoLabel: {
-    fontSize: 12,
-    color: '#999',
-    fontWeight: '600',
-    marginBottom: 6,
-    letterSpacing: 0.5,
+  statsEmoji: {
+    fontSize: 22,
   },
-  infoValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1a1a2e',
-  },
-  infoValueLarge: {
-    fontSize: 26,
+  statsNumber: {
+    fontSize: 22,
     fontWeight: '900',
-    color: '#e53935',
+  },
+  statsLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 4,
+    letterSpacing: 1,
+  },
+
+  // Total card
+  totalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    padding: 18,
+    marginHorizontal: 4,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  totalCardText: {
+    marginLeft: 16,
+  },
+  totalCardNumber: {
+    fontSize: 28,
+    fontWeight: '900',
+  },
+
+  // Section header
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  sectionBar: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: 10,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1a1a2e',
-    marginTop: 10,
-    marginBottom: 15,
   },
+
+  // Quick Actions
   actionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    marginBottom: 8,
   },
   actionCard: {
     width: (screenWidth - 52) / 2,
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -661,7 +825,7 @@ var styles = StyleSheet.create({
   actionIcon: {
     width: 50,
     height: 50,
-    borderRadius: 15,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
@@ -672,8 +836,9 @@ var styles = StyleSheet.create({
   actionText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#333',
   },
+
+  // Recent header
   recentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -682,20 +847,26 @@ var styles = StyleSheet.create({
   viewAllText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#e53935',
   },
 
-  // Delivery Card
+  // Delivery card
   deliveryCard: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     marginBottom: 12,
-    padding: 16,
+    flexDirection: 'row',
+    overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
+  },
+  cardAccentBar: {
+    width: 4,
+  },
+  cardInner: {
+    flex: 1,
+    padding: 16,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -706,12 +877,11 @@ var styles = StyleSheet.create({
   orderNumber: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1a1a2e',
   },
-  cardStatusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+  cardStatusChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
   cardStatusText: {
     color: '#fff',
@@ -722,23 +892,23 @@ var styles = StyleSheet.create({
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
   },
   cardLabel: {
     fontSize: 13,
-    color: '#888',
     width: 75,
     fontWeight: '500',
   },
   cardValue: {
     fontSize: 14,
-    color: '#333',
     fontWeight: '600',
+    flex: 1,
   },
   priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
   },
   priorityText: {
     color: '#fff',
@@ -754,13 +924,11 @@ var styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    color: '#888',
     fontSize: 14,
   },
   emptyCard: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 30,
+    borderRadius: 16,
+    padding: 40,
     alignItems: 'center',
     elevation: 2,
     shadowColor: '#000',
@@ -768,28 +936,50 @@ var styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
   },
-  emptyText: {
-    color: '#888',
-    fontSize: 15,
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyIconText: {
+    fontSize: 30,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 14,
     fontWeight: '500',
   },
 });
 
 // ======================== MODAL STYLES ========================
-var modalStyles = StyleSheet.create({
+var mStyles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 25,
-    paddingTop: 20,
+    paddingTop: 10,
     paddingBottom: 40,
     maxHeight: '85%',
+  },
+  handleBarWrap: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
   },
   header: {
     flexDirection: 'row',
@@ -800,86 +990,114 @@ var modalStyles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1a1a2e',
   },
   closeBtn: {
-    fontSize: 20,
-    color: '#999',
-    fontWeight: '700',
-    padding: 5,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
   },
   section: {
-    marginBottom: 20,
-    backgroundColor: '#f9f9fb',
-    borderRadius: 12,
-    padding: 14,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 16,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionBar: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: 10,
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1a1a2e',
-    marginBottom: 10,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
   },
   label: {
     fontSize: 13,
-    color: '#888',
     width: 80,
     fontWeight: '500',
   },
   value: {
     fontSize: 14,
-    color: '#333',
     fontWeight: '600',
     flex: 1,
   },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 6,
+  statusChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
-  statusText: {
+  statusChipText: {
     color: '#fff',
     fontSize: 11,
     fontWeight: '700',
   },
   addressText: {
     fontSize: 14,
-    color: '#555',
     lineHeight: 20,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    paddingVertical: 8,
   },
   itemName: {
     flex: 1,
     fontSize: 13,
-    color: '#333',
     fontWeight: '500',
   },
   itemQty: {
     fontSize: 13,
-    color: '#666',
     marginRight: 12,
     fontWeight: '600',
   },
   itemPrice: {
     fontSize: 13,
-    color: '#1a1a2e',
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    paddingTop: 10,
+    marginTop: 4,
+  },
+  totalLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  totalPrice: {
+    fontSize: 14,
+    fontWeight: '800',
   },
   proofBtn: {
-    backgroundColor: '#1a1a2e',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  proofBtnIcon: {
+    fontSize: 16,
+    marginRight: 8,
   },
   proofBtnText: {
     color: '#fff',
@@ -894,14 +1112,11 @@ var modalStyles = StyleSheet.create({
     resizeMode: 'cover',
   },
   input: {
-    backgroundColor: '#f5f5f7',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 13,
     fontSize: 15,
-    color: '#333',
     borderWidth: 1,
-    borderColor: '#eee',
   },
   statusBtnsRow: {
     flexDirection: 'row',
@@ -911,10 +1126,14 @@ var modalStyles = StyleSheet.create({
   statusUpdateBtn: {
     flex: 1,
     minWidth: 120,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    elevation: 6,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
   statusUpdateBtnText: {
     color: '#fff',

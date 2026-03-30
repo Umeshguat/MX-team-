@@ -18,9 +18,10 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useTheme } from '../theme/ThemeContext';
 
 // ======================== CALENDAR DATE PICKER ========================
-function CalendarPicker({ value, onSelect, onClose }) {
+function CalendarPicker({ value, onSelect, onClose, theme }) {
   const parsed = value ? new Date(value) : new Date();
   const [viewYear, setViewYear] = useState(parsed.getFullYear());
   const [viewMonth, setViewMonth] = useState(parsed.getMonth());
@@ -54,14 +55,18 @@ function CalendarPicker({ value, onSelect, onClose }) {
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
   return (
-    <View style={calStyles.container}>
+    <View style={[calStyles.container, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
       <View style={calStyles.header}>
-        <TouchableOpacity onPress={prevMonth} style={calStyles.navBtn}><Text style={calStyles.navText}>◀</Text></TouchableOpacity>
-        <Text style={calStyles.monthText}>{MONTHS[viewMonth]} {viewYear}</Text>
-        <TouchableOpacity onPress={nextMonth} style={calStyles.navBtn}><Text style={calStyles.navText}>▶</Text></TouchableOpacity>
+        <TouchableOpacity onPress={prevMonth} style={[calStyles.navBtn, { backgroundColor: theme.surfaceVariant }]}>
+          <Text style={[calStyles.navText, { color: theme.primary }]}>{'<'}</Text>
+        </TouchableOpacity>
+        <Text style={[calStyles.monthText, { color: theme.text }]}>{MONTHS[viewMonth]} {viewYear}</Text>
+        <TouchableOpacity onPress={nextMonth} style={[calStyles.navBtn, { backgroundColor: theme.surfaceVariant }]}>
+          <Text style={[calStyles.navText, { color: theme.primary }]}>{'>'}</Text>
+        </TouchableOpacity>
       </View>
       <View style={calStyles.daysRow}>
-        {DAYS.map((d) => <Text key={d} style={calStyles.dayLabel}>{d}</Text>)}
+        {DAYS.map((d) => <Text key={d} style={[calStyles.dayLabel, { color: theme.textTertiary }]}>{d}</Text>)}
       </View>
       <View style={calStyles.grid}>
         {cells.map((day, idx) => {
@@ -72,11 +77,20 @@ function CalendarPicker({ value, onSelect, onClose }) {
           return (
             <TouchableOpacity
               key={day}
-              style={[calStyles.cell, isSelected && calStyles.cellSelected, isToday && !isSelected && calStyles.cellToday]}
+              style={[
+                calStyles.cell,
+                isSelected && { backgroundColor: theme.primary, borderRadius: 22 },
+                isToday && !isSelected && { backgroundColor: theme.warningBg, borderRadius: 22 },
+              ]}
               onPress={() => selectDate(day)}
               activeOpacity={0.6}
             >
-              <Text style={[calStyles.cellText, isSelected && calStyles.cellTextSelected, isToday && !isSelected && calStyles.cellTextToday]}>{day}</Text>
+              <Text style={[
+                calStyles.cellText,
+                { color: theme.text },
+                isSelected && { color: '#fff', fontWeight: '700' },
+                isToday && !isSelected && { color: '#e65100', fontWeight: '700' },
+              ]}>{day}</Text>
             </TouchableOpacity>
           );
         })}
@@ -86,26 +100,22 @@ function CalendarPicker({ value, onSelect, onClose }) {
 }
 
 const calStyles = StyleSheet.create({
-  container: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e0e0e0', marginTop: 4, marginBottom: 8, padding: 10, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  navBtn: { padding: 6 },
-  navText: { fontSize: 16, color: '#e53935', fontWeight: '700' },
-  monthText: { fontSize: 15, fontWeight: '700', color: '#333' },
-  daysRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 4 },
-  dayLabel: { width: '14.28%', textAlign: 'center', fontSize: 12, fontWeight: '700', color: '#888' },
+  container: { borderRadius: 16, borderWidth: 1, marginTop: 4, marginBottom: 8, padding: 12, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  navBtn: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  navText: { fontSize: 16, fontWeight: '700' },
+  monthText: { fontSize: 15, fontWeight: '700' },
+  daysRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 6 },
+  dayLabel: { width: '14.28%', textAlign: 'center', fontSize: 12, fontWeight: '700' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 20 },
-  cellSelected: { backgroundColor: '#e53935' },
-  cellToday: { backgroundColor: '#fff3e0' },
-  cellText: { fontSize: 14, color: '#333' },
-  cellTextSelected: { color: '#fff', fontWeight: '700' },
-  cellTextToday: { color: '#e65100', fontWeight: '700' },
+  cell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 22 },
+  cellText: { fontSize: 14 },
 });
 
 const screenWidth = Dimensions.get('window').width;
 
 // ======================== ALERTS TAB ========================
-function AlertsTab({ user, refreshing, onRefresh }) {
+function AlertsTab({ user, refreshing, onRefresh, theme }) {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, low_stock, expiring
@@ -188,21 +198,21 @@ function AlertsTab({ user, refreshing, onRefresh }) {
 
   const getAlertColor = (severity) => {
     switch (severity) {
-      case 'critical': return '#e53935';
-      case 'high': return '#ff9800';
-      case 'medium': return '#1565c0';
-      case 'low': return '#4caf50';
-      default: return '#999';
+      case 'critical': return theme.error || '#e53935';
+      case 'high': return theme.warning;
+      case 'medium': return theme.info;
+      case 'low': return theme.success;
+      default: return theme.textTertiary;
     }
   };
 
   const getAlertBg = (severity) => {
     switch (severity) {
-      case 'critical': return '#ffebee';
-      case 'high': return '#fff3e0';
-      case 'medium': return '#e3f2fd';
-      case 'low': return '#e8f5e9';
-      default: return '#f5f5f5';
+      case 'critical': return theme.errorBg;
+      case 'high': return theme.warningBg;
+      case 'medium': return theme.infoBg;
+      case 'low': return theme.successBg;
+      default: return theme.surfaceVariant;
     }
   };
 
@@ -231,8 +241,8 @@ function AlertsTab({ user, refreshing, onRefresh }) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#e53935" />
-        <Text style={styles.loadingText}>Loading alerts...</Text>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={[styles.loadingText, { color: theme.textTertiary }]}>Loading alerts...</Text>
       </View>
     );
   }
@@ -241,21 +251,33 @@ function AlertsTab({ user, refreshing, onRefresh }) {
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 30 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { onRefresh(); fetchAlerts(); }} colors={['#e53935']} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { onRefresh(); fetchAlerts(); }} colors={[theme.primary]} />}
     >
       {/* Summary Cards */}
       <View style={styles.summaryRow}>
-        <View style={[styles.summaryCard, { borderLeftColor: '#e53935' }]}>
-          <Text style={[styles.summaryCount, { color: '#e53935' }]}>{outOfStockCount}</Text>
-          <Text style={styles.summaryLabel}>Out of Stock</Text>
+        <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
+          <View style={[styles.summaryAccent, { backgroundColor: theme.error || theme.primary }]} />
+          <View style={[styles.summaryIconWrap, { backgroundColor: theme.errorBg }]}>
+            <Text style={{ fontSize: 18 }}>🚫</Text>
+          </View>
+          <Text style={[styles.summaryCount, { color: theme.error || theme.primary }]}>{outOfStockCount}</Text>
+          <Text style={[styles.summaryLabel, { color: theme.textTertiary }]}>OUT OF STOCK</Text>
         </View>
-        <View style={[styles.summaryCard, { borderLeftColor: '#ff9800' }]}>
-          <Text style={[styles.summaryCount, { color: '#ff9800' }]}>{lowStockCount}</Text>
-          <Text style={styles.summaryLabel}>Low Stock</Text>
+        <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
+          <View style={[styles.summaryAccent, { backgroundColor: theme.warning }]} />
+          <View style={[styles.summaryIconWrap, { backgroundColor: theme.warningBg }]}>
+            <Text style={{ fontSize: 18 }}>📉</Text>
+          </View>
+          <Text style={[styles.summaryCount, { color: theme.warning }]}>{lowStockCount}</Text>
+          <Text style={[styles.summaryLabel, { color: theme.textTertiary }]}>LOW STOCK</Text>
         </View>
-        <View style={[styles.summaryCard, { borderLeftColor: '#1565c0' }]}>
-          <Text style={[styles.summaryCount, { color: '#1565c0' }]}>{expiringCount}</Text>
-          <Text style={styles.summaryLabel}>Expiring</Text>
+        <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
+          <View style={[styles.summaryAccent, { backgroundColor: theme.info }]} />
+          <View style={[styles.summaryIconWrap, { backgroundColor: theme.infoBg }]}>
+            <Text style={{ fontSize: 18 }}>⏰</Text>
+          </View>
+          <Text style={[styles.summaryCount, { color: theme.info }]}>{expiringCount}</Text>
+          <Text style={[styles.summaryLabel, { color: theme.textTertiary }]}>EXPIRING</Text>
         </View>
       </View>
 
@@ -264,11 +286,19 @@ function AlertsTab({ user, refreshing, onRefresh }) {
         {filterOptions.map((opt) => (
           <TouchableOpacity
             key={opt.key}
-            style={[styles.filterChip, filter === opt.key && styles.filterChipActive]}
+            style={[
+              styles.filterChip,
+              { backgroundColor: theme.surfaceVariant },
+              filter === opt.key && { backgroundColor: theme.primary },
+            ]}
             onPress={() => setFilter(opt.key)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.filterChipText, filter === opt.key && styles.filterChipTextActive]}>{opt.label}</Text>
+            <Text style={[
+              styles.filterChipText,
+              { color: theme.textSecondary },
+              filter === opt.key && { color: '#fff' },
+            ]}>{opt.label}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -276,28 +306,31 @@ function AlertsTab({ user, refreshing, onRefresh }) {
       {/* Alert List */}
       {filteredAlerts.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>✅</Text>
-          <Text style={styles.emptyText}>No alerts found</Text>
-          <Text style={styles.emptySubText}>All inventory levels are healthy</Text>
+          <View style={[styles.emptyIconWrap, { backgroundColor: theme.successBg }]}>
+            <Text style={{ fontSize: 28 }}>✅</Text>
+          </View>
+          <Text style={[styles.emptyText, { color: theme.text }]}>No alerts found</Text>
+          <Text style={[styles.emptySubText, { color: theme.textTertiary }]}>All inventory levels are healthy</Text>
         </View>
       ) : (
         filteredAlerts.map((item) => (
-          <View key={item.id} style={styles.alertCard}>
+          <View key={item.id} style={[styles.alertCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.alertAccentBar, { backgroundColor: getAlertColor(item.severity) }]} />
             <View style={[styles.alertIconWrap, { backgroundColor: getAlertBg(item.severity) }]}>
               <Text style={styles.alertIconText}>{getAlertIcon(item.type)}</Text>
             </View>
             <View style={styles.alertInfo}>
-              <Text style={styles.alertProduct} numberOfLines={1}>{item.product}</Text>
+              <Text style={[styles.alertProduct, { color: theme.text }]} numberOfLines={1}>{item.product}</Text>
               <View style={styles.alertMeta}>
                 <View style={[styles.alertBadge, { backgroundColor: getAlertBg(item.severity) }]}>
                   <Text style={[styles.alertBadgeText, { color: getAlertColor(item.severity) }]}>{getAlertLabel(item.type)}</Text>
                 </View>
-                <Text style={styles.alertDate}>{item.date}</Text>
+                <Text style={[styles.alertDate, { color: theme.textTertiary }]}>{item.date}</Text>
               </View>
               {item.type === 'low_stock' || item.type === 'out_of_stock' ? (
-                <Text style={styles.alertDetail}>Stock: {item.currentStock} / Min: {item.minStock}</Text>
+                <Text style={[styles.alertDetail, { color: theme.textSecondary }]}>Stock: {item.currentStock} / Min: {item.minStock}</Text>
               ) : (
-                <Text style={styles.alertDetail}>Expires: {item.expiryDate} | Qty: {item.currentStock}</Text>
+                <Text style={[styles.alertDetail, { color: theme.textSecondary }]}>Expires: {item.expiryDate} | Qty: {item.currentStock}</Text>
               )}
             </View>
             <View style={[styles.severityDot, { backgroundColor: getAlertColor(item.severity) }]} />
@@ -309,7 +342,7 @@ function AlertsTab({ user, refreshing, onRefresh }) {
 }
 
 // ======================== REPORTS TAB ========================
-function ReportsTab({ user, refreshing, onRefresh }) {
+function ReportsTab({ user, refreshing, onRefresh, theme }) {
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState(null);
   const [agingReport, setAgingReport] = useState([]);
@@ -374,19 +407,19 @@ function ReportsTab({ user, refreshing, onRefresh }) {
   };
 
   const reportMenus = [
-    { key: 'stock_summary', icon: '📦', label: 'Stock Summary', color: '#e3f2fd', desc: 'Current stock levels & value' },
-    { key: 'movement', icon: '🔄', label: 'Stock Movement', color: '#e8f5e9', desc: 'Inward & outward transactions' },
-    { key: 'expiry', icon: '⏰', label: 'Expiry Report', color: '#fff3e0', desc: 'Products nearing expiry' },
-    { key: 'category', icon: '📊', label: 'Category Wise', color: '#fce4ec', desc: 'Category breakdown & analytics' },
-    { key: 'valuation', icon: '💰', label: 'Valuation Report', color: '#f3e5f5', desc: 'Inventory valuation details' },
-    { key: 'dead_stock', icon: '📉', label: 'Dead Stock', color: '#efebe9', desc: 'Non-moving inventory items' },
+    { key: 'stock_summary', icon: '📦', label: 'Stock Summary', color: theme.infoBg, desc: 'Current stock levels & value' },
+    { key: 'movement', icon: '🔄', label: 'Stock Movement', color: theme.successBg, desc: 'Inward & outward transactions' },
+    { key: 'expiry', icon: '⏰', label: 'Expiry Report', color: theme.warningBg, desc: 'Products nearing expiry' },
+    { key: 'category', icon: '📊', label: 'Category Wise', color: theme.errorBg, desc: 'Category breakdown & analytics' },
+    { key: 'valuation', icon: '💰', label: 'Valuation Report', color: theme.surfaceVariant, desc: 'Inventory valuation details' },
+    { key: 'dead_stock', icon: '📉', label: 'Dead Stock', color: theme.surfaceVariant, desc: 'Non-moving inventory items' },
   ];
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#e53935" />
-        <Text style={styles.loadingText}>Loading reports...</Text>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={[styles.loadingText, { color: theme.textTertiary }]}>Loading reports...</Text>
       </View>
     );
   }
@@ -395,51 +428,62 @@ function ReportsTab({ user, refreshing, onRefresh }) {
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 30 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { onRefresh(); fetchReportData(); }} colors={['#e53935']} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { onRefresh(); fetchReportData(); }} colors={[theme.primary]} />}
     >
       {/* Overview Cards */}
       <View style={styles.overviewRow}>
-        <View style={styles.overviewCard}>
-          <Text style={styles.overviewIcon}>📦</Text>
-          <Text style={styles.overviewValue}>{reportData ? reportData.totalProducts : 0}</Text>
-          <Text style={styles.overviewLabel}>Total Products</Text>
+        <View style={[styles.overviewCard, { backgroundColor: theme.surface }]}>
+          <View style={[styles.overviewIconWrap, { backgroundColor: theme.infoBg }]}>
+            <Text style={{ fontSize: 18 }}>📦</Text>
+          </View>
+          <Text style={[styles.overviewValue, { color: theme.text }]}>{reportData ? reportData.totalProducts : 0}</Text>
+          <Text style={[styles.overviewLabel, { color: theme.textTertiary }]}>TOTAL PRODUCTS</Text>
         </View>
-        <View style={styles.overviewCard}>
-          <Text style={styles.overviewIcon}>💰</Text>
-          <Text style={styles.overviewValue}>{reportData ? formatCurrency(reportData.totalValue) : '₹0'}</Text>
-          <Text style={styles.overviewLabel}>Stock Value</Text>
+        <View style={[styles.overviewCard, { backgroundColor: theme.surface }]}>
+          <View style={[styles.overviewIconWrap, { backgroundColor: theme.successBg }]}>
+            <Text style={{ fontSize: 18 }}>💰</Text>
+          </View>
+          <Text style={[styles.overviewValue, { color: theme.text }]}>{reportData ? formatCurrency(reportData.totalValue) : '₹0'}</Text>
+          <Text style={[styles.overviewLabel, { color: theme.textTertiary }]}>STOCK VALUE</Text>
         </View>
       </View>
       <View style={styles.overviewRow}>
-        <View style={styles.overviewCard}>
-          <Text style={styles.overviewIcon}>⚠</Text>
-          <Text style={[styles.overviewValue, { color: '#ff9800' }]}>{reportData ? reportData.lowStockItems : 0}</Text>
-          <Text style={styles.overviewLabel}>Low Stock</Text>
+        <View style={[styles.overviewCard, { backgroundColor: theme.surface }]}>
+          <View style={[styles.overviewIconWrap, { backgroundColor: theme.warningBg }]}>
+            <Text style={{ fontSize: 18 }}>⚠</Text>
+          </View>
+          <Text style={[styles.overviewValue, { color: theme.warning }]}>{reportData ? reportData.lowStockItems : 0}</Text>
+          <Text style={[styles.overviewLabel, { color: theme.textTertiary }]}>LOW STOCK</Text>
         </View>
-        <View style={styles.overviewCard}>
-          <Text style={styles.overviewIcon}>⏰</Text>
-          <Text style={[styles.overviewValue, { color: '#e53935' }]}>{reportData ? reportData.expiringItems : 0}</Text>
-          <Text style={styles.overviewLabel}>Expiring Soon</Text>
+        <View style={[styles.overviewCard, { backgroundColor: theme.surface }]}>
+          <View style={[styles.overviewIconWrap, { backgroundColor: theme.errorBg }]}>
+            <Text style={{ fontSize: 18 }}>⏰</Text>
+          </View>
+          <Text style={[styles.overviewValue, { color: theme.error || theme.primary }]}>{reportData ? reportData.expiringItems : 0}</Text>
+          <Text style={[styles.overviewLabel, { color: theme.textTertiary }]}>EXPIRING SOON</Text>
         </View>
       </View>
 
       {/* Brand Summary */}
       {reportData && reportData.brandSummary && reportData.brandSummary.length > 0 ? (
         <>
-          <Text style={styles.sectionTitle}>Brand Breakdown</Text>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionBar, { backgroundColor: theme.primary }]} />
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Brand Breakdown</Text>
+          </View>
           {reportData.brandSummary.map((cat, idx) => {
             const maxCount = Math.max(...reportData.brandSummary.map(c => c.count), 1);
             const barWidth = (cat.count / maxCount) * 100;
             return (
-              <View key={idx} style={styles.categoryRow}>
+              <View key={idx} style={[styles.categoryRow, { backgroundColor: theme.surface }]}>
                 <View style={styles.categoryInfo}>
-                  <Text style={styles.categoryName}>{cat.name}</Text>
-                  <Text style={styles.categoryCount}>{cat.count} products | {cat.quantity} units</Text>
+                  <Text style={[styles.categoryName, { color: theme.text }]}>{cat.name}</Text>
+                  <Text style={[styles.categoryCount, { color: theme.textTertiary }]}>{cat.count} products | {cat.quantity} units</Text>
                 </View>
-                <View style={styles.categoryBarBg}>
-                  <View style={[styles.categoryBar, { width: barWidth + '%' }]} />
+                <View style={[styles.categoryBarBg, { backgroundColor: theme.divider }]}>
+                  <View style={[styles.categoryBar, { width: barWidth + '%', backgroundColor: theme.primary }]} />
                 </View>
-                <Text style={styles.categoryValue}>{formatCurrency(cat.value)}</Text>
+                <Text style={[styles.categoryValue, { color: theme.text }]}>{formatCurrency(cat.value)}</Text>
               </View>
             );
           })}
@@ -449,42 +493,45 @@ function ReportsTab({ user, refreshing, onRefresh }) {
       {/* Stock Aging Report */}
       {agingReport.length > 0 ? (
         <>
-          <Text style={styles.sectionTitle}>Stock Aging Report</Text>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionBar, { backgroundColor: theme.secondary }]} />
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Stock Aging Report</Text>
+          </View>
           {agingReport.map((item) => (
-            <View key={item._id} style={styles.movementCard}>
+            <View key={item._id} style={[styles.movementCard, { backgroundColor: theme.surface }]}>
               <View style={styles.movementInfo}>
-                <Text style={styles.movementProduct} numberOfLines={1}>{item.product_name}</Text>
-                <Text style={styles.movementParty}>{item.product_code} | {item.category}</Text>
+                <Text style={[styles.movementProduct, { color: theme.text }]} numberOfLines={1}>{item.product_name}</Text>
+                <Text style={[styles.movementParty, { color: theme.textTertiary }]}>{item.product_code} | {item.category}</Text>
               </View>
               <View style={styles.agingBadges}>
                 {item.aging.green.total_qty > 0 ? (
-                  <View style={[styles.agingBadge, { backgroundColor: '#e8f5e9' }]}>
-                    <Text style={[styles.agingBadgeText, { color: '#4caf50' }]}>{item.aging.green.total_qty}</Text>
+                  <View style={[styles.agingBadge, { backgroundColor: theme.successBg }]}>
+                    <Text style={[styles.agingBadgeText, { color: theme.success }]}>{item.aging.green.total_qty}</Text>
                   </View>
                 ) : null}
                 {item.aging.yellow.total_qty > 0 ? (
-                  <View style={[styles.agingBadge, { backgroundColor: '#fff3e0' }]}>
-                    <Text style={[styles.agingBadgeText, { color: '#ff9800' }]}>{item.aging.yellow.total_qty}</Text>
+                  <View style={[styles.agingBadge, { backgroundColor: theme.warningBg }]}>
+                    <Text style={[styles.agingBadgeText, { color: theme.warning }]}>{item.aging.yellow.total_qty}</Text>
                   </View>
                 ) : null}
                 {item.aging.red.total_qty > 0 ? (
-                  <View style={[styles.agingBadge, { backgroundColor: '#ffebee' }]}>
-                    <Text style={[styles.agingBadgeText, { color: '#e53935' }]}>{item.aging.red.total_qty}</Text>
+                  <View style={[styles.agingBadge, { backgroundColor: theme.errorBg }]}>
+                    <Text style={[styles.agingBadgeText, { color: theme.error || theme.primary }]}>{item.aging.red.total_qty}</Text>
                   </View>
                 ) : null}
                 {item.aging.expired.total_qty > 0 ? (
-                  <View style={[styles.agingBadge, { backgroundColor: '#f5f5f5' }]}>
-                    <Text style={[styles.agingBadgeText, { color: '#999' }]}>{item.aging.expired.total_qty}</Text>
+                  <View style={[styles.agingBadge, { backgroundColor: theme.surfaceVariant }]}>
+                    <Text style={[styles.agingBadgeText, { color: theme.textTertiary }]}>{item.aging.expired.total_qty}</Text>
                   </View>
                 ) : null}
               </View>
             </View>
           ))}
           <View style={styles.agingLegend}>
-            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: '#4caf50' }]} /><Text style={styles.agingLegendText}>Good</Text></View>
-            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: '#ff9800' }]} /><Text style={styles.agingLegendText}>{'<60d'}</Text></View>
-            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: '#e53935' }]} /><Text style={styles.agingLegendText}>{'<30d'}</Text></View>
-            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: '#999' }]} /><Text style={styles.agingLegendText}>Expired</Text></View>
+            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: theme.success }]} /><Text style={[styles.agingLegendText, { color: theme.textSecondary }]}>Good</Text></View>
+            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: theme.warning }]} /><Text style={[styles.agingLegendText, { color: theme.textSecondary }]}>{'<60d'}</Text></View>
+            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: theme.error || theme.primary }]} /><Text style={[styles.agingLegendText, { color: theme.textSecondary }]}>{'<30d'}</Text></View>
+            <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: theme.textTertiary }]} /><Text style={[styles.agingLegendText, { color: theme.textSecondary }]}>Expired</Text></View>
           </View>
         </>
       ) : null}
@@ -493,7 +540,7 @@ function ReportsTab({ user, refreshing, onRefresh }) {
 }
 
 // ======================== PRODUCTS TAB ========================
-function ProductsTab({ user, refreshing, onRefresh }) {
+function ProductsTab({ user, refreshing, onRefresh, theme }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -576,19 +623,19 @@ function ProductsTab({ user, refreshing, onRefresh }) {
 
   const getStockStatusColor = (status) => {
     switch (status) {
-      case 'in_stock': return '#4caf50';
-      case 'low_stock': return '#ff9800';
-      case 'out_of_stock': return '#e53935';
-      default: return '#999';
+      case 'in_stock': return theme.success;
+      case 'low_stock': return theme.warning;
+      case 'out_of_stock': return theme.error || theme.primary;
+      default: return theme.textTertiary;
     }
   };
 
   const getStockStatusBg = (status) => {
     switch (status) {
-      case 'in_stock': return '#e8f5e9';
-      case 'low_stock': return '#fff3e0';
-      case 'out_of_stock': return '#ffebee';
-      default: return '#f5f5f5';
+      case 'in_stock': return theme.successBg;
+      case 'low_stock': return theme.warningBg;
+      case 'out_of_stock': return theme.errorBg;
+      default: return theme.surfaceVariant;
     }
   };
 
@@ -774,8 +821,8 @@ function ProductsTab({ user, refreshing, onRefresh }) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#e53935" />
-        <Text style={styles.loadingText}>Loading products...</Text>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={[styles.loadingText, { color: theme.textTertiary }]}>Loading products...</Text>
       </View>
     );
   }
@@ -784,22 +831,26 @@ function ProductsTab({ user, refreshing, onRefresh }) {
     <View style={{ flex: 1 }}>
       {/* Search Bar */}
       <View style={styles.searchRow}>
-        <View style={styles.searchInputWrap}>
+        <View style={[styles.searchInputWrap, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.text }]}
             placeholder="Search products or SKU..."
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.textTertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery !== '' ? (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Text style={styles.searchClear}>✕</Text>
+              <Text style={[styles.searchClear, { color: theme.textTertiary }]}>✕</Text>
             </TouchableOpacity>
           ) : null}
         </View>
-        <TouchableOpacity style={styles.addProductBtn} onPress={() => setShowAddModal(true)} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={[styles.addProductBtn, { backgroundColor: theme.buttonPrimary, shadowColor: theme.buttonPrimary }]}
+          onPress={() => setShowAddModal(true)}
+          activeOpacity={0.7}
+        >
           <Text style={styles.addProductBtnText}>+ Add</Text>
         </TouchableOpacity>
       </View>
@@ -809,18 +860,26 @@ function ProductsTab({ user, refreshing, onRefresh }) {
         {categories.map((cat) => (
           <TouchableOpacity
             key={cat}
-            style={[styles.filterChip, categoryFilter === cat && styles.filterChipActive]}
+            style={[
+              styles.filterChip,
+              { backgroundColor: theme.surfaceVariant },
+              categoryFilter === cat && { backgroundColor: theme.primary },
+            ]}
             onPress={() => setCategoryFilter(cat)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.filterChipText, categoryFilter === cat && styles.filterChipTextActive]}>
+            <Text style={[
+              styles.filterChipText,
+              { color: theme.textSecondary },
+              categoryFilter === cat && { color: '#fff' },
+            ]}>
               {cat === 'all' ? 'All' : cat}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      <Text style={styles.resultCount}>{filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found</Text>
+      <Text style={[styles.resultCount, { color: theme.textTertiary }]}>{filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found</Text>
 
       {/* Product List */}
       <FlatList
@@ -828,39 +887,42 @@ function ProductsTab({ user, refreshing, onRefresh }) {
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 30 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { onRefresh(); fetchProducts(); }} colors={['#e53935']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { onRefresh(); fetchProducts(); }} colors={[theme.primary]} />}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.productCard}
+            style={[styles.productCard, { backgroundColor: theme.surface }]}
             activeOpacity={0.7}
             onPress={() => { setSelectedProduct(item); setShowDetailModal(true); }}
           >
+            <View style={[styles.productAccentBar, { backgroundColor: getStockStatusColor(item.status) }]} />
             <View style={styles.productLeft}>
               <View style={[styles.productThumb, { backgroundColor: getStockStatusBg(item.status) }]}>
-                <Text style={styles.productThumbText}>{item.name.charAt(0)}</Text>
+                <Text style={[styles.productThumbText, { color: theme.text }]}>{item.name.charAt(0)}</Text>
               </View>
             </View>
             <View style={styles.productInfo}>
-              <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-              <Text style={styles.productSKU}>SKU: {item.sku}</Text>
+              <Text style={[styles.productName, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
+              <Text style={[styles.productSKU, { color: theme.textTertiary }]}>SKU: {item.sku}</Text>
               <View style={styles.productMetaRow}>
-                <Text style={styles.productCategory}>{item.category}</Text>
+                <Text style={[styles.productCategory, { color: theme.textSecondary }]}>{item.category}</Text>
                 <View style={[styles.stockBadge, { backgroundColor: getStockStatusBg(item.status) }]}>
                   <Text style={[styles.stockBadgeText, { color: getStockStatusColor(item.status) }]}>{getStockStatusLabel(item.status)}</Text>
                 </View>
               </View>
             </View>
             <View style={styles.productRight}>
-              <Text style={styles.productPrice}>₹{item.price}</Text>
-              <Text style={styles.productStock}>{item.stock} {item.unit}</Text>
+              <Text style={[styles.productPrice, { color: theme.text }]}>₹{item.price}</Text>
+              <Text style={[styles.productStock, { color: theme.textTertiary }]}>{item.stock} {item.unit}</Text>
             </View>
           </TouchableOpacity>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📦</Text>
-            <Text style={styles.emptyText}>No products found</Text>
-            <Text style={styles.emptySubText}>Try adjusting your search or filters</Text>
+            <View style={[styles.emptyIconWrap, { backgroundColor: theme.infoBg }]}>
+              <Text style={{ fontSize: 28 }}>📦</Text>
+            </View>
+            <Text style={[styles.emptyText, { color: theme.text }]}>No products found</Text>
+            <Text style={[styles.emptySubText, { color: theme.textTertiary }]}>Try adjusting your search or filters</Text>
           </View>
         }
       />
@@ -868,53 +930,98 @@ function ProductsTab({ user, refreshing, onRefresh }) {
       {/* Add Product Modal */}
       <Modal visible={showAddModal} transparent={true} animationType="slide" onRequestClose={() => { setShowAddModal(false); resetForm(); }}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+          <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+            <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Add Product</Text>
-                  <TouchableOpacity onPress={() => { setShowAddModal(false); resetForm(); }}>
-                    <Text style={styles.modalClose}>✕</Text>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Add Product</Text>
+                  <TouchableOpacity style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceVariant }]} onPress={() => { setShowAddModal(false); resetForm(); }}>
+                    <Text style={[styles.modalCloseText, { color: theme.textTertiary }]}>✕</Text>
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.modalLabel}>Product Name *</Text>
-                <TextInput style={styles.modalInput} placeholder="Enter product name" placeholderTextColor="#999" value={productName} onChangeText={setProductName} />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Product Name *</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.modalInputIcon}>📦</Text>
+                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="Enter product name" placeholderTextColor={theme.textTertiary} value={productName} onChangeText={setProductName} />
+                  </View>
+                </View>
 
-                <Text style={styles.modalLabel}>Product Code *</Text>
-                <TextInput style={styles.modalInput} placeholder="Enter product code" placeholderTextColor="#999" value={productSKU} onChangeText={setProductSKU} autoCapitalize="characters" />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Product Code *</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.modalInputIcon}>🏷</Text>
+                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="Enter product code" placeholderTextColor={theme.textTertiary} value={productSKU} onChangeText={setProductSKU} autoCapitalize="characters" />
+                  </View>
+                </View>
 
-                <Text style={styles.modalLabel}>Brand *</Text>
-                <TextInput style={styles.modalInput} placeholder="Enter brand name" placeholderTextColor="#999" value={productBrand} onChangeText={setProductBrand} />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Brand *</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.modalInputIcon}>🏢</Text>
+                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="Enter brand name" placeholderTextColor={theme.textTertiary} value={productBrand} onChangeText={setProductBrand} />
+                  </View>
+                </View>
 
-                <Text style={styles.modalLabel}>Category *</Text>
-                <TextInput style={styles.modalInput} placeholder="e.g. Tablets, Syrups, Capsules" placeholderTextColor="#999" value={productCategory} onChangeText={setProductCategory} />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Category *</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.modalInputIcon}>📂</Text>
+                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="e.g. Tablets, Syrups, Capsules" placeholderTextColor={theme.textTertiary} value={productCategory} onChangeText={setProductCategory} />
+                  </View>
+                </View>
 
-                <Text style={styles.modalLabel}>Selling Price (₹) *</Text>
-                <TextInput style={styles.modalInput} placeholder="Enter selling price" placeholderTextColor="#999" value={productPrice} onChangeText={setProductPrice} keyboardType="numeric" />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Selling Price (₹) *</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.modalInputIcon}>💰</Text>
+                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="Enter selling price" placeholderTextColor={theme.textTertiary} value={productPrice} onChangeText={setProductPrice} keyboardType="numeric" />
+                  </View>
+                </View>
 
-                <Text style={styles.modalLabel}>Unit *</Text>
-                <TextInput style={styles.modalInput} placeholder="e.g. strips, bottles, tubes, vials" placeholderTextColor="#999" value={productUnit} onChangeText={setProductUnit} />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Unit *</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.modalInputIcon}>📏</Text>
+                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="e.g. strips, bottles, tubes, vials" placeholderTextColor={theme.textTertiary} value={productUnit} onChangeText={setProductUnit} />
+                  </View>
+                </View>
 
-                <Text style={styles.modalLabel}>Reorder Level *</Text>
-                <TextInput style={styles.modalInput} placeholder="Minimum stock alert level" placeholderTextColor="#999" value={productMinStock} onChangeText={setProductMinStock} keyboardType="numeric" />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Reorder Level *</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.modalInputIcon}>🔔</Text>
+                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="Minimum stock alert level" placeholderTextColor={theme.textTertiary} value={productMinStock} onChangeText={setProductMinStock} keyboardType="numeric" />
+                  </View>
+                </View>
 
-                <Text style={styles.modalLabel}>Shelf Life (days) *</Text>
-                <TextInput style={styles.modalInput} placeholder="e.g. 365, 730" placeholderTextColor="#999" value={productShelfLife} onChangeText={setProductShelfLife} keyboardType="numeric" />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Shelf Life (days) *</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.modalInputIcon}>📅</Text>
+                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="e.g. 365, 730" placeholderTextColor={theme.textTertiary} value={productShelfLife} onChangeText={setProductShelfLife} keyboardType="numeric" />
+                  </View>
+                </View>
 
-                <Text style={styles.modalLabel}>Description</Text>
-                <TextInput
-                  style={[styles.modalInput, { height: 80, textAlignVertical: 'top' }]}
-                  placeholder="Enter product description (optional)"
-                  placeholderTextColor="#999"
-                  value={productDescription}
-                  onChangeText={setProductDescription}
-                  multiline={true}
-                  numberOfLines={3}
-                />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Description</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider, height: 90, alignItems: 'flex-start', paddingTop: 12 }]}>
+                    <Text style={[styles.modalInputIcon, { marginTop: 2 }]}>📝</Text>
+                    <TextInput
+                      style={[styles.modalInput, { color: theme.text, textAlignVertical: 'top', height: 66 }]}
+                      placeholder="Enter product description (optional)"
+                      placeholderTextColor={theme.textTertiary}
+                      value={productDescription}
+                      onChangeText={setProductDescription}
+                      multiline={true}
+                      numberOfLines={3}
+                    />
+                  </View>
+                </View>
 
                 <TouchableOpacity
-                  style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
+                  style={[styles.submitBtn, { backgroundColor: theme.buttonPrimary }, submitting && { opacity: 0.7 }]}
                   onPress={submitProduct}
                   activeOpacity={0.8}
                   disabled={submitting}
@@ -933,61 +1040,61 @@ function ProductsTab({ user, refreshing, onRefresh }) {
 
       {/* Product Detail Modal */}
       <Modal visible={showDetailModal} transparent={true} animationType="slide" onRequestClose={() => { setShowDetailModal(false); setSelectedProduct(null); }}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Product Details</Text>
-                <TouchableOpacity onPress={() => { setShowDetailModal(false); setSelectedProduct(null); }}>
-                  <Text style={styles.modalClose}>✕</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Product Details</Text>
+                <TouchableOpacity style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceVariant }]} onPress={() => { setShowDetailModal(false); setSelectedProduct(null); }}>
+                  <Text style={[styles.modalCloseText, { color: theme.textTertiary }]}>✕</Text>
                 </TouchableOpacity>
               </View>
 
               {selectedProduct ? (
                 <View>
-                  <View style={styles.detailHeaderCard}>
+                  <View style={[styles.detailHeaderCard, { borderBottomColor: theme.divider }]}>
                     <View style={[styles.detailThumb, { backgroundColor: getStockStatusBg(selectedProduct.status) }]}>
-                      <Text style={styles.detailThumbText}>{selectedProduct.name.charAt(0)}</Text>
+                      <Text style={[styles.detailThumbText, { color: theme.text }]}>{selectedProduct.name.charAt(0)}</Text>
                     </View>
-                    <Text style={styles.detailName}>{selectedProduct.name}</Text>
-                    <Text style={styles.detailSKU}>{selectedProduct.sku} | {selectedProduct.brand}</Text>
-                    <View style={[styles.stockBadge, { backgroundColor: getStockStatusBg(selectedProduct.status), alignSelf: 'center', marginTop: 8 }]}>
+                    <Text style={[styles.detailName, { color: theme.text }]}>{selectedProduct.name}</Text>
+                    <Text style={[styles.detailSKU, { color: theme.textTertiary }]}>{selectedProduct.sku} | {selectedProduct.brand}</Text>
+                    <View style={[styles.stockBadge, { backgroundColor: getStockStatusBg(selectedProduct.status), alignSelf: 'center', marginTop: 10 }]}>
                       <Text style={[styles.stockBadgeText, { color: getStockStatusColor(selectedProduct.status) }]}>{getStockStatusLabel(selectedProduct.status)}</Text>
                     </View>
                   </View>
 
                   <View style={styles.detailGrid}>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Category</Text>
-                      <Text style={styles.detailValue}>{selectedProduct.category}</Text>
+                    <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.detailLabel, { color: theme.textTertiary }]}>CATEGORY</Text>
+                      <Text style={[styles.detailValue, { color: theme.text }]}>{selectedProduct.category}</Text>
                     </View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Selling Price</Text>
-                      <Text style={styles.detailValue}>₹{selectedProduct.price}</Text>
+                    <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.detailLabel, { color: theme.textTertiary }]}>SELLING PRICE</Text>
+                      <Text style={[styles.detailValue, { color: theme.text }]}>₹{selectedProduct.price}</Text>
                     </View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Current Stock</Text>
+                    <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.detailLabel, { color: theme.textTertiary }]}>CURRENT STOCK</Text>
                       <Text style={[styles.detailValue, { color: getStockStatusColor(selectedProduct.status) }]}>{selectedProduct.stock} {selectedProduct.unit}</Text>
                     </View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Reorder Level</Text>
-                      <Text style={styles.detailValue}>{selectedProduct.minStock} {selectedProduct.unit}</Text>
+                    <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.detailLabel, { color: theme.textTertiary }]}>REORDER LEVEL</Text>
+                      <Text style={[styles.detailValue, { color: theme.text }]}>{selectedProduct.minStock} {selectedProduct.unit}</Text>
                     </View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Shelf Life</Text>
-                      <Text style={styles.detailValue}>{selectedProduct.shelfLife} days</Text>
+                    <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.detailLabel, { color: theme.textTertiary }]}>SHELF LIFE</Text>
+                      <Text style={[styles.detailValue, { color: theme.text }]}>{selectedProduct.shelfLife} days</Text>
                     </View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Batches</Text>
-                      <Text style={styles.detailValue}>{selectedProduct.batches ? selectedProduct.batches.filter(b => b.is_active).length : 0}</Text>
+                    <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.detailLabel, { color: theme.textTertiary }]}>BATCHES</Text>
+                      <Text style={[styles.detailValue, { color: theme.text }]}>{selectedProduct.batches ? selectedProduct.batches.filter(b => b.is_active).length : 0}</Text>
                     </View>
                   </View>
 
                   <View style={styles.detailActions}>
-                    <TouchableOpacity style={[styles.detailActionBtn, { backgroundColor: '#4caf50' }]} activeOpacity={0.7} onPress={() => { setStockModalType('in'); resetStockForm(); setShowStockModal(true); }}>
+                    <TouchableOpacity style={[styles.detailActionBtn, { backgroundColor: theme.success }]} activeOpacity={0.7} onPress={() => { setStockModalType('in'); resetStockForm(); setShowStockModal(true); }}>
                       <Text style={styles.detailActionText}>Stock In</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.detailActionBtn, { backgroundColor: '#e53935' }]} activeOpacity={0.7} onPress={() => { setStockModalType('out'); resetStockForm(); setShowStockModal(true); }}>
+                    <TouchableOpacity style={[styles.detailActionBtn, { backgroundColor: theme.error || theme.primary }]} activeOpacity={0.7} onPress={() => { setStockModalType('out'); resetStockForm(); setShowStockModal(true); }}>
                       <Text style={styles.detailActionText}>Stock Out</Text>
                     </TouchableOpacity>
                   </View>
@@ -1001,53 +1108,94 @@ function ProductsTab({ user, refreshing, onRefresh }) {
       {/* Stock In / Stock Out Modal */}
       <Modal visible={showStockModal} transparent={true} animationType="slide" onRequestClose={() => { setShowStockModal(false); resetStockForm(); }}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+          <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+            <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{stockModalType === 'in' ? 'Stock In (Add Batch)' : 'Stock Out (FIFO)'}</Text>
-                  <TouchableOpacity onPress={() => { setShowStockModal(false); resetStockForm(); }}>
-                    <Text style={styles.modalClose}>✕</Text>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>{stockModalType === 'in' ? 'Stock In (Add Batch)' : 'Stock Out (FIFO)'}</Text>
+                  <TouchableOpacity style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceVariant }]} onPress={() => { setShowStockModal(false); resetStockForm(); }}>
+                    <Text style={[styles.modalCloseText, { color: theme.textTertiary }]}>✕</Text>
                   </TouchableOpacity>
                 </View>
 
                 {selectedProduct ? (
-                  <Text style={{ fontSize: 14, color: '#555', marginBottom: 12, fontWeight: '600' }}>{selectedProduct.name} | Current: {selectedProduct.stock} {selectedProduct.unit}</Text>
+                  <View style={[styles.stockProductInfo, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]}>
+                    <Text style={{ fontSize: 14, color: theme.textSecondary, fontWeight: '600' }}>{selectedProduct.name} | Current: {selectedProduct.stock} {selectedProduct.unit}</Text>
+                  </View>
                 ) : null}
 
-                <Text style={styles.modalLabel}>Quantity *</Text>
-                <TextInput style={styles.modalInput} placeholder="Enter quantity" placeholderTextColor="#999" value={stockQty} onChangeText={setStockQty} keyboardType="numeric" />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Quantity *</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.modalInputIcon}>📊</Text>
+                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="Enter quantity" placeholderTextColor={theme.textTertiary} value={stockQty} onChangeText={setStockQty} keyboardType="numeric" />
+                  </View>
+                </View>
 
                 {stockModalType === 'in' ? (
                   <>
-                    <Text style={styles.modalLabel}>Batch Number *</Text>
-                    <TextInput style={styles.modalInput} placeholder="Enter batch number" placeholderTextColor="#999" value={stockBatchNumber} onChangeText={setStockBatchNumber} />
+                    <View style={styles.modalInputGroup}>
+                      <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Batch Number *</Text>
+                      <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                        <Text style={styles.modalInputIcon}>🏷</Text>
+                        <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="Enter batch number" placeholderTextColor={theme.textTertiary} value={stockBatchNumber} onChangeText={setStockBatchNumber} />
+                      </View>
+                    </View>
 
-                    <Text style={styles.modalLabel}>Manufacturing Date *</Text>
-                    <TouchableOpacity style={[styles.modalInput, { justifyContent: 'center' }]} onPress={() => { setShowMfgCal(!showMfgCal); setShowExpCal(false); }} activeOpacity={0.7}>
-                      <Text style={{ fontSize: 15, color: stockMfgDate ? '#333' : '#999' }}>{stockMfgDate || 'Select manufacturing date'}</Text>
-                    </TouchableOpacity>
-                    {showMfgCal && <CalendarPicker value={stockMfgDate} onSelect={setStockMfgDate} onClose={() => setShowMfgCal(false)} />}
+                    <View style={styles.modalInputGroup}>
+                      <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Manufacturing Date *</Text>
+                      <TouchableOpacity
+                        style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}
+                        onPress={() => { setShowMfgCal(!showMfgCal); setShowExpCal(false); }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.modalInputIcon}>📅</Text>
+                        <Text style={[styles.modalInputPlaceholder, { color: stockMfgDate ? theme.text : theme.textTertiary }]}>{stockMfgDate || 'Select manufacturing date'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {showMfgCal && <CalendarPicker value={stockMfgDate} onSelect={setStockMfgDate} onClose={() => setShowMfgCal(false)} theme={theme} />}
 
-                    <Text style={styles.modalLabel}>Expiry Date *</Text>
-                    <TouchableOpacity style={[styles.modalInput, { justifyContent: 'center' }]} onPress={() => { setShowExpCal(!showExpCal); setShowMfgCal(false); }} activeOpacity={0.7}>
-                      <Text style={{ fontSize: 15, color: stockExpDate ? '#333' : '#999' }}>{stockExpDate || 'Select expiry date'}</Text>
-                    </TouchableOpacity>
-                    {showExpCal && <CalendarPicker value={stockExpDate} onSelect={setStockExpDate} onClose={() => setShowExpCal(false)} />}
+                    <View style={styles.modalInputGroup}>
+                      <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Expiry Date *</Text>
+                      <TouchableOpacity
+                        style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}
+                        onPress={() => { setShowExpCal(!showExpCal); setShowMfgCal(false); }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.modalInputIcon}>📅</Text>
+                        <Text style={[styles.modalInputPlaceholder, { color: stockExpDate ? theme.text : theme.textTertiary }]}>{stockExpDate || 'Select expiry date'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {showExpCal && <CalendarPicker value={stockExpDate} onSelect={setStockExpDate} onClose={() => setShowExpCal(false)} theme={theme} />}
 
-                    <Text style={styles.modalLabel}>Purchase Price *</Text>
-                    <TextInput style={styles.modalInput} placeholder="Enter purchase price per unit" placeholderTextColor="#999" value={stockPurchasePrice} onChangeText={setStockPurchasePrice} keyboardType="numeric" />
+                    <View style={styles.modalInputGroup}>
+                      <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Purchase Price *</Text>
+                      <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                        <Text style={styles.modalInputIcon}>💰</Text>
+                        <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="Enter purchase price per unit" placeholderTextColor={theme.textTertiary} value={stockPurchasePrice} onChangeText={setStockPurchasePrice} keyboardType="numeric" />
+                      </View>
+                    </View>
                   </>
                 ) : null}
 
-                <Text style={styles.modalLabel}>Reference</Text>
-                <TextInput style={styles.modalInput} placeholder="Invoice/PO number (optional)" placeholderTextColor="#999" value={stockReference} onChangeText={setStockReference} />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Reference</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.modalInputIcon}>📋</Text>
+                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="Invoice/PO number (optional)" placeholderTextColor={theme.textTertiary} value={stockReference} onChangeText={setStockReference} />
+                  </View>
+                </View>
 
-                <Text style={styles.modalLabel}>Note</Text>
-                <TextInput style={[styles.modalInput, { height: 70, textAlignVertical: 'top' }]} placeholder="Note (optional)" placeholderTextColor="#999" value={stockNote} onChangeText={setStockNote} multiline={true} />
+                <View style={styles.modalInputGroup}>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Note</Text>
+                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider, height: 80, alignItems: 'flex-start', paddingTop: 12 }]}>
+                    <Text style={[styles.modalInputIcon, { marginTop: 2 }]}>📝</Text>
+                    <TextInput style={[styles.modalInput, { color: theme.text, textAlignVertical: 'top', height: 56 }]} placeholder="Note (optional)" placeholderTextColor={theme.textTertiary} value={stockNote} onChangeText={setStockNote} multiline={true} />
+                  </View>
+                </View>
 
                 <TouchableOpacity
-                  style={[styles.submitBtn, { backgroundColor: stockModalType === 'in' ? '#4caf50' : '#e53935' }, submitting && { opacity: 0.7 }]}
+                  style={[styles.submitBtn, { backgroundColor: stockModalType === 'in' ? theme.success : (theme.error || theme.primary) }, submitting && { opacity: 0.7 }]}
                   onPress={stockModalType === 'in' ? submitStockIn : submitStockOut}
                   activeOpacity={0.8}
                   disabled={submitting}
@@ -1068,17 +1216,18 @@ function ProductsTab({ user, refreshing, onRefresh }) {
 }
 
 // ======================== SUB SCREEN WRAPPER ========================
-function SubScreenWrapper({ title, onGoBack, user, children }) {
+function SubScreenWrapper({ title, onGoBack, user, children, theme }) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
-      <View style={styles.subHeader}>
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
+      <View style={[styles.subHeader, { backgroundColor: theme.primary }]}>
+        <View style={[styles.circle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+        <View style={[styles.circle2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+        <View style={[styles.circle3, { backgroundColor: theme.secondary ? (theme.secondary + '26') : 'rgba(139,92,246,0.15)' }]} />
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
-            <TouchableOpacity style={styles.backBtn} onPress={onGoBack} activeOpacity={0.7}>
-              <Text style={styles.backBtnText}>{'<'}</Text>
+            <TouchableOpacity style={styles.navBtn} onPress={onGoBack} activeOpacity={0.7}>
+              <Text style={styles.navBtnText}>{'<'}</Text>
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{title}</Text>
           </View>
@@ -1093,6 +1242,7 @@ function SubScreenWrapper({ title, onGoBack, user, children }) {
 
 // ======================== MAIN SCREEN ========================
 export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
+  const { theme, isDark, toggleTheme } = useTheme();
   const [currentScreen, setCurrentScreen] = useState('home');
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardStats, setDashboardStats] = useState(null);
@@ -1161,54 +1311,66 @@ export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
   // Sub-screens
   if (currentScreen === 'alerts') {
     return (
-      <SubScreenWrapper title="Alerts" onGoBack={() => setCurrentScreen('home')} user={user}>
-        <AlertsTab user={user} refreshing={refreshing} onRefresh={onRefresh} />
+      <SubScreenWrapper title="Alerts" onGoBack={() => setCurrentScreen('home')} user={user} theme={theme}>
+        <AlertsTab user={user} refreshing={refreshing} onRefresh={onRefresh} theme={theme} />
       </SubScreenWrapper>
     );
   }
 
   if (currentScreen === 'reports') {
     return (
-      <SubScreenWrapper title="Reports" onGoBack={() => setCurrentScreen('home')} user={user}>
-        <ReportsTab user={user} refreshing={refreshing} onRefresh={onRefresh} />
+      <SubScreenWrapper title="Reports" onGoBack={() => setCurrentScreen('home')} user={user} theme={theme}>
+        <ReportsTab user={user} refreshing={refreshing} onRefresh={onRefresh} theme={theme} />
       </SubScreenWrapper>
     );
   }
 
   if (currentScreen === 'products') {
     return (
-      <SubScreenWrapper title="Products" onGoBack={() => setCurrentScreen('home')} user={user}>
-        <ProductsTab user={user} refreshing={refreshing} onRefresh={onRefresh} />
+      <SubScreenWrapper title="Products" onGoBack={() => setCurrentScreen('home')} user={user} theme={theme}>
+        <ProductsTab user={user} refreshing={refreshing} onRefresh={onRefresh} theme={theme} />
       </SubScreenWrapper>
     );
   }
 
+  // Derive user initials for avatar
+  const userInitial = user && user.fullName ? user.fullName.charAt(0).toUpperCase() : 'W';
+
   // Home Dashboard
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+        <View style={[styles.circle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+        <View style={[styles.circle2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+        <View style={[styles.circle3, { backgroundColor: theme.secondary ? (theme.secondary + '26') : 'rgba(139,92,246,0.15)' }]} />
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
             {onGoBack ? (
-              <TouchableOpacity style={styles.backBtn} onPress={onGoBack} activeOpacity={0.7}>
-                <Text style={styles.backBtnText}>{'<'}</Text>
+              <TouchableOpacity style={styles.navBtn} onPress={onGoBack} activeOpacity={0.7}>
+                <Text style={styles.navBtnText}>{'<'}</Text>
               </TouchableOpacity>
             ) : null}
-            <View>
+            <View style={[styles.userAvatar, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <Text style={styles.userAvatarText}>{userInitial}</Text>
+            </View>
+            <View style={{ marginLeft: 12 }}>
               <Text style={styles.greeting}>Welcome Back,</Text>
               <Text style={styles.userName}>{user && user.fullName ? user.fullName : 'Warehouse'}</Text>
             </View>
           </View>
-          {onLogout ? (
-            <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} activeOpacity={0.7}>
-              <Text style={styles.logoutText}>Logout</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity style={styles.navBtn} onPress={toggleTheme} activeOpacity={0.7}>
+              <Text style={{ color: '#fff', fontSize: 16 }}>{isDark ? '☀️' : '🌙'}</Text>
             </TouchableOpacity>
-          ) : null}
+            {onLogout ? (
+              <TouchableOpacity style={[styles.navBtn, { marginLeft: 8, backgroundColor: 'rgba(229, 57, 53, 0.25)' }]} onPress={onLogout} activeOpacity={0.7}>
+                <Text style={{ color: '#ff8a80', fontSize: 14, fontWeight: '700' }}>⏻</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
         <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
         <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
@@ -1218,105 +1380,127 @@ export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
         style={{ flex: 1 }}
         contentContainerStyle={styles.dashboardBody}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e53935']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />}
       >
         {/* Stats Overview */}
         <View style={styles.statsRow}>
-          <View style={styles.statsCard}>
-            <Text style={styles.statsIcon}>📦</Text>
-            <Text style={styles.statsValue}>{loading ? '--' : (dashboardStats ? dashboardStats.totalProducts : 0)}</Text>
-            <Text style={styles.statsLabel}>Total Products</Text>
+          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statsIconWrap, { backgroundColor: theme.infoBg }]}>
+              <Text style={{ fontSize: 18 }}>📦</Text>
+            </View>
+            <Text style={[styles.statsValue, { color: theme.text }]}>{loading ? '--' : (dashboardStats ? dashboardStats.totalProducts : 0)}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>TOTAL PRODUCTS</Text>
           </View>
-          <View style={styles.statsCard}>
-            <Text style={styles.statsIcon}>💰</Text>
-            <Text style={styles.statsValue}>{loading ? '--' : (dashboardStats ? formatCurrency(dashboardStats.totalValue) : '₹0')}</Text>
-            <Text style={styles.statsLabel}>Stock Value</Text>
-          </View>
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={[styles.statsCard, styles.statsCardAlert]}>
-            <Text style={styles.statsIcon}>⚠</Text>
-            <Text style={[styles.statsValue, { color: '#ff9800' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.lowStockItems : 0)}</Text>
-            <Text style={styles.statsLabel}>Low Stock</Text>
-          </View>
-          <View style={[styles.statsCard, styles.statsCardDanger]}>
-            <Text style={styles.statsIcon}>🚫</Text>
-            <Text style={[styles.statsValue, { color: '#e53935' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.outOfStockItems : 0)}</Text>
-            <Text style={styles.statsLabel}>Out of Stock</Text>
+          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statsIconWrap, { backgroundColor: theme.successBg }]}>
+              <Text style={{ fontSize: 18 }}>💰</Text>
+            </View>
+            <Text style={[styles.statsValue, { color: theme.text }]}>{loading ? '--' : (dashboardStats ? formatCurrency(dashboardStats.totalValue) : '₹0')}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>STOCK VALUE</Text>
           </View>
         </View>
 
         <View style={styles.statsRow}>
-          <View style={styles.statsCard}>
-            <Text style={styles.statsIcon}>⏰</Text>
-            <Text style={[styles.statsValue, { color: '#1565c0' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.expiringItems : 0)}</Text>
-            <Text style={styles.statsLabel}>Expiring Soon</Text>
+          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statsIconWrap, { backgroundColor: theme.warningBg }]}>
+              <Text style={{ fontSize: 18 }}>⚠</Text>
+            </View>
+            <Text style={[styles.statsValue, { color: theme.warning }]}>{loading ? '--' : (dashboardStats ? dashboardStats.lowStockItems : 0)}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>LOW STOCK</Text>
           </View>
-          <View style={styles.statsCard}>
-            <Text style={styles.statsIcon}>🔔</Text>
-            <Text style={[styles.statsValue, { color: '#e53935' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.totalAlerts : 0)}</Text>
-            <Text style={styles.statsLabel}>Total Alerts</Text>
+          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statsIconWrap, { backgroundColor: theme.errorBg }]}>
+              <Text style={{ fontSize: 18 }}>🚫</Text>
+            </View>
+            <Text style={[styles.statsValue, { color: theme.error || theme.primary }]}>{loading ? '--' : (dashboardStats ? dashboardStats.outOfStockItems : 0)}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>OUT OF STOCK</Text>
+          </View>
+        </View>
+
+        <View style={styles.statsRow}>
+          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statsIconWrap, { backgroundColor: theme.infoBg }]}>
+              <Text style={{ fontSize: 18 }}>⏰</Text>
+            </View>
+            <Text style={[styles.statsValue, { color: theme.info }]}>{loading ? '--' : (dashboardStats ? dashboardStats.expiringItems : 0)}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>EXPIRING SOON</Text>
+          </View>
+          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statsIconWrap, { backgroundColor: theme.errorBg }]}>
+              <Text style={{ fontSize: 18 }}>🔔</Text>
+            </View>
+            <Text style={[styles.statsValue, { color: theme.error || theme.primary }]}>{loading ? '--' : (dashboardStats ? dashboardStats.totalAlerts : 0)}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>TOTAL ALERTS</Text>
           </View>
         </View>
 
         {/* Expired Items */}
         <View style={styles.activityRow}>
-          <View style={[styles.activityCard, { borderLeftColor: '#9c27b0' }]}>
-            <Text style={styles.activityIcon}>⏰</Text>
-            <View>
-              <Text style={[styles.activityValue, { color: '#9c27b0' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.expiringItems : 0)}</Text>
-              <Text style={styles.activityLabel}>Near Expiry</Text>
+          <View style={[styles.activityCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.activityAccent, { backgroundColor: theme.secondary }]} />
+            <View style={[styles.activityIconWrap, { backgroundColor: theme.warningBg }]}>
+              <Text style={{ fontSize: 18 }}>⏰</Text>
+            </View>
+            <View style={{ marginLeft: 12 }}>
+              <Text style={[styles.activityValue, { color: theme.secondary }]}>{loading ? '--' : (dashboardStats ? dashboardStats.expiringItems : 0)}</Text>
+              <Text style={[styles.activityLabel, { color: theme.textTertiary }]}>Near Expiry</Text>
             </View>
           </View>
-          <View style={[styles.activityCard, { borderLeftColor: '#795548' }]}>
-            <Text style={styles.activityIcon}>🚫</Text>
-            <View>
+          <View style={[styles.activityCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.activityAccent, { backgroundColor: '#795548' }]} />
+            <View style={[styles.activityIconWrap, { backgroundColor: theme.surfaceVariant }]}>
+              <Text style={{ fontSize: 18 }}>🚫</Text>
+            </View>
+            <View style={{ marginLeft: 12 }}>
               <Text style={[styles.activityValue, { color: '#795548' }]}>{loading ? '--' : (dashboardStats ? dashboardStats.expiredItems : 0)}</Text>
-              <Text style={styles.activityLabel}>Expired</Text>
+              <Text style={[styles.activityLabel, { color: theme.textTertiary }]}>Expired</Text>
             </View>
           </View>
         </View>
 
         {/* Menu Options */}
-        <Text style={styles.sectionTitle}>Manage Inventory</Text>
+        <View style={styles.sectionHeader}>
+          <View style={[styles.sectionBar, { backgroundColor: theme.primary }]} />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Manage Inventory</Text>
+        </View>
+
         <View style={styles.menuGrid}>
-          <TouchableOpacity style={styles.menuCard} onPress={() => setCurrentScreen('alerts')} activeOpacity={0.7}>
-            <View style={[styles.menuIconBox, { backgroundColor: '#ffebee' }]}>
+          <TouchableOpacity style={[styles.menuCard, { backgroundColor: theme.surface }]} onPress={() => setCurrentScreen('alerts')} activeOpacity={0.7}>
+            <View style={[styles.menuIconBox, { backgroundColor: theme.errorBg }]}>
               <Text style={styles.menuEmoji}>🔔</Text>
             </View>
             <View style={styles.menuTextWrap}>
-              <Text style={styles.menuLabel}>Alerts</Text>
-              <Text style={styles.menuDesc}>Low stock & expiry alerts</Text>
+              <Text style={[styles.menuLabel, { color: theme.text }]}>Alerts</Text>
+              <Text style={[styles.menuDesc, { color: theme.textTertiary }]}>Low stock & expiry alerts</Text>
             </View>
-            <View style={styles.menuArrow}>
-              <Text style={styles.menuArrowText}>→</Text>
+            <View style={[styles.menuArrow, { backgroundColor: theme.surfaceVariant }]}>
+              <Text style={[styles.menuArrowText, { color: theme.primary }]}>→</Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuCard} onPress={() => setCurrentScreen('reports')} activeOpacity={0.7}>
-            <View style={[styles.menuIconBox, { backgroundColor: '#e3f2fd' }]}>
+          <TouchableOpacity style={[styles.menuCard, { backgroundColor: theme.surface }]} onPress={() => setCurrentScreen('reports')} activeOpacity={0.7}>
+            <View style={[styles.menuIconBox, { backgroundColor: theme.infoBg }]}>
               <Text style={styles.menuEmoji}>📊</Text>
             </View>
             <View style={styles.menuTextWrap}>
-              <Text style={styles.menuLabel}>Reports</Text>
-              <Text style={styles.menuDesc}>Stock & valuation reports</Text>
+              <Text style={[styles.menuLabel, { color: theme.text }]}>Reports</Text>
+              <Text style={[styles.menuDesc, { color: theme.textTertiary }]}>Stock & valuation reports</Text>
             </View>
-            <View style={styles.menuArrow}>
-              <Text style={styles.menuArrowText}>→</Text>
+            <View style={[styles.menuArrow, { backgroundColor: theme.surfaceVariant }]}>
+              <Text style={[styles.menuArrowText, { color: theme.primary }]}>→</Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuCard} onPress={() => setCurrentScreen('products')} activeOpacity={0.7}>
-            <View style={[styles.menuIconBox, { backgroundColor: '#e8f5e9' }]}>
+          <TouchableOpacity style={[styles.menuCard, { backgroundColor: theme.surface }]} onPress={() => setCurrentScreen('products')} activeOpacity={0.7}>
+            <View style={[styles.menuIconBox, { backgroundColor: theme.successBg }]}>
               <Text style={styles.menuEmoji}>📦</Text>
             </View>
             <View style={styles.menuTextWrap}>
-              <Text style={styles.menuLabel}>Products</Text>
-              <Text style={styles.menuDesc}>View & manage products</Text>
+              <Text style={[styles.menuLabel, { color: theme.text }]}>Products</Text>
+              <Text style={[styles.menuDesc, { color: theme.textTertiary }]}>View & manage products</Text>
             </View>
-            <View style={styles.menuArrow}>
-              <Text style={styles.menuArrowText}>→</Text>
+            <View style={[styles.menuArrow, { backgroundColor: theme.surfaceVariant }]}>
+              <Text style={[styles.menuArrowText, { color: theme.primary }]}>→</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -1329,24 +1513,21 @@ export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
   },
   header: {
-    backgroundColor: '#1a1a2e',
     paddingTop: 50,
-    paddingHorizontal: 25,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingBottom: 22,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
   subHeader: {
-    backgroundColor: '#1a1a2e',
     paddingTop: 50,
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    paddingBottom: 18,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
   circle1: {
@@ -1354,7 +1535,6 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(229, 57, 53, 0.2)',
     top: -50,
     right: -40,
   },
@@ -1363,9 +1543,16 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(255, 87, 34, 0.15)',
     top: 60,
     left: -50,
+  },
+  circle3: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    bottom: -30,
+    right: 60,
   },
   headerContent: {
     flexDirection: 'row',
@@ -1377,47 +1564,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  backBtn: {
-    width: 36,
-    height: 36,
+  navBtn: {
+    width: 38,
+    height: 38,
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
   },
-  backBtnText: {
+  navBtnText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
   },
-  logoutBtn: {
-    backgroundColor: 'rgba(229, 57, 53, 0.3)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+  userAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
   },
-  logoutText: {
-    color: '#ff8a80',
-    fontSize: 13,
-    fontWeight: '700',
+  userAvatarText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: '800',
     color: '#fff',
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: 2,
+    marginLeft: 14,
   },
   greeting: {
-    fontSize: 14,
+    fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
   },
   userName: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: '#fff',
     marginTop: 2,
@@ -1425,6 +1609,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.6)',
+    marginTop: 4,
   },
   timeText: {
     fontSize: 28,
@@ -1434,7 +1619,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   dashboardBody: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
   },
 
@@ -1445,37 +1630,36 @@ const styles = StyleSheet.create({
   },
   statsCard: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     marginHorizontal: 5,
     alignItems: 'center',
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
-  statsCardAlert: {},
-  statsCardDanger: {},
-  statsIcon: {
-    fontSize: 24,
-    marginBottom: 8,
+  statsIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   statsValue: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#1a1a2e',
   },
   statsLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#999',
+    fontSize: 10,
+    fontWeight: '700',
     marginTop: 4,
-    letterSpacing: 0.3,
+    letterSpacing: 0.8,
   },
 
-  // Today's Activity
+  // Activity Cards
   activityRow: {
     flexDirection: 'row',
     marginBottom: 10,
@@ -1484,21 +1668,32 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     marginHorizontal: 5,
-    borderLeftWidth: 4,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
+    overflow: 'hidden',
   },
-  activityIcon: {
-    fontSize: 22,
-    fontWeight: '900',
-    marginRight: 12,
+  activityAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  activityIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
   activityValue: {
     fontSize: 20,
@@ -1507,8 +1702,25 @@ const styles = StyleSheet.create({
   activityLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#999',
     marginTop: 2,
+  },
+
+  // Section Header
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 18,
+    marginBottom: 14,
+  },
+  sectionBar: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
   },
 
   // Menu Grid
@@ -1516,7 +1728,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   menuCard: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 18,
     marginBottom: 12,
@@ -1546,34 +1757,21 @@ const styles = StyleSheet.create({
   menuLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1a1a2e',
   },
   menuDesc: {
     fontSize: 12,
-    color: '#999',
-    marginTop: 2,
+    marginTop: 3,
   },
   menuArrow: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: 10,
-    backgroundColor: '#f5f5f7',
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuArrowText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1a1a2e',
-  },
-  tabLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.5)',
-  },
-  tabLabelActive: {
-    color: '#fff',
-    fontWeight: '800',
   },
   body: {
     flex: 1,
@@ -1590,7 +1788,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#999',
     marginTop: 12,
   },
 
@@ -1601,27 +1798,43 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 14,
     marginHorizontal: 4,
-    borderLeftWidth: 4,
-    elevation: 2,
+    alignItems: 'center',
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    overflow: 'hidden',
+  },
+  summaryAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  summaryIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   summaryCount: {
     fontSize: 24,
     fontWeight: '900',
   },
   summaryLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#999',
+    fontSize: 9,
+    fontWeight: '700',
     marginTop: 4,
-    letterSpacing: 0.3,
+    letterSpacing: 0.8,
   },
 
   // Filter Row
@@ -1630,33 +1843,21 @@ const styles = StyleSheet.create({
     maxHeight: 44,
   },
   filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#fff',
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 22,
     marginHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: '#eee',
-  },
-  filterChipActive: {
-    backgroundColor: '#1a1a2e',
-    borderColor: '#1a1a2e',
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#777',
-  },
-  filterChipTextActive: {
-    color: '#fff',
   },
 
   // Alert Cards
   alertCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
     marginBottom: 10,
     elevation: 2,
@@ -1664,6 +1865,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
+    overflow: 'hidden',
+  },
+  alertAccentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
   },
   alertIconWrap: {
     width: 44,
@@ -1672,6 +1883,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    marginLeft: 4,
   },
   alertIconText: {
     fontSize: 20,
@@ -1682,7 +1894,6 @@ const styles = StyleSheet.create({
   alertProduct: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1a1a2e',
     marginBottom: 4,
   },
   alertMeta: {
@@ -1693,7 +1904,7 @@ const styles = StyleSheet.create({
   alertBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 8,
     marginRight: 8,
   },
   alertBadgeText: {
@@ -1702,11 +1913,9 @@ const styles = StyleSheet.create({
   },
   alertDate: {
     fontSize: 11,
-    color: '#999',
   },
   alertDetail: {
     fontSize: 12,
-    color: '#777',
   },
   severityDot: {
     width: 10,
@@ -1720,19 +1929,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 60,
   },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
     marginBottom: 6,
   },
   emptySubText: {
     fontSize: 14,
-    color: '#999',
   },
 
   // Overview Cards (Reports)
@@ -1742,41 +1953,33 @@ const styles = StyleSheet.create({
   },
   overviewCard: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     marginHorizontal: 4,
     alignItems: 'center',
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
-  overviewIcon: {
-    fontSize: 24,
-    marginBottom: 8,
+  overviewIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   overviewValue: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#1a1a2e',
   },
   overviewLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#999',
-    marginTop: 4,
-    letterSpacing: 0.3,
-  },
-
-  // Section Title
-  sectionTitle: {
-    fontSize: 18,
+    fontSize: 10,
     fontWeight: '700',
-    color: '#1a1a2e',
-    marginTop: 16,
-    marginBottom: 12,
+    marginTop: 4,
+    letterSpacing: 0.8,
   },
 
   // Report Menu Grid
@@ -1787,8 +1990,7 @@ const styles = StyleSheet.create({
   },
   reportMenuItem: {
     width: (screenWidth - 48) / 2,
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 10,
     elevation: 2,
@@ -1811,12 +2013,10 @@ const styles = StyleSheet.create({
   reportMenuLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1a1a2e',
     marginBottom: 4,
   },
   reportMenuDesc: {
     fontSize: 11,
-    color: '#999',
     lineHeight: 15,
   },
 
@@ -1824,15 +2024,14 @@ const styles = StyleSheet.create({
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 14,
     marginBottom: 8,
-    elevation: 1,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
   },
   categoryInfo: {
     width: 90,
@@ -1840,30 +2039,25 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#333',
   },
   categoryCount: {
     fontSize: 11,
-    color: '#999',
     marginTop: 2,
   },
   categoryBarBg: {
     flex: 1,
     height: 8,
-    backgroundColor: '#f0f0f0',
     borderRadius: 4,
     marginHorizontal: 10,
     overflow: 'hidden',
   },
   categoryBar: {
     height: 8,
-    backgroundColor: '#e53935',
     borderRadius: 4,
   },
   categoryValue: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1a1a2e',
     width: 55,
     textAlign: 'right',
   },
@@ -1872,8 +2066,7 @@ const styles = StyleSheet.create({
   movementCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 14,
     marginBottom: 8,
     elevation: 2,
@@ -1900,11 +2093,9 @@ const styles = StyleSheet.create({
   movementProduct: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1a1a2e',
   },
   movementParty: {
     fontSize: 12,
-    color: '#999',
     marginTop: 2,
   },
   movementRight: {
@@ -1916,7 +2107,6 @@ const styles = StyleSheet.create({
   },
   movementDate: {
     fontSize: 11,
-    color: '#999',
     marginTop: 2,
   },
 
@@ -1926,9 +2116,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   agingBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
     marginLeft: 4,
   },
   agingBadgeText: {
@@ -1938,7 +2128,7 @@ const styles = StyleSheet.create({
   agingLegend: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 10,
     marginBottom: 12,
   },
   agingLegendItem: {
@@ -1954,7 +2144,6 @@ const styles = StyleSheet.create({
   },
   agingLegendText: {
     fontSize: 11,
-    color: '#777',
   },
 
   // Search Row (Products)
@@ -1967,12 +2156,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 14,
     height: 46,
     borderWidth: 1,
-    borderColor: '#eee',
     marginRight: 10,
   },
   searchIcon: {
@@ -1982,22 +2169,18 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#333',
   },
   searchClear: {
     fontSize: 16,
-    color: '#999',
     padding: 4,
   },
   addProductBtn: {
-    backgroundColor: '#e53935',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderRadius: 14,
+    paddingHorizontal: 18,
     height: 46,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: '#e53935',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
@@ -2009,7 +2192,6 @@ const styles = StyleSheet.create({
   },
   resultCount: {
     fontSize: 12,
-    color: '#999',
     marginBottom: 10,
     fontWeight: '600',
   },
@@ -2018,8 +2200,7 @@ const styles = StyleSheet.create({
   productCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
     marginBottom: 10,
     elevation: 2,
@@ -2027,9 +2208,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
+    overflow: 'hidden',
+  },
+  productAccentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
   },
   productLeft: {
     marginRight: 12,
+    marginLeft: 4,
   },
   productThumb: {
     width: 46,
@@ -2041,7 +2233,6 @@ const styles = StyleSheet.create({
   productThumbText: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1a1a2e',
   },
   productInfo: {
     flex: 1,
@@ -2049,12 +2240,10 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1a1a2e',
     marginBottom: 2,
   },
   productSKU: {
     fontSize: 11,
-    color: '#999',
     marginBottom: 4,
   },
   productMetaRow: {
@@ -2064,13 +2253,12 @@ const styles = StyleSheet.create({
   productCategory: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#777',
     marginRight: 8,
   },
   stockBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   stockBadgeText: {
     fontSize: 10,
@@ -2083,25 +2271,21 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1a1a2e',
   },
   productStock: {
     fontSize: 11,
-    color: '#999',
     marginTop: 4,
   },
 
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    paddingHorizontal: 25,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 22,
     paddingTop: 20,
     paddingBottom: 40,
     maxHeight: '85%',
@@ -2115,31 +2299,52 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1a1a2e',
   },
-  modalClose: {
-    fontSize: 20,
-    color: '#999',
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontSize: 18,
     fontWeight: '700',
-    padding: 5,
+  },
+  modalInputGroup: {
+    marginBottom: 14,
   },
   modalLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#555',
     marginBottom: 6,
-    marginTop: 12,
     letterSpacing: 0.5,
   },
-  modalInput: {
-    backgroundColor: '#f5f5f7',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    fontSize: 15,
-    color: '#333',
+  modalInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 50,
     borderWidth: 1,
-    borderColor: '#eee',
+  },
+  modalInputIcon: {
+    fontSize: 16,
+    marginRight: 10,
+  },
+  modalInput: {
+    flex: 1,
+    fontSize: 15,
+  },
+  modalInputPlaceholder: {
+    fontSize: 15,
+    flex: 1,
+  },
+  stockProductInfo: {
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
   },
   imagePreviewWrapper: {
     position: 'relative',
@@ -2173,13 +2378,11 @@ const styles = StyleSheet.create({
   },
   uploadBtn: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
     borderRadius: 14,
     paddingVertical: 22,
     alignItems: 'center',
     marginHorizontal: 6,
     borderWidth: 1.5,
-    borderColor: '#e0e0e0',
     borderStyle: 'dashed',
   },
   uploadIcon: {
@@ -2189,15 +2392,17 @@ const styles = StyleSheet.create({
   uploadText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#777',
   },
   submitBtn: {
-    backgroundColor: '#e53935',
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 22,
-    elevation: 6,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
   },
   submitBtnText: {
     color: '#fff',
@@ -2211,7 +2416,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
     marginBottom: 16,
   },
   detailThumb: {
@@ -2225,17 +2429,14 @@ const styles = StyleSheet.create({
   detailThumbText: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#1a1a2e',
   },
   detailName: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1a1a2e',
     textAlign: 'center',
   },
   detailSKU: {
     fontSize: 13,
-    color: '#999',
     marginTop: 4,
   },
   detailGrid: {
@@ -2243,21 +2444,22 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   detailItem: {
-    width: '50%',
+    width: '47%',
     paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
+    marginHorizontal: '1.5%',
+    marginBottom: 8,
+    borderRadius: 14,
   },
   detailLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#999',
+    fontSize: 10,
+    fontWeight: '700',
     marginBottom: 4,
-    letterSpacing: 0.3,
+    letterSpacing: 0.8,
   },
   detailValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1a1a2e',
   },
   detailActions: {
     flexDirection: 'row',
@@ -2265,11 +2467,15 @@ const styles = StyleSheet.create({
   },
   detailActionBtn: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
     marginHorizontal: 6,
     elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
   },
   detailActionText: {
     color: '#fff',

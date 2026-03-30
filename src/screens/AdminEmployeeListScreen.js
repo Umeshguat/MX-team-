@@ -14,30 +14,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
 import { BASE_URL } from '../config';
-
-function getStatusColor(status) {
-  switch (status) {
-    case 'checked in': return '#4caf50';
-    case 'checked out': return '#1565c0';
-    case 'present': return '#4caf50';
-    case 'absent': return '#e53935';
-    case 'half-day': return '#ff9800';
-    case 'leave': return '#1565c0';
-    default: return '#bdbdbd';
-  }
-}
-
-function getStatusBg(status) {
-  switch (status) {
-    case 'checked in': return '#e8f5e9';
-    case 'checked out': return '#e3f2fd';
-    case 'present': return '#e8f5e9';
-    case 'absent': return '#ffebee';
-    case 'half-day': return '#fff3e0';
-    case 'leave': return '#e3f2fd';
-    default: return '#f5f5f5';
-  }
-}
+import { useTheme } from '../theme/ThemeContext';
 
 function getStatusLabel(status) {
   switch (status) {
@@ -125,6 +102,8 @@ function generateEmpVendorMapHTML(visits, name) {
 }
 
 export default function AdminEmployeeListScreen({ user, onGoBack }) {
+  const { theme } = useTheme();
+
   var [employees, setEmployees] = useState([]);
   var [loading, setLoading] = useState(true);
   var [refreshing, setRefreshing] = useState(false);
@@ -141,6 +120,42 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
   var [empVendorVisits, setEmpVendorVisits] = useState([]);
   var [empVendorMapLoading, setEmpVendorMapLoading] = useState(false);
   var [empVendorMapName, setEmpVendorMapName] = useState('');
+
+  function getStatusColor(status) {
+    switch (status) {
+      case 'checked in': return theme.success;
+      case 'checked out': return theme.info;
+      case 'present': return theme.success;
+      case 'absent': return theme.error;
+      case 'half-day': return theme.warning;
+      case 'leave': return theme.info;
+      default: return theme.textTertiary;
+    }
+  }
+
+  function getStatusBg(status) {
+    switch (status) {
+      case 'checked in': return theme.successBg;
+      case 'checked out': return theme.infoBg;
+      case 'present': return theme.successBg;
+      case 'absent': return theme.errorBg;
+      case 'half-day': return theme.warningBg;
+      case 'leave': return theme.infoBg;
+      default: return theme.surfaceVariant;
+    }
+  }
+
+  function getAccentColor(status) {
+    switch (status) {
+      case 'checked in': return theme.success;
+      case 'checked out': return theme.info;
+      case 'present': return theme.success;
+      case 'absent': return theme.error;
+      case 'half-day': return theme.warning;
+      case 'leave': return theme.info;
+      default: return theme.primary;
+    }
+  }
 
   var fetchEmployees = useCallback(function(page, isRefresh) {
     var token = user && user.token ? user.token : '';
@@ -280,40 +295,53 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
   var renderEmployee = function({ item: emp, index }) {
     var empName = emp.full_name || 'Employee';
     var empStatus = (emp.status || '').toLowerCase();
+    var accentColor = getAccentColor(empStatus);
     return (
       <TouchableOpacity
         key={emp._id || index}
-        style={styles.empCard}
+        style={[styles.empCard, { backgroundColor: theme.surface }]}
         onPress={function() { openEmployee(emp); }}
         activeOpacity={0.7}
       >
-        <View style={styles.empAvatar}>
-          <Text style={styles.empAvatarText}>
-            {empName.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase()}
-          </Text>
-        </View>
-        <View style={styles.empInfo}>
-          <Text style={styles.empName}>{empName}</Text>
-          <Text style={styles.empDesig}>{emp.email || ''}</Text>
-          <Text style={styles.empHq}>{emp.headquarter_name || ''} {emp.working_town ? '| ' + emp.working_town : ''}</Text>
-          <View style={styles.empMetaRow}>
-            <Text style={styles.empMetaText}>{emp.check_in_time || '--'}</Text>
-            <Text style={styles.empMetaDot}> - </Text>
-            <Text style={styles.empMetaText}>{emp.check_out_time || '--'}</Text>
-            <Text style={styles.empMetaSep}>  |  </Text>
-            <Text style={styles.empMetaText}>{emp.total_km || 0} km</Text>
-            <Text style={styles.empMetaSep}>  |  </Text>
-            <Text style={styles.empMetaText}>{emp.hours || '0h 0m'}</Text>
-          </View>
-        </View>
-        <View style={styles.empRight}>
-          <View style={[styles.empStatusBadge, { backgroundColor: getStatusBg(empStatus) }]}>
-            <View style={[styles.empStatusDot, { backgroundColor: getStatusColor(empStatus) }]} />
-            <Text style={[styles.empStatusText, { color: getStatusColor(empStatus) }]}>
-              {getStatusLabel(empStatus)}
+        {/* Left accent bar */}
+        <View style={[styles.empAccentBar, { backgroundColor: accentColor }]} />
+
+        <View style={styles.empCardInner}>
+          {/* Avatar */}
+          <View style={[styles.empAvatar, { backgroundColor: theme.primary }]}>
+            <Text style={styles.empAvatarText}>
+              {empName.charAt(0).toUpperCase()}
             </Text>
           </View>
-          <Text style={styles.empDateText}>{formatDate(emp.date)}</Text>
+
+          {/* Info */}
+          <View style={styles.empInfo}>
+            <Text style={[styles.empName, { color: theme.text }]} numberOfLines={1}>{empName}</Text>
+            <Text style={[styles.empDesig, { color: theme.textSecondary }]} numberOfLines={1}>{emp.email || ''}</Text>
+            <Text style={[styles.empHq, { color: theme.textTertiary }]} numberOfLines={1}>
+              {emp.headquarter_name || ''}{emp.working_town ? ' | ' + emp.working_town : ''}
+            </Text>
+            <View style={styles.empMetaRow}>
+              <Text style={[styles.empMetaText, { color: theme.textTertiary }]}>{emp.check_in_time || '--'}</Text>
+              <Text style={[styles.empMetaDot, { color: theme.divider }]}> - </Text>
+              <Text style={[styles.empMetaText, { color: theme.textTertiary }]}>{emp.check_out_time || '--'}</Text>
+              <Text style={[styles.empMetaSep, { color: theme.divider }]}>  |  </Text>
+              <Text style={[styles.empMetaText, { color: theme.textTertiary }]}>{emp.total_km || 0} km</Text>
+              <Text style={[styles.empMetaSep, { color: theme.divider }]}>  |  </Text>
+              <Text style={[styles.empMetaText, { color: theme.textTertiary }]}>{emp.hours || '0h 0m'}</Text>
+            </View>
+          </View>
+
+          {/* Right: Status chip + date */}
+          <View style={styles.empRight}>
+            <View style={[styles.empStatusChip, { backgroundColor: getStatusBg(empStatus) }]}>
+              <View style={[styles.empStatusDot, { backgroundColor: getStatusColor(empStatus) }]} />
+              <Text style={[styles.empStatusText, { color: getStatusColor(empStatus) }]}>
+                {getStatusLabel(empStatus)}
+              </Text>
+            </View>
+            <Text style={[styles.empDateText, { color: theme.textTertiary }]}>{formatDate(emp.date)}</Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -323,66 +351,82 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
     if (!loadingMore) return null;
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#e53935" />
-        <Text style={styles.footerText}>Loading more...</Text>
+        <ActivityIndicator size="small" color={theme.primary} />
+        <Text style={[styles.footerText, { color: theme.textTertiary }]}>Loading more...</Text>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      <View style={styles.header}>
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
-        <View style={styles.headerTop}>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+        <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
+
+        <View style={styles.navRow}>
           <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
-            <Text style={styles.backText}>← Back</Text>
+            <Text style={styles.backArrow}>{'\u2039'}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>All Employees</Text>
-          <View style={{ width: 60 }} />
+          <View style={styles.navSpacer} />
         </View>
 
-        <View style={styles.statsBar}>
-          <View style={styles.statItem}>
-            <Text style={styles.statCount}>{totalRecords}</Text>
-            <Text style={styles.statLabel}>Total</Text>
+        {/* Stats Cards */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statEmojiWrap, { backgroundColor: theme.primary + '1A' }]}>
+              <Text style={styles.statEmoji}>{'👥'}</Text>
+            </View>
+            <Text style={[styles.statNumber, { color: theme.text }]}>{totalRecords}</Text>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>TOTAL</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statCount, { color: '#4caf50' }]}>{checkedInCount}</Text>
-            <Text style={styles.statLabel}>Checked In</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statEmojiWrap, { backgroundColor: theme.success + '1A' }]}>
+              <Text style={styles.statEmoji}>{'✅'}</Text>
+            </View>
+            <Text style={[styles.statNumber, { color: theme.success }]}>{checkedInCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECKED IN</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statCount, { color: '#1565c0' }]}>{checkedOutCount}</Text>
-            <Text style={styles.statLabel}>Checked Out</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statEmojiWrap, { backgroundColor: theme.info + '1A' }]}>
+              <Text style={styles.statEmoji}>{'🚪'}</Text>
+            </View>
+            <Text style={[styles.statNumber, { color: theme.info }]}>{checkedOutCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECKED OUT</Text>
           </View>
         </View>
       </View>
 
+      {/* Employee List */}
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#e53935" />
-          <Text style={styles.loadingText}>Loading employees...</Text>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.loadingText, { color: theme.textTertiary }]}>Loading employees...</Text>
         </View>
       ) : (
         <FlatList
           data={employees}
           renderItem={renderEmployee}
           keyExtractor={function(item, index) { return item._id || String(index); }}
-          contentContainerStyle={styles.bodyContent}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e53935']} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.3}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No employees found</Text>
+            <View style={styles.emptyWrap}>
+              <View style={[styles.emptyIconWrap, { backgroundColor: theme.primary + '1A' }]}>
+                <Text style={styles.emptyIcon}>{'👤'}</Text>
+              </View>
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>No Employees Found</Text>
+              <Text style={[styles.emptySubtitle, { color: theme.textTertiary }]}>There are no employee records to display</Text>
             </View>
           }
         />
@@ -390,8 +434,8 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
 
       {/* Pagination Info */}
       {!loading && totalPages > 0 && (
-        <View style={styles.paginationBar}>
-          <Text style={styles.paginationText}>
+        <View style={[styles.paginationBar, { backgroundColor: theme.surfaceVariant }]}>
+          <Text style={[styles.paginationText, { color: theme.textTertiary }]}>
             Page {currentPage} of {totalPages} ({totalRecords} records)
           </Text>
         </View>
@@ -399,29 +443,31 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
 
       {/* Employee Detail Modal */}
       <Modal visible={showEmployeeModal} transparent={true} animationType="slide" onRequestClose={function() { setShowEmployeeModal(false); }}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Modal Header */}
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Employee Details</Text>
-                <TouchableOpacity onPress={function() { setShowEmployeeModal(false); }}>
-                  <Text style={styles.modalClose}>✕</Text>
+                <Text style={[styles.modalTitle, { color: theme.primary }]}>Employee Details</Text>
+                <TouchableOpacity style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceVariant }]} onPress={function() { setShowEmployeeModal(false); }}>
+                  <Text style={[styles.modalCloseText, { color: theme.textTertiary }]}>{'\u2715'}</Text>
                 </TouchableOpacity>
               </View>
 
               {employeeDetailLoading ? (
-                <ActivityIndicator size="large" color="#9c27b0" style={{ marginTop: 40, marginBottom: 40 }} />
+                <ActivityIndicator size="large" color={theme.secondary} style={{ marginTop: 40, marginBottom: 40 }} />
               ) : selectedEmployee ? (
                 <View>
+                  {/* Profile Section */}
                   <View style={styles.modalProfile}>
-                    <View style={styles.modalAvatar}>
+                    <View style={[styles.modalAvatar, { backgroundColor: theme.primary }]}>
                       <Text style={styles.modalAvatarText}>
-                        {(selectedEmployee.full_name || selectedEmployee.name || 'E').split(' ').map(function(n) { return n[0]; }).join('').toUpperCase()}
+                        {(selectedEmployee.full_name || selectedEmployee.name || 'E').charAt(0).toUpperCase()}
                       </Text>
                     </View>
-                    <Text style={styles.modalProfileName}>{selectedEmployee.full_name || selectedEmployee.name || 'Employee'}</Text>
-                    <Text style={styles.modalProfileDesig}>{selectedEmployee.designation_name || selectedEmployee.designation || ''}</Text>
-                    <View style={[styles.empStatusBadge, { backgroundColor: getStatusBg((selectedEmployee.status || 'present').toLowerCase()), alignSelf: 'center', marginTop: 8 }]}>
+                    <Text style={[styles.modalProfileName, { color: theme.text }]}>{selectedEmployee.full_name || selectedEmployee.name || 'Employee'}</Text>
+                    <Text style={[styles.modalProfileDesig, { color: theme.textSecondary }]}>{selectedEmployee.designation_name || selectedEmployee.designation || ''}</Text>
+                    <View style={[styles.empStatusChip, { backgroundColor: getStatusBg((selectedEmployee.status || 'present').toLowerCase()), alignSelf: 'center', marginTop: 10 }]}>
                       <View style={[styles.empStatusDot, { backgroundColor: getStatusColor((selectedEmployee.status || 'present').toLowerCase()) }]} />
                       <Text style={[styles.empStatusText, { color: getStatusColor((selectedEmployee.status || 'present').toLowerCase()) }]}>
                         {getStatusLabel((selectedEmployee.status || 'present').toLowerCase())}
@@ -429,41 +475,55 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
                     </View>
                   </View>
 
-                  <View style={styles.modalDetailRow}>
-                    <Text style={styles.modalDetailIcon}>🏢</Text>
-                    <View>
-                      <Text style={styles.modalDetailLabel}>Headquarter</Text>
-                      <Text style={styles.modalDetailValue}>{selectedEmployee.headquarter_name || selectedEmployee.hq || '--'}</Text>
+                  {/* Detail Rows */}
+                  <View style={[styles.modalDetailRow, { borderBottomColor: theme.divider }]}>
+                    <View style={[styles.modalDetailIconWrap, { backgroundColor: theme.primary + '1A' }]}>
+                      <Text style={styles.modalDetailIcon}>{'🏢'}</Text>
+                    </View>
+                    <View style={styles.modalDetailTextWrap}>
+                      <Text style={[styles.modalDetailLabel, { color: theme.textTertiary }]}>Headquarter</Text>
+                      <Text style={[styles.modalDetailValue, { color: theme.text }]}>{selectedEmployee.headquarter_name || selectedEmployee.hq || '--'}</Text>
                     </View>
                   </View>
 
-                  <View style={styles.modalDetailRow}>
-                    <Text style={styles.modalDetailIcon}>📱</Text>
-                    <View>
-                      <Text style={styles.modalDetailLabel}>Phone</Text>
-                      <Text style={styles.modalDetailValue}>{selectedEmployee.phone_number || selectedEmployee.phone || '--'}</Text>
+                  <View style={[styles.modalDetailRow, { borderBottomColor: theme.divider }]}>
+                    <View style={[styles.modalDetailIconWrap, { backgroundColor: theme.info + '1A' }]}>
+                      <Text style={styles.modalDetailIcon}>{'📱'}</Text>
+                    </View>
+                    <View style={styles.modalDetailTextWrap}>
+                      <Text style={[styles.modalDetailLabel, { color: theme.textTertiary }]}>Phone</Text>
+                      <Text style={[styles.modalDetailValue, { color: theme.text }]}>{selectedEmployee.phone_number || selectedEmployee.phone || '--'}</Text>
                     </View>
                   </View>
 
-                  <View style={styles.modalDetailRow}>
-                    <Text style={styles.modalDetailIcon}>⏰</Text>
-                    <View>
-                      <Text style={styles.modalDetailLabel}>Check In Time</Text>
-                      <Text style={styles.modalDetailValue}>{selectedEmployee.check_in_time || selectedEmployee.start_time || selectedEmployee.checkIn || 'Not checked in'}</Text>
+                  <View style={[styles.modalDetailRow, { borderBottomColor: theme.divider }]}>
+                    <View style={[styles.modalDetailIconWrap, { backgroundColor: theme.warning + '1A' }]}>
+                      <Text style={styles.modalDetailIcon}>{'⏰'}</Text>
+                    </View>
+                    <View style={styles.modalDetailTextWrap}>
+                      <Text style={[styles.modalDetailLabel, { color: theme.textTertiary }]}>Check In Time</Text>
+                      <Text style={[styles.modalDetailValue, { color: theme.text }]}>{selectedEmployee.check_in_time || selectedEmployee.start_time || selectedEmployee.checkIn || 'Not checked in'}</Text>
                     </View>
                   </View>
 
+                  {/* Stats Cards in Modal */}
                   <View style={styles.modalStatsRow}>
-                    <TouchableOpacity style={[styles.modalStatCard, { backgroundColor: '#e8f5e9' }]} onPress={openEmpVendorMap} activeOpacity={0.7}>
-                      <Text style={styles.modalStatIcon}>🏪</Text>
-                      <Text style={[styles.modalStatValue, { color: '#4caf50' }]}>{selectedEmployee.vendor_visits != null ? selectedEmployee.vendor_visits : (selectedEmployee.vendors || 0)}</Text>
-                      <Text style={styles.modalStatLabel}>Vendor Visits</Text>
-                      <Text style={{ fontSize: 10, color: '#4caf50', fontWeight: '600', marginTop: 4 }}>Tap to view map</Text>
+                    <TouchableOpacity style={[styles.modalStatCard, { backgroundColor: theme.successBg }]} onPress={openEmpVendorMap} activeOpacity={0.7}>
+                      <View style={[styles.modalStatEmojiWrap, { backgroundColor: theme.success + '1A' }]}>
+                        <Text style={styles.modalStatEmoji}>{'🏪'}</Text>
+                      </View>
+                      <Text style={[styles.modalStatValue, { color: theme.success }]}>{selectedEmployee.vendor_visits != null ? selectedEmployee.vendor_visits : (selectedEmployee.vendors || 0)}</Text>
+                      <Text style={[styles.modalStatLabel, { color: theme.textSecondary }]}>VENDOR VISITS</Text>
+                      <Text style={[styles.modalStatTap, { color: theme.success }]}>Tap to view map</Text>
                     </TouchableOpacity>
-                    <View style={[styles.modalStatCard, { backgroundColor: '#f3e5f5' }]}>
-                      <Text style={styles.modalStatIcon}>💰</Text>
-                      <Text style={[styles.modalStatValue, { color: '#9c27b0' }]}>₹{selectedEmployee.total_allowance != null ? selectedEmployee.total_allowance : (selectedEmployee.allowance || selectedEmployee.daily_allowance || 0)}</Text>
-                      <Text style={styles.modalStatLabel}>Allowance</Text>
+                    <View style={[styles.modalStatCard, { backgroundColor: theme.surfaceVariant }]}>
+                      <View style={[styles.modalStatEmojiWrap, { backgroundColor: theme.secondary + '1A' }]}>
+                        <Text style={styles.modalStatEmoji}>{'💰'}</Text>
+                      </View>
+                      <Text style={[styles.modalStatValue, { color: theme.secondary }]}>
+                        {'\u20B9'}{selectedEmployee.total_allowance != null ? selectedEmployee.total_allowance : (selectedEmployee.allowance || selectedEmployee.daily_allowance || 0)}
+                      </Text>
+                      <Text style={[styles.modalStatLabel, { color: theme.textSecondary }]}>ALLOWANCE</Text>
                     </View>
                   </View>
                 </View>
@@ -475,55 +535,74 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
 
       {/* Employee Vendor Visits Map Modal */}
       <Modal visible={showEmpVendorMap} animationType="slide" onRequestClose={function() { setShowEmpVendorMap(false); }}>
-        <View style={{ flex: 1, backgroundColor: '#f5f5f7' }}>
-          <View style={styles.empMapHeader}>
-            <View style={styles.headerTop}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+          {/* Map Modal Header */}
+          <View style={[styles.header, { backgroundColor: theme.primary }]}>
+            <View style={styles.decorCircle1} />
+            <View style={styles.decorCircle2} />
+            <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
+
+            <View style={styles.navRow}>
               <TouchableOpacity style={styles.backBtn} onPress={function() { setShowEmpVendorMap(false); }}>
-                <Text style={styles.backText}>← Back</Text>
+                <Text style={styles.backArrow}>{'\u2039'}</Text>
               </TouchableOpacity>
               <Text style={styles.headerTitle}>Vendor Map</Text>
-              <View style={{ width: 60 }} />
+              <View style={styles.navSpacer} />
             </View>
-            <Text style={styles.empMapSubtitle}>{empVendorMapName}'s Visits</Text>
-            <View style={styles.statsBar}>
-              <View style={styles.statItem}>
-                <Text style={styles.statCount}>{empVendorVisits.length}</Text>
-                <Text style={styles.statLabel}>Total</Text>
+            <Text style={styles.mapSubtitle}>{empVendorMapName}'s Visits</Text>
+
+            {/* Map Stats */}
+            <View style={styles.statsRow}>
+              <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+                <View style={[styles.statEmojiWrap, { backgroundColor: theme.primary + '1A' }]}>
+                  <Text style={styles.statEmoji}>{'📍'}</Text>
+                </View>
+                <Text style={[styles.statNumber, { color: theme.text }]}>{empVendorVisits.length}</Text>
+                <Text style={[styles.statLabel, { color: theme.textTertiary }]}>TOTAL</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={[styles.statCount, { color: '#4caf50' }]}>
+              <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+                <View style={[styles.statEmojiWrap, { backgroundColor: theme.success + '1A' }]}>
+                  <Text style={styles.statEmoji}>{'✅'}</Text>
+                </View>
+                <Text style={[styles.statNumber, { color: theme.success }]}>
                   {empVendorVisits.filter(function(v) { return v.on_board === true || v.on_board === 'true' || v.is_onboarded === true || v.is_onboarded === 'true'; }).length}
                 </Text>
-                <Text style={styles.statLabel}>Onboarded</Text>
+                <Text style={[styles.statLabel, { color: theme.textTertiary }]}>ONBOARDED</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={[styles.statCount, { color: '#ff9800' }]}>
+              <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+                <View style={[styles.statEmojiWrap, { backgroundColor: theme.warning + '1A' }]}>
+                  <Text style={styles.statEmoji}>{'⏳'}</Text>
+                </View>
+                <Text style={[styles.statNumber, { color: theme.warning }]}>
                   {empVendorVisits.filter(function(v) { return v.on_board === false || v.on_board === 'false' || v.is_onboarded === false || v.is_onboarded === 'false'; }).length}
                 </Text>
-                <Text style={styles.statLabel}>Pending</Text>
+                <Text style={[styles.statLabel, { color: theme.textTertiary }]}>PENDING</Text>
               </View>
             </View>
           </View>
-          <View style={{ flex: 1, margin: 12, borderRadius: 20, overflow: 'hidden', backgroundColor: '#fff' }}>
+
+          {/* Map Container */}
+          <View style={[styles.mapContainer, { backgroundColor: theme.surface }]}>
             {empVendorMapLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#e53935" />
-                <Text style={styles.loadingText}>Loading vendor visits...</Text>
+              <View style={styles.loadingWrap}>
+                <ActivityIndicator size="large" color={theme.primary} />
+                <Text style={[styles.loadingText, { color: theme.textTertiary }]}>Loading vendor visits...</Text>
               </View>
             ) : generateEmpVendorMapHTML(empVendorVisits, empVendorMapName) ? (
               <WebView
                 originWhitelist={['*']}
                 source={{ html: generateEmpVendorMapHTML(empVendorVisits, empVendorMapName) }}
-                style={{ flex: 1, borderRadius: 20 }}
+                style={{ flex: 1 }}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
               />
             ) : (
-              <View style={styles.loadingContainer}>
-                <Text style={{ fontSize: 40, marginBottom: 12 }}>🗺</Text>
-                <Text style={{ fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 20 }}>No vendor visits with GPS data found for this employee</Text>
+              <View style={styles.emptyWrap}>
+                <View style={[styles.emptyIconWrap, { backgroundColor: theme.warning + '1A' }]}>
+                  <Text style={styles.emptyIcon}>{'🗺'}</Text>
+                </View>
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>No Visits Found</Text>
+                <Text style={[styles.emptySubtitle, { color: theme.textTertiary }]}>No vendor visits with GPS data found for this employee</Text>
               </View>
             )}
           </View>
@@ -534,90 +613,428 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
 }
 
 var styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f7' },
+  container: {
+    flex: 1,
+  },
+
+  /* ── Header ── */
   header: {
-    backgroundColor: '#1a1a2e',
     paddingTop: 50,
-    paddingBottom: 18,
-    paddingHorizontal: 25,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
     zIndex: 10,
   },
-  circle1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(229, 57, 53, 0.2)', top: -50, right: -40 },
-  circle2: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255, 87, 34, 0.15)', top: 60, left: -50 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  backBtn: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
-  backText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  statsBar: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 20, marginTop: 12,
+  decorCircle1: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    top: -40,
+    right: -30,
   },
-  statItem: { alignItems: 'center', flex: 1 },
-  statCount: { color: '#fff', fontSize: 18, fontWeight: '900' },
-  statLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '600', marginTop: 2 },
-  statDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 12 },
-  bodyContent: { padding: 16, paddingBottom: 30 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 14, fontWeight: '700', color: '#999', marginTop: 12 },
+  decorCircle2: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: 70,
+    left: -40,
+  },
+  decorCircle3: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    bottom: -20,
+    right: 60,
+  },
+
+  /* ── Nav Row ── */
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backArrow: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+    marginTop: -2,
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  navSpacer: {
+    width: 38,
+  },
+  mapSubtitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+
+  /* ── Stats Cards ── */
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  statEmojiWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  statEmoji: {
+    fontSize: 18,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  statLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginTop: 2,
+  },
+
+  /* ── List ── */
+  listContent: {
+    padding: 16,
+    paddingBottom: 30,
+  },
+
+  /* ── Employee Card ── */
   empCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', marginBottom: 10,
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
+    borderRadius: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    overflow: 'hidden',
   },
-  empAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  empAvatarText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  empInfo: { flex: 1 },
-  empName: { fontSize: 15, fontWeight: '700', color: '#333' },
-  empDesig: { fontSize: 12, color: '#777', marginTop: 2 },
-  empHq: { fontSize: 11, color: '#999', marginTop: 1 },
-  empMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  empMetaText: { fontSize: 10, color: '#888', fontWeight: '600' },
-  empMetaDot: { fontSize: 10, color: '#ccc' },
-  empMetaSep: { fontSize: 10, color: '#ddd' },
-  empRight: { alignItems: 'flex-end' },
-  empStatusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  empStatusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  empStatusText: { fontSize: 11, fontWeight: '700' },
-  empDateText: { fontSize: 10, color: '#999', marginTop: 4 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 },
-  emptyText: { fontSize: 15, color: '#999', fontWeight: '600' },
-  footerLoader: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16 },
-  footerText: { fontSize: 12, color: '#999', marginLeft: 8 },
+  empAccentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  empCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    paddingLeft: 16,
+  },
+  empAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  empAvatarText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  empInfo: {
+    flex: 1,
+  },
+  empName: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  empDesig: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  empHq: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+  empMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  empMetaText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  empMetaDot: {
+    fontSize: 10,
+  },
+  empMetaSep: {
+    fontSize: 10,
+  },
+  empRight: {
+    alignItems: 'flex-end',
+  },
+  empStatusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  empStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  empStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  empDateText: {
+    fontSize: 10,
+    marginTop: 4,
+  },
+
+  /* ── Loading ── */
+  loadingWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 12,
+  },
+
+  /* ── Empty State ── */
+  emptyWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyIcon: {
+    fontSize: 30,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 40,
+  },
+
+  /* ── Footer / Pagination ── */
+  footerLoader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  footerText: {
+    fontSize: 12,
+    marginLeft: 8,
+  },
   paginationBar: {
-    backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 20, alignItems: 'center',
-    borderTopWidth: 1, borderTopColor: '#f0f0f0',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginHorizontal: 14,
+    marginBottom: 10,
+    borderRadius: 12,
+    alignItems: 'center',
   },
-  paginationText: { fontSize: 12, color: '#888', fontWeight: '600' },
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 22, maxHeight: '85%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: '#1a1a2e' },
-  modalClose: { fontSize: 22, color: '#999', fontWeight: '700', padding: 4 },
-  modalProfile: { alignItems: 'center', marginBottom: 20 },
-  modalAvatar: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  modalAvatarText: { color: '#fff', fontSize: 26, fontWeight: '800' },
-  modalProfileName: { fontSize: 20, fontWeight: '800', color: '#333' },
-  modalProfileDesig: { fontSize: 14, color: '#777', marginTop: 4 },
-  modalDetailRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  modalDetailIcon: { fontSize: 22, marginRight: 14 },
-  modalDetailLabel: { fontSize: 12, color: '#999', fontWeight: '600' },
-  modalDetailValue: { fontSize: 15, fontWeight: '700', color: '#333', marginTop: 2 },
-  modalStatsRow: { flexDirection: 'row', marginTop: 12, gap: 12 },
-  modalStatCard: { flex: 1, borderRadius: 16, padding: 14, alignItems: 'center' },
-  modalStatIcon: { fontSize: 22, marginBottom: 4 },
-  modalStatValue: { fontSize: 18, fontWeight: '900' },
-  modalStatLabel: { fontSize: 11, color: '#666', fontWeight: '600', marginTop: 4 },
-  viewMapBtn: {
-    backgroundColor: '#1a1a2e', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 18, marginBottom: 10,
+  paginationText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
-  viewMapBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  // Emp Map Modal
-  empMapHeader: {
-    backgroundColor: '#1a1a2e', paddingTop: 50, paddingBottom: 18, paddingHorizontal: 25,
-    borderBottomLeftRadius: 30, borderBottomRightRadius: 30, overflow: 'hidden',
+
+  /* ── Modal ── */
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
-  empMapSubtitle: { color: 'rgba(255,255,255,0.6)', fontSize: 13, textAlign: 'center', marginBottom: 4 },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 22,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  modalCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  modalProfile: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalAvatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalAvatarText: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '800',
+  },
+  modalProfileName: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  modalProfileDesig: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+
+  /* ── Modal Detail Rows ── */
+  modalDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  modalDetailIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  modalDetailIcon: {
+    fontSize: 20,
+  },
+  modalDetailTextWrap: {
+    flex: 1,
+  },
+  modalDetailLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modalDetailValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+
+  /* ── Modal Stats ── */
+  modalStatsRow: {
+    flexDirection: 'row',
+    marginTop: 16,
+    gap: 12,
+  },
+  modalStatCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+  },
+  modalStatEmojiWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  modalStatEmoji: {
+    fontSize: 18,
+  },
+  modalStatValue: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  modalStatLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginTop: 4,
+  },
+  modalStatTap: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+
+  /* ── Map Container (reused in vendor map modal) ── */
+  mapContainer: {
+    flex: 1,
+    margin: 14,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
 });

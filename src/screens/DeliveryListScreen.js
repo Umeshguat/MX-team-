@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
+import { useTheme } from '../theme/ThemeContext';
 
 var STATUS_COLORS = {
   assigned: '#FF9800',
@@ -52,7 +53,7 @@ var PRIORITY_COLORS = {
 };
 
 // ======================== DELIVERY DETAIL MODAL ========================
-function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate }) {
+function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate, theme }) {
   var [updating, setUpdating] = useState(false);
   var [proofImage, setProofImage] = useState(null);
   var [receivedBy, setReceivedBy] = useState('');
@@ -128,138 +129,178 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
 
   var nextStatuses = getNextStatuses(delivery.delivery_status);
   var addr = delivery.delivery_address || {};
+  var statusColor = STATUS_COLORS[delivery.delivery_status] || theme.textTertiary;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={modalStyles.overlay}>
-        <View style={modalStyles.container}>
+      <View style={[mStyles.overlay, { backgroundColor: theme.overlay }]}>
+        <View style={[mStyles.container, { backgroundColor: theme.surface }]}>
+          {/* Handle bar */}
+          <View style={mStyles.handleBarWrap}>
+            <View style={[mStyles.handleBar, { backgroundColor: theme.divider }]} />
+          </View>
+
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            <View style={modalStyles.header}>
-              <Text style={modalStyles.title}>Delivery Details</Text>
-              <TouchableOpacity onPress={onClose}>
-                <Text style={modalStyles.closeBtn}>✕</Text>
+            {/* Modal header */}
+            <View style={mStyles.header}>
+              <Text style={[mStyles.title, { color: theme.primary }]}>Delivery Details</Text>
+              <TouchableOpacity
+                style={[mStyles.closeBtn, { backgroundColor: theme.surfaceVariant }]}
+                onPress={onClose}
+              >
+                <Text style={[mStyles.closeBtnText, { color: theme.textTertiary }]}>X</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={modalStyles.section}>
-              <Text style={modalStyles.sectionTitle}>Order Information</Text>
-              <View style={modalStyles.infoRow}>
-                <Text style={modalStyles.label}>Order #</Text>
-                <Text style={modalStyles.value}>{delivery.order_number || 'N/A'}</Text>
+            {/* Order Information */}
+            <View style={[mStyles.section, { backgroundColor: theme.surfaceVariant }]}>
+              <View style={mStyles.sectionTitleRow}>
+                <View style={[mStyles.sectionBar, { backgroundColor: theme.primary }]} />
+                <Text style={[mStyles.sectionTitle, { color: theme.primary }]}>Order Information</Text>
               </View>
-              <View style={modalStyles.infoRow}>
-                <Text style={modalStyles.label}>Vendor</Text>
-                <Text style={modalStyles.value}>{delivery.vendor_name || 'N/A'}</Text>
+              <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[mStyles.label, { color: theme.textTertiary }]}>Order #</Text>
+                <Text style={[mStyles.value, { color: theme.text }]}>{delivery.order_number || 'N/A'}</Text>
               </View>
-              <View style={modalStyles.infoRow}>
-                <Text style={modalStyles.label}>Mobile</Text>
-                <Text style={modalStyles.value}>{delivery.vendor_mobile || 'N/A'}</Text>
+              <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[mStyles.label, { color: theme.textTertiary }]}>Vendor</Text>
+                <Text style={[mStyles.value, { color: theme.text }]}>{delivery.vendor_name || 'N/A'}</Text>
               </View>
-              <View style={modalStyles.infoRow}>
-                <Text style={modalStyles.label}>Status</Text>
-                <View style={[modalStyles.statusBadge, { backgroundColor: STATUS_COLORS[delivery.delivery_status] || '#999' }]}>
-                  <Text style={modalStyles.statusText}>{STATUS_LABELS[delivery.delivery_status] || delivery.delivery_status}</Text>
+              <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[mStyles.label, { color: theme.textTertiary }]}>Mobile</Text>
+                <Text style={[mStyles.value, { color: theme.text }]}>{delivery.vendor_mobile || 'N/A'}</Text>
+              </View>
+              <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[mStyles.label, { color: theme.textTertiary }]}>Status</Text>
+                <View style={[mStyles.statusChip, { backgroundColor: statusColor }]}>
+                  <Text style={mStyles.statusChipText}>{STATUS_LABELS[delivery.delivery_status] || delivery.delivery_status}</Text>
                 </View>
               </View>
-              <View style={modalStyles.infoRow}>
-                <Text style={modalStyles.label}>Priority</Text>
-                <View style={[modalStyles.statusBadge, { backgroundColor: PRIORITY_COLORS[delivery.priority] || '#999' }]}>
-                  <Text style={modalStyles.statusText}>{(delivery.priority || 'medium').toUpperCase()}</Text>
+              <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[mStyles.label, { color: theme.textTertiary }]}>Priority</Text>
+                <View style={[mStyles.statusChip, { backgroundColor: PRIORITY_COLORS[delivery.priority] || theme.textTertiary }]}>
+                  <Text style={mStyles.statusChipText}>{(delivery.priority || 'medium').toUpperCase()}</Text>
                 </View>
               </View>
               {delivery.scheduled_date ? (
-                <View style={modalStyles.infoRow}>
-                  <Text style={modalStyles.label}>Scheduled</Text>
-                  <Text style={modalStyles.value}>{new Date(delivery.scheduled_date).toLocaleDateString()}</Text>
+                <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                  <Text style={[mStyles.label, { color: theme.textTertiary }]}>Scheduled</Text>
+                  <Text style={[mStyles.value, { color: theme.text }]}>{new Date(delivery.scheduled_date).toLocaleDateString()}</Text>
                 </View>
               ) : null}
               {delivery.delivered_at ? (
-                <View style={modalStyles.infoRow}>
-                  <Text style={modalStyles.label}>Delivered</Text>
-                  <Text style={modalStyles.value}>{new Date(delivery.delivered_at).toLocaleString()}</Text>
+                <View style={[mStyles.infoRow, { borderBottomWidth: 0 }]}>
+                  <Text style={[mStyles.label, { color: theme.textTertiary }]}>Delivered</Text>
+                  <Text style={[mStyles.value, { color: theme.text }]}>{new Date(delivery.delivered_at).toLocaleString()}</Text>
                 </View>
               ) : null}
             </View>
 
-            <View style={modalStyles.section}>
-              <Text style={modalStyles.sectionTitle}>Delivery Address</Text>
-              {addr.address ? <Text style={modalStyles.addressText}>{addr.address}</Text> : null}
-              <Text style={modalStyles.addressText}>
+            {/* Delivery Address */}
+            <View style={[mStyles.section, { backgroundColor: theme.surfaceVariant }]}>
+              <View style={mStyles.sectionTitleRow}>
+                <View style={[mStyles.sectionBar, { backgroundColor: theme.info }]} />
+                <Text style={[mStyles.sectionTitle, { color: theme.primary }]}>Delivery Address</Text>
+              </View>
+              {addr.address ? <Text style={[mStyles.addressText, { color: theme.textSecondary }]}>{addr.address}</Text> : null}
+              <Text style={[mStyles.addressText, { color: theme.textSecondary }]}>
                 {[addr.city, addr.state, addr.pincode].filter(Boolean).join(', ') || 'No address provided'}
               </Text>
             </View>
 
+            {/* Order Items */}
             {delivery.order_id && delivery.order_id.items && delivery.order_id.items.length > 0 ? (
-              <View style={modalStyles.section}>
-                <Text style={modalStyles.sectionTitle}>Order Items</Text>
+              <View style={[mStyles.section, { backgroundColor: theme.surfaceVariant }]}>
+                <View style={mStyles.sectionTitleRow}>
+                  <View style={[mStyles.sectionBar, { backgroundColor: theme.warning }]} />
+                  <Text style={[mStyles.sectionTitle, { color: theme.primary }]}>Order Items</Text>
+                </View>
                 {delivery.order_id.items.map(function(item, idx) {
                   return (
-                    <View key={idx} style={modalStyles.itemRow}>
-                      <Text style={modalStyles.itemName}>{item.product_name || 'Product'}</Text>
-                      <Text style={modalStyles.itemQty}>x{item.quantity}</Text>
-                      <Text style={modalStyles.itemPrice}>Rs.{(item.total_price || 0).toFixed(2)}</Text>
+                    <View
+                      key={idx}
+                      style={[
+                        mStyles.itemRow,
+                        idx < delivery.order_id.items.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.divider },
+                      ]}
+                    >
+                      <Text style={[mStyles.itemName, { color: theme.text }]}>{item.product_name || 'Product'}</Text>
+                      <Text style={[mStyles.itemQty, { color: theme.textSecondary }]}>x{item.quantity}</Text>
+                      <Text style={[mStyles.itemPrice, { color: theme.primary }]}>Rs.{(item.total_price || 0).toFixed(2)}</Text>
                     </View>
                   );
                 })}
                 {delivery.order_id.grand_total != null ? (
-                  <View style={[modalStyles.itemRow, { borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 8, marginTop: 4 }]}>
-                    <Text style={[modalStyles.itemName, { fontWeight: '700' }]}>Total</Text>
-                    <Text style={[modalStyles.itemPrice, { fontWeight: '700' }]}>Rs.{delivery.order_id.grand_total.toFixed(2)}</Text>
+                  <View style={[mStyles.totalRow, { borderTopColor: theme.divider }]}>
+                    <Text style={[mStyles.totalLabel, { color: theme.text }]}>Total</Text>
+                    <Text style={[mStyles.totalPrice, { color: theme.primary }]}>Rs.{delivery.order_id.grand_total.toFixed(2)}</Text>
                   </View>
                 ) : null}
               </View>
             ) : null}
 
+            {/* Delivery Proof (for delivered items) */}
             {delivery.delivery_status === 'delivered' && delivery.delivery_proof ? (
-              <View style={modalStyles.section}>
-                <Text style={modalStyles.sectionTitle}>Delivery Proof</Text>
+              <View style={[mStyles.section, { backgroundColor: theme.surfaceVariant }]}>
+                <View style={mStyles.sectionTitleRow}>
+                  <View style={[mStyles.sectionBar, { backgroundColor: theme.success }]} />
+                  <Text style={[mStyles.sectionTitle, { color: theme.primary }]}>Delivery Proof</Text>
+                </View>
                 {delivery.delivery_proof.received_by ? (
-                  <View style={modalStyles.infoRow}>
-                    <Text style={modalStyles.label}>Received By</Text>
-                    <Text style={modalStyles.value}>{delivery.delivery_proof.received_by}</Text>
+                  <View style={[mStyles.infoRow, { borderBottomColor: theme.divider }]}>
+                    <Text style={[mStyles.label, { color: theme.textTertiary }]}>Received By</Text>
+                    <Text style={[mStyles.value, { color: theme.text }]}>{delivery.delivery_proof.received_by}</Text>
                   </View>
                 ) : null}
                 {delivery.delivery_proof.image_url ? (
-                  <Image source={{ uri: delivery.delivery_proof.image_url }} style={modalStyles.proofImage} />
+                  <Image source={{ uri: delivery.delivery_proof.image_url }} style={mStyles.proofImage} />
                 ) : null}
               </View>
             ) : null}
 
+            {/* Update Status */}
             {nextStatuses.length > 0 ? (
-              <View style={modalStyles.section}>
-                <Text style={modalStyles.sectionTitle}>Update Status</Text>
+              <View style={[mStyles.section, { backgroundColor: theme.surfaceVariant }]}>
+                <View style={mStyles.sectionTitleRow}>
+                  <View style={[mStyles.sectionBar, { backgroundColor: theme.secondary }]} />
+                  <Text style={[mStyles.sectionTitle, { color: theme.primary }]}>Update Status</Text>
+                </View>
                 {nextStatuses.includes('delivered') ? (
                   <View style={{ marginBottom: 12 }}>
-                    <TouchableOpacity style={modalStyles.proofBtn} onPress={pickProofImage}>
-                      <Text style={modalStyles.proofBtnText}>
+                    <TouchableOpacity
+                      style={[mStyles.proofBtn, { backgroundColor: theme.primary }]}
+                      onPress={pickProofImage}
+                    >
+                      <Text style={mStyles.proofBtnIcon}>📷</Text>
+                      <Text style={mStyles.proofBtnText}>
                         {proofImage ? 'Retake Proof Photo' : 'Capture Delivery Proof'}
                       </Text>
                     </TouchableOpacity>
                     {proofImage ? (
-                      <Image source={{ uri: proofImage.uri }} style={modalStyles.proofImage} />
+                      <Image source={{ uri: proofImage.uri }} style={mStyles.proofImage} />
                     ) : null}
                     <TextInput
-                      style={modalStyles.input}
+                      style={[mStyles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.divider }]}
                       placeholder="Received by (name)"
-                      placeholderTextColor="#999"
+                      placeholderTextColor={theme.textTertiary}
                       value={receivedBy}
                       onChangeText={setReceivedBy}
                     />
                   </View>
                 ) : null}
-                <View style={modalStyles.statusBtnsRow}>
+                <View style={mStyles.statusBtnsRow}>
                   {nextStatuses.map(function(s) {
                     return (
                       <TouchableOpacity
                         key={s}
-                        style={[modalStyles.statusUpdateBtn, { backgroundColor: STATUS_COLORS[s] }]}
+                        style={[mStyles.statusUpdateBtn, { backgroundColor: STATUS_COLORS[s] }]}
                         onPress={function() { handleStatusUpdate(s); }}
                         disabled={updating}
                       >
                         {updating ? (
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
-                          <Text style={modalStyles.statusUpdateBtnText}>{STATUS_LABELS[s]}</Text>
+                          <Text style={mStyles.statusUpdateBtnText}>{STATUS_LABELS[s]}</Text>
                         )}
                       </TouchableOpacity>
                     );
@@ -276,6 +317,7 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate 
 
 // ======================== MAIN LIST SCREEN ========================
 export default function DeliveryListScreen({ user, onGoBack }) {
+  var { theme } = useTheme();
   var [deliveries, setDeliveries] = useState([]);
   var [loading, setLoading] = useState(true);
   var [refreshing, setRefreshing] = useState(false);
@@ -374,41 +416,69 @@ export default function DeliveryListScreen({ user, onGoBack }) {
   };
 
   var fullName = user && user.fullName ? user.fullName : (user && user.full_name ? user.full_name : 'Agent');
+  var firstLetter = fullName.charAt(0).toUpperCase();
+
+  var FILTER_OPTIONS = [
+    { key: 'all', label: 'All' },
+    { key: 'pending', label: 'Pending' },
+    { key: 'in_transit', label: 'Transit' },
+    { key: 'delivered', label: 'Done' },
+    { key: 'failed', label: 'Failed' },
+  ];
 
   var renderRecord = function({ item, index }) {
     var status = item.delivery_status || '';
-    var statusColor = STATUS_COLORS[status] || '#bdbdbd';
-    var statusBg = STATUS_BG[status] || '#f5f5f5';
+    var statusColor = STATUS_COLORS[status] || theme.textTertiary;
     var addr = item.delivery_address || {};
     var cityText = [addr.city, addr.state].filter(Boolean).join(', ');
+    var itemCount = item.order_id && item.order_id.items ? item.order_id.items.length : 0;
 
     return (
-      <TouchableOpacity style={styles.recordCard} onPress={function() { openDetail(item); }} activeOpacity={0.7}>
-        <View style={styles.recordLeft}>
-          <View style={[styles.numBox, { backgroundColor: statusBg }]}>
-            <Text style={[styles.numText, { color: statusColor }]}>{index + 1}</Text>
-          </View>
-        </View>
-        <View style={styles.recordMiddle}>
-          <Text style={styles.vendorName} numberOfLines={1}>{item.order_number || 'N/A'}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.statusLabel, { color: statusColor }]}>{STATUS_LABELS[status] || status}</Text>
-          </View>
-          <Text style={styles.vendorInfo}>{item.vendor_name || 'Unknown'}{item.vendor_mobile ? ' | ' + item.vendor_mobile : ''}</Text>
-          {cityText ? (
-            <Text style={styles.addressInfo}>📍 {cityText}</Text>
-          ) : null}
-        </View>
-        <View style={styles.recordRight}>
-          <View style={[styles.priorityBox, { backgroundColor: PRIORITY_COLORS[item.priority] || '#FF9800' }]}>
-            <Text style={styles.priorityText}>{(item.priority || 'med').substring(0, 3).toUpperCase()}</Text>
-          </View>
-          {item.order_id && item.order_id.grand_total != null ? (
-            <View style={styles.totalBox}>
-              <Text style={styles.totalValue}>Rs.{item.order_id.grand_total.toFixed(0)}</Text>
+      <TouchableOpacity
+        style={[styles.recordCard, { backgroundColor: theme.surface }]}
+        onPress={function() { openDetail(item); }}
+        activeOpacity={0.7}
+      >
+        {/* Left accent bar colored by status */}
+        <View style={[styles.cardAccentBar, { backgroundColor: statusColor }]} />
+        <View style={styles.cardInner}>
+          <View style={styles.cardHeader}>
+            <Text style={[styles.orderNumber, { color: theme.primary }]}>{item.order_number || 'N/A'}</Text>
+            <View style={[styles.cardStatusChip, { backgroundColor: statusColor }]}>
+              <Text style={styles.cardStatusChipText}>{STATUS_LABELS[status] || status}</Text>
             </View>
-          ) : null}
+          </View>
+          <View style={styles.cardBody}>
+            <View style={[styles.cardRow, { borderBottomColor: theme.divider }]}>
+              <Text style={[styles.cardLabel, { color: theme.textTertiary }]}>Vendor</Text>
+              <Text style={[styles.cardValue, { color: theme.text }]} numberOfLines={1}>{item.vendor_name || 'Unknown'}</Text>
+            </View>
+            {itemCount > 0 && (
+              <View style={[styles.cardRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[styles.cardLabel, { color: theme.textTertiary }]}>Items</Text>
+                <Text style={[styles.cardValue, { color: theme.text }]}>{itemCount} item{itemCount !== 1 ? 's' : ''}</Text>
+              </View>
+            )}
+            {cityText ? (
+              <View style={[styles.cardRow, { borderBottomColor: theme.divider }]}>
+                <Text style={[styles.cardLabel, { color: theme.textTertiary }]}>Location</Text>
+                <Text style={[styles.cardValue, { color: theme.text }]}>{cityText}</Text>
+              </View>
+            ) : null}
+            <View style={[styles.cardRow, { borderBottomWidth: 0 }]}>
+              <Text style={[styles.cardLabel, { color: theme.textTertiary }]}>Priority</Text>
+              <View style={styles.cardRowRight}>
+                <View style={[styles.priorityChip, { backgroundColor: PRIORITY_COLORS[item.priority] || '#FF9800' }]}>
+                  <Text style={styles.priorityChipText}>{(item.priority || 'med').substring(0, 3).toUpperCase()}</Text>
+                </View>
+                {item.order_id && item.order_id.grand_total != null ? (
+                  <View style={[styles.totalBadge, { backgroundColor: theme.surfaceVariant }]}>
+                    <Text style={[styles.totalBadgeText, { color: theme.textSecondary }]}>Rs.{item.order_id.grand_total.toFixed(0)}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -417,63 +487,84 @@ export default function DeliveryListScreen({ user, onGoBack }) {
   var renderHeader = function() {
     return (
       <View>
-        {/* Summary Cards */}
+        {/* Summary Cards (stats) */}
         <View style={styles.summaryRow}>
-          <TouchableOpacity style={[styles.summaryCard, { backgroundColor: '#fff3e0' }]} onPress={function() { setActiveFilter('pending'); }}>
-            <Text style={[styles.summaryCount, { color: '#FF9800' }]}>{pendingCount}</Text>
-            <Text style={styles.summaryLabel}>Pending</Text>
+          <TouchableOpacity
+            style={[styles.summaryCard, { backgroundColor: theme.surface }]}
+            onPress={function() { setActiveFilter('pending'); }}
+          >
+            <View style={[styles.summaryEmojiWrap, { backgroundColor: theme.warningBg }]}>
+              <Text style={styles.summaryEmoji}>⏳</Text>
+            </View>
+            <Text style={[styles.summaryCount, { color: theme.primary }]}>{pendingCount}</Text>
+            <Text style={[styles.summaryLabel, { color: theme.textTertiary }]}>PENDING</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.summaryCard, { backgroundColor: '#f3e5f5' }]} onPress={function() { setActiveFilter('in_transit'); }}>
-            <Text style={[styles.summaryCount, { color: '#9C27B0' }]}>{inTransitCount}</Text>
-            <Text style={styles.summaryLabel}>In Transit</Text>
+          <TouchableOpacity
+            style={[styles.summaryCard, { backgroundColor: theme.surface }]}
+            onPress={function() { setActiveFilter('in_transit'); }}
+          >
+            <View style={[styles.summaryEmojiWrap, { backgroundColor: theme.infoBg }]}>
+              <Text style={styles.summaryEmoji}>🚚</Text>
+            </View>
+            <Text style={[styles.summaryCount, { color: theme.primary }]}>{inTransitCount}</Text>
+            <Text style={[styles.summaryLabel, { color: theme.textTertiary }]}>IN TRANSIT</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.summaryCard, { backgroundColor: '#e8f5e9' }]} onPress={function() { setActiveFilter('delivered'); }}>
-            <Text style={[styles.summaryCount, { color: '#4CAF50' }]}>{deliveredCount}</Text>
-            <Text style={styles.summaryLabel}>Delivered</Text>
+          <TouchableOpacity
+            style={[styles.summaryCard, { backgroundColor: theme.surface }]}
+            onPress={function() { setActiveFilter('delivered'); }}
+          >
+            <View style={[styles.summaryEmojiWrap, { backgroundColor: theme.successBg }]}>
+              <Text style={styles.summaryEmoji}>✅</Text>
+            </View>
+            <Text style={[styles.summaryCount, { color: theme.primary }]}>{deliveredCount}</Text>
+            <Text style={[styles.summaryLabel, { color: theme.textTertiary }]}>DELIVERED</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Filter Tabs */}
-        <View style={styles.filterRow}>
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'pending', label: 'Pending' },
-            { key: 'in_transit', label: 'Transit' },
-            { key: 'delivered', label: 'Done' },
-            { key: 'failed', label: 'Failed' },
-          ].map(function(f) {
+        {/* Filter pills */}
+        <View style={[styles.filterRow, { backgroundColor: theme.surfaceVariant }]}>
+          {FILTER_OPTIONS.map(function(f) {
             var isActive = activeFilter === f.key;
             return (
               <TouchableOpacity
                 key={f.key}
-                style={[styles.filterTab, isActive && styles.filterTabActive]}
+                style={[styles.filterPill, isActive && { backgroundColor: theme.primary }]}
                 onPress={function() { setActiveFilter(f.key); }}
               >
-                <Text style={[styles.filterTabText, isActive && styles.filterTabTextActive]}>{f.label}</Text>
+                <Text style={[styles.filterPillText, { color: theme.textSecondary }, isActive && { color: '#fff' }]}>{f.label}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        <Text style={styles.sectionTitle}>Delivery Records</Text>
+        {/* Section title */}
+        <View style={styles.sectionHeader}>
+          <View style={[styles.sectionBar, { backgroundColor: theme.primary }]} />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Delivery Records</Text>
+        </View>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+        {/* Decorative circles */}
         <View style={styles.circle1} />
         <View style={styles.circle2} />
+        <View style={styles.circle3} />
+
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
-            <Text style={styles.backText}>← Back</Text>
+            <Text style={styles.backText}>&#8249;</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>All Deliveries</Text>
-          <View style={{ width: 60 }} />
+          <View style={styles.headerAvatar}>
+            <Text style={styles.headerAvatarText}>{firstLetter}</Text>
+          </View>
         </View>
         <Text style={styles.headerSubtitle}>{fullName}</Text>
 
@@ -487,8 +578,8 @@ export default function DeliveryListScreen({ user, onGoBack }) {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1565c0" />
-          <Text style={styles.loadingText}>Loading deliveries...</Text>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.loadingText, { color: theme.textTertiary }]}>Loading deliveries...</Text>
         </View>
       ) : (
         <FlatList
@@ -498,7 +589,7 @@ export default function DeliveryListScreen({ user, onGoBack }) {
           contentContainerStyle={styles.bodyContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1565c0']} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.3}
@@ -506,23 +597,34 @@ export default function DeliveryListScreen({ user, onGoBack }) {
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#1565c0" />
-                <Text style={styles.footerLoaderText}>Loading more...</Text>
+                <ActivityIndicator size="small" color={theme.primary} />
+                <Text style={[styles.footerLoaderText, { color: theme.textTertiary }]}>Loading more...</Text>
               </View>
             ) : page < totalPages ? (
-              <TouchableOpacity style={styles.loadMoreBtn} onPress={loadMore}>
+              <TouchableOpacity style={[styles.loadMoreBtn, { backgroundColor: theme.primary }]} onPress={loadMore}>
                 <Text style={styles.loadMoreText}>Load More</Text>
               </TouchableOpacity>
             ) : deliveries.length > 0 ? (
-              <Text style={styles.endText}>No more deliveries</Text>
+              <View style={styles.paginationWrap}>
+                <View style={[styles.pageIndicator, { backgroundColor: theme.primary }]}>
+                  <Text style={styles.pageIndicatorText}>{page}</Text>
+                </View>
+                <Text style={[styles.paginationText, { color: theme.textTertiary }]}>of {totalPages} page{totalPages !== 1 ? 's' : ''}</Text>
+                <View style={[styles.pageBadge, { backgroundColor: theme.surfaceVariant }]}>
+                  <Text style={[styles.pageBadgeText, { color: theme.textSecondary }]}>{totalCount} total</Text>
+                </View>
+              </View>
             ) : null
           }
           ListEmptyComponent={
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyIcon}>📦</Text>
-              <Text style={styles.emptyText}>No deliveries found</Text>
+            <View style={[styles.emptyCard, { backgroundColor: theme.surface }]}>
+              <View style={[styles.emptyIconWrap, { backgroundColor: theme.warningBg }]}>
+                <Text style={styles.emptyIconText}>📦</Text>
+              </View>
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>No Deliveries Found</Text>
+              <Text style={[styles.emptySubtitle, { color: theme.textTertiary }]}>Try changing the filter to see more results</Text>
               {activeFilter !== 'all' ? (
-                <TouchableOpacity style={styles.clearFilterBtn} onPress={function() { setActiveFilter('all'); }}>
+                <TouchableOpacity style={[styles.clearFilterBtn, { backgroundColor: theme.primary }]} onPress={function() { setActiveFilter('all'); }}>
                   <Text style={styles.clearFilterText}>Show All</Text>
                 </TouchableOpacity>
               ) : null}
@@ -538,6 +640,7 @@ export default function DeliveryListScreen({ user, onGoBack }) {
         delivery={selectedDelivery}
         user={user}
         onStatusUpdate={function() { fetchDeliveries(1, false); }}
+        theme={theme}
       />
     </View>
   );
@@ -547,35 +650,87 @@ export default function DeliveryListScreen({ user, onGoBack }) {
 var styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
   },
+
+  // Header
   header: {
-    backgroundColor: '#1a1a2e',
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 25,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
   circle1: {
-    position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(229, 57, 53, 0.2)', top: -50, right: -40,
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    top: -50,
+    right: -40,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   circle2: {
-    position: 'absolute', width: 150, height: 150, borderRadius: 75,
-    backgroundColor: 'rgba(255, 87, 34, 0.15)', top: 60, left: -50,
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    top: 60,
+    left: -50,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  circle3: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    bottom: -30,
+    right: 60,
+    backgroundColor: 'rgba(139,92,246,0.15)',
   },
   headerTop: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   backBtn: {
-    backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  backText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  backText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '300',
+    marginTop: -2,
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  headerAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerAvatarText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
   headerSubtitle: {
-    color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center', marginBottom: 15,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 15,
   },
   locationBar: {
     flexDirection: 'row',
@@ -585,129 +740,483 @@ var styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
   },
-  locationIcon: { fontSize: 16, marginRight: 8 },
-  locationText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '600' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#999', fontWeight: '600' },
-  bodyContent: { padding: 16, paddingBottom: 30 },
+  locationIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  locationText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontWeight: '600',
+  },
 
-  // Summary
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  bodyContent: {
+    padding: 16,
+    paddingBottom: 30,
+  },
+
+  // Summary cards (stats)
   summaryRow: {
-    flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   summaryCard: {
-    flex: 1, borderRadius: 14, padding: 12, marginHorizontal: 4, alignItems: 'center',
+    flex: 1,
+    borderRadius: 16,
+    padding: 12,
+    marginHorizontal: 4,
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
-  summaryCount: { fontSize: 22, fontWeight: '900' },
-  summaryLabel: { fontSize: 11, fontWeight: '600', color: '#666', marginTop: 4 },
+  summaryEmojiWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  summaryEmoji: {
+    fontSize: 18,
+  },
+  summaryCount: {
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  summaryLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    marginTop: 4,
+    letterSpacing: 1,
+  },
 
-  // Filter Tabs
+  // Filter pills
   filterRow: {
-    flexDirection: 'row', backgroundColor: '#e8e8ec', borderRadius: 12, padding: 3, marginBottom: 16,
+    flexDirection: 'row',
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 16,
   },
-  filterTab: {
-    flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10,
+  filterPill: {
+    flex: 1,
+    paddingVertical: 9,
+    alignItems: 'center',
+    borderRadius: 12,
   },
-  filterTabActive: {
-    backgroundColor: '#1a1a2e',
+  filterPillText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
-  filterTabText: { fontSize: 12, fontWeight: '600', color: '#666' },
-  filterTabTextActive: { color: '#fff' },
 
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a2e', marginBottom: 15 },
+  // Section header
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  sectionBar: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
 
-  // Record Card
+  // Record card
   recordCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10,
-    flexDirection: 'row', alignItems: 'center',
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
+    borderRadius: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
-  recordLeft: { marginRight: 12 },
-  numBox: {
-    width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center',
+  cardAccentBar: {
+    width: 4,
   },
-  numText: { fontSize: 18, fontWeight: '800' },
-  recordMiddle: { flex: 1 },
-  vendorName: { fontSize: 15, fontWeight: '700', color: '#1a1a2e', marginBottom: 4 },
-  statusBadge: {
-    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 4,
+  cardInner: {
+    flex: 1,
+    padding: 14,
   },
-  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  statusLabel: { fontSize: 12, fontWeight: '700' },
-  vendorInfo: { fontSize: 12, color: '#999', fontWeight: '500' },
-  addressInfo: { fontSize: 12, color: '#666', fontWeight: '500', marginTop: 2 },
-  recordRight: { alignItems: 'center', minWidth: 55 },
-  priorityBox: {
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginBottom: 6,
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  priorityText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  totalBox: {
-    backgroundColor: '#f0f0f5', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+  orderNumber: {
+    fontSize: 15,
+    fontWeight: '800',
   },
-  totalValue: { fontSize: 11, fontWeight: '700', color: '#555' },
+  cardStatusChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  cardStatusChipText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  cardBody: {},
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+  },
+  cardLabel: {
+    fontSize: 12,
+    width: 70,
+    fontWeight: '500',
+  },
+  cardValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
+  cardRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  priorityChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  priorityChipText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  totalBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  totalBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
 
-  // Empty
+  // Empty state
   emptyCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 40, alignItems: 'center', elevation: 2,
+    borderRadius: 16,
+    padding: 40,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyText: { fontSize: 15, color: '#999', fontWeight: '600' },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyIconText: {
+    fontSize: 30,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
   clearFilterBtn: {
-    marginTop: 14, backgroundColor: '#e53935', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20,
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 14,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
-  clearFilterText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  footerLoader: { paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-  footerLoaderText: { marginLeft: 8, fontSize: 13, color: '#999', fontWeight: '600' },
+  clearFilterText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // Footer / Pagination
+  footerLoader: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  footerLoaderText: {
+    marginLeft: 8,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   loadMoreBtn: {
-    backgroundColor: '#1a1a2e', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8, marginBottom: 8,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
-  loadMoreText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  endText: { textAlign: 'center', color: '#bbb', fontSize: 13, paddingVertical: 16, fontWeight: '500' },
+  loadMoreText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  paginationWrap: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  pageIndicator: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  pageIndicatorText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  paginationText: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginRight: 10,
+  },
+  pageBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  pageBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
 });
 
 // ======================== MODAL STYLES ========================
-var modalStyles = StyleSheet.create({
+var mStyles = StyleSheet.create({
   overlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: '#fff', borderTopLeftRadius: 25, borderTopRightRadius: 25,
-    paddingHorizontal: 25, paddingTop: 20, paddingBottom: 40, maxHeight: '85%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 25,
+    paddingTop: 10,
+    paddingBottom: 40,
+    maxHeight: '85%',
+  },
+  handleBarWrap: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
   },
   header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  title: { fontSize: 20, fontWeight: '800', color: '#1a1a2e' },
-  closeBtn: { fontSize: 20, color: '#999', fontWeight: '700', padding: 5 },
+  title: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
   section: {
-    marginBottom: 20, backgroundColor: '#f9f9fb', borderRadius: 12, padding: 14,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 16,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a2e', marginBottom: 10 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  label: { fontSize: 13, color: '#888', width: 85, fontWeight: '500' },
-  value: { fontSize: 14, color: '#333', fontWeight: '600', flex: 1 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
-  statusText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  addressText: { fontSize: 14, color: '#555', lineHeight: 20 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  itemName: { flex: 1, fontSize: 13, color: '#333', fontWeight: '500' },
-  itemQty: { fontSize: 13, color: '#666', marginRight: 12, fontWeight: '600' },
-  itemPrice: { fontSize: 13, color: '#1a1a2e', fontWeight: '600' },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionBar: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: 10,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+  label: {
+    fontSize: 13,
+    width: 85,
+    fontWeight: '500',
+  },
+  value: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+  },
+  statusChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  statusChipText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  addressText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  itemName: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  itemQty: {
+    fontSize: 13,
+    marginRight: 12,
+    fontWeight: '600',
+  },
+  itemPrice: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    paddingTop: 10,
+    marginTop: 4,
+  },
+  totalLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  totalPrice: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
   proofBtn: {
-    backgroundColor: '#1a1a2e', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginBottom: 10,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
-  proofBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  proofBtnIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  proofBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   proofImage: {
-    width: '100%', height: 150, borderRadius: 14, marginBottom: 10, resizeMode: 'cover',
+    width: '100%',
+    height: 150,
+    borderRadius: 14,
+    marginBottom: 10,
+    resizeMode: 'cover',
   },
   input: {
-    backgroundColor: '#f5f5f7', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 13,
-    fontSize: 15, color: '#333', borderWidth: 1, borderColor: '#eee',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    fontSize: 15,
+    borderWidth: 1,
   },
-  statusBtnsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  statusBtnsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
   statusUpdateBtn: {
-    flex: 1, minWidth: 120, borderRadius: 12, paddingVertical: 14, alignItems: 'center', elevation: 6,
+    flex: 1,
+    minWidth: 120,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
-  statusUpdateBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 2 },
+  statusUpdateBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 2,
+  },
 });

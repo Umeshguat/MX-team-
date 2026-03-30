@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ActivityIndicator, View, LogBox } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 
 LogBox.ignoreLogs(['ExpoKeepAwake']);
 import LoginScreen from './src/screens/LoginScreen';
@@ -30,10 +31,11 @@ function getHomeDashboard(role) {
   return 'dashboard';
 }
 
-export default function App() {
+function AppContent() {
   const [screen, setScreen] = useState('loading');
   const [user, setUser] = useState(null);
   const [vendors, setVendors] = useState([]);
+  const { theme, isDark, toggleTheme, loaded } = useTheme();
 
   // Load session on app start
   useEffect(() => {
@@ -69,10 +71,10 @@ export default function App() {
   // Determine which dashboard to go back to
   const homeDashboard = user ? getHomeDashboard(user.role) : 'dashboard';
 
-  if (screen === 'loading') {
+  if (screen === 'loading' || !loaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a1a2e' }}>
-        <ActivityIndicator size="large" color="#e53935" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
@@ -234,5 +236,13 @@ export default function App() {
       onGoToForgotPassword={() => setScreen('forgotPassword')}
       onLoginSuccess={handleLogin}
     />
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }

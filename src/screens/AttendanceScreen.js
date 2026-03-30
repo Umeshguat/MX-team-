@@ -9,48 +9,29 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useTheme } from '../theme/ThemeContext';
 
+var { width } = Dimensions.get('window');
 var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function getStatusColor(status) {
+function getStatusConfig(status, theme) {
   switch (status) {
-    case 'checked in': return '#4caf50';
-    case 'checked out': return '#1565c0';
-    case 'present': return '#4caf50';
-    case 'absent': return '#e53935';
-    case 'half-day': return '#ff9800';
-    case 'leave': return '#1565c0';
-    default: return '#bdbdbd';
-  }
-}
-
-function getStatusBg(status) {
-  switch (status) {
-    case 'checked in': return '#e8f5e9';
-    case 'checked out': return '#e3f2fd';
-    case 'present': return '#e8f5e9';
-    case 'absent': return '#ffebee';
-    case 'half-day': return '#fff3e0';
-    case 'leave': return '#e3f2fd';
-    default: return '#f5f5f5';
-  }
-}
-
-function getStatusLabel(status) {
-  switch (status) {
-    case 'checked in': return 'Checked In';
-    case 'checked out': return 'Checked Out';
-    case 'present': return 'Present';
-    case 'absent': return 'Absent';
-    case 'half-day': return 'Half Day';
-    case 'leave': return 'On Leave';
-    default: return '--';
+    case 'checked in': return { color: theme.success, bg: theme.successBg, label: 'Checked In', icon: '⬤' };
+    case 'checked out': return { color: theme.info, bg: theme.infoBg, label: 'Checked Out', icon: '◯' };
+    case 'present': return { color: theme.success, bg: theme.successBg, label: 'Present', icon: '✓' };
+    case 'absent': return { color: theme.error, bg: theme.errorBg, label: 'Absent', icon: '✕' };
+    case 'half-day': return { color: theme.warning, bg: theme.warningBg, label: 'Half Day', icon: '◐' };
+    case 'leave': return { color: theme.info, bg: theme.infoBg, label: 'On Leave', icon: '▬' };
+    default: return { color: theme.textTertiary, bg: theme.surfaceVariant, label: '--', icon: '•' };
   }
 }
 
 export default function AttendanceScreen({ user, onGoBack }) {
+  var { theme, isDark } = useTheme();
   var [records, setRecords] = useState([]);
   var [loading, setLoading] = useState(true);
   var [refreshing, setRefreshing] = useState(false);
@@ -79,7 +60,6 @@ export default function AttendanceScreen({ user, onGoBack }) {
     })
       .then(function(response) { return response.json(); })
       .then(function(result) {
-        console.log('Attendance API response:', JSON.stringify(result));
         if (result.status === 200 && Array.isArray(result.data)) {
           if (page === 1 || isRefresh) {
             setRecords(result.data);
@@ -92,7 +72,6 @@ export default function AttendanceScreen({ user, onGoBack }) {
             setTotalRecords(result.pagination.total_records);
           }
         } else {
-          console.log('Unexpected response format:', result);
           if (page === 1 || isRefresh) {
             setRecords([]);
           }
@@ -125,44 +104,81 @@ export default function AttendanceScreen({ user, onGoBack }) {
 
   var checkedInCount = records.filter(function(r) { return (r.status || '').toLowerCase() === 'checked in'; }).length;
   var checkedOutCount = records.filter(function(r) { return (r.status || '').toLowerCase() === 'checked out'; }).length;
+  var presentCount = records.filter(function(r) {
+    var s = (r.status || '').toLowerCase();
+    return s === 'present' || s === 'checked in' || s === 'checked out';
+  }).length;
 
   var fullName = user && user.fullName ? user.fullName : (user && user.full_name ? user.full_name : 'Employee');
+  var designation = user && user.designation ? user.designation : '';
 
-  var renderRecord = function({ item }) {
+  var renderRecord = function({ item, index }) {
     var d = new Date(item.date);
     var dayNum = isNaN(d.getTime()) ? '--' : d.getDate();
     var dayName = isNaN(d.getTime()) ? '' : WEEKDAYS[d.getDay()];
+    var monthName = isNaN(d.getTime()) ? '' : MONTHS[d.getMonth()];
     var status = (item.status || '').toLowerCase();
+    var config = getStatusConfig(status, theme);
 
     return (
-      <View style={styles.recordCard}>
-        <View style={styles.recordLeft}>
-          <View style={[styles.dateBox, { backgroundColor: getStatusBg(status) }]}>
-            <Text style={[styles.dateNum, { color: getStatusColor(status) }]}>{dayNum}</Text>
-            <Text style={[styles.dateDay, { color: getStatusColor(status) }]}>{dayName}</Text>
+      <View style={[styles.recordCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
+        {/* Left accent bar */}
+        <View style={[styles.accentBar, { backgroundColor: config.color }]} />
+
+        <View style={styles.recordContent}>
+          {/* Top row: Date + Status */}
+          <View style={styles.recordTopRow}>
+            <View style={styles.dateSection}>
+              <View style={[styles.dateCircle, { backgroundColor: config.bg }]}>
+                <Text style={[styles.dateNum, { color: config.color }]}>{dayNum}</Text>
+              </View>
+              <View style={styles.dateInfo}>
+                <Text style={[styles.dayText, { color: theme.text }]}>{dayName}</Text>
+                <Text style={[styles.monthText, { color: theme.textTertiary }]}>{monthName}</Text>
+              </View>
+            </View>
+
+            <View style={[styles.statusChip, { backgroundColor: config.bg }]}>
+              <Text style={[styles.statusIcon, { color: config.color }]}>{config.icon}</Text>
+              <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
+            </View>
           </View>
-        </View>
-        <View style={styles.recordMiddle}>
-          <Text style={styles.recordName}>{item.full_name || ''}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusBg(status) }]}>
-            <View style={[styles.statusDotSmall, { backgroundColor: getStatusColor(status) }]} />
-            <Text style={[styles.statusBadgeText, { color: getStatusColor(status) }]}>
-              {getStatusLabel(status)}
-            </Text>
+
+          {/* Divider */}
+          <View style={[styles.recordDivider, { backgroundColor: theme.divider }]} />
+
+          {/* Bottom row: Time + KM + Hours */}
+          <View style={styles.recordBottomRow}>
+            <View style={styles.timeBlock}>
+              <Text style={[styles.blockLabel, { color: theme.textTertiary }]}>Check In</Text>
+              <Text style={[styles.blockValue, { color: theme.text }]}>{item.check_in_time || '--:--'}</Text>
+            </View>
+            <View style={[styles.timeDivider, { backgroundColor: theme.divider }]} />
+            <View style={styles.timeBlock}>
+              <Text style={[styles.blockLabel, { color: theme.textTertiary }]}>Check Out</Text>
+              <Text style={[styles.blockValue, { color: theme.text }]}>{item.check_out_time || '--:--'}</Text>
+            </View>
+            <View style={[styles.timeDivider, { backgroundColor: theme.divider }]} />
+            <View style={styles.timeBlock}>
+              <Text style={[styles.blockLabel, { color: theme.textTertiary }]}>Distance</Text>
+              <Text style={[styles.blockValue, { color: theme.primary }]}>{item.total_km != null ? item.total_km : 0} km</Text>
+            </View>
+            <View style={[styles.timeDivider, { backgroundColor: theme.divider }]} />
+            <View style={styles.timeBlock}>
+              <Text style={[styles.blockLabel, { color: theme.textTertiary }]}>Hours</Text>
+              <Text style={[styles.blockValue, { color: theme.secondary }]}>{item.hours || '0h 0m'}</Text>
+            </View>
           </View>
-          <Text style={styles.recordTime}>
-            {item.check_in_time || '--'} - {item.check_out_time || '--'}
-          </Text>
-          <Text style={styles.recordMeta}>
-            {item.headquarter_name || ''}{item.working_town ? ' | ' + item.working_town : ''}{item.route ? ' | ' + item.route : ''}
-          </Text>
-        </View>
-        <View style={styles.recordRight}>
-          <Text style={styles.kmValue}>{item.total_km != null ? item.total_km : 0}</Text>
-          <Text style={styles.kmLabel}>KM</Text>
-          <View style={styles.hoursBadge}>
-            <Text style={styles.hoursValue}>{item.hours || '0h 0m'}</Text>
-          </View>
+
+          {/* Location info */}
+          {(item.headquarter_name || item.working_town || item.route) ? (
+            <View style={[styles.locationRow, { backgroundColor: theme.surfaceVariant }]}>
+              <Text style={[styles.locationIcon]}>📍</Text>
+              <Text style={[styles.locationText, { color: theme.textSecondary }]} numberOfLines={1}>
+                {item.headquarter_name || ''}{item.working_town ? ' > ' + item.working_town : ''}{item.route ? ' > ' + item.route : ''}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
     );
@@ -172,84 +188,132 @@ export default function AttendanceScreen({ user, onGoBack }) {
     if (!loadingMore) return null;
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#1565c0" />
-        <Text style={styles.footerText}>Loading more...</Text>
+        <ActivityIndicator size="small" color={theme.primary} />
+        <Text style={[styles.footerText, { color: theme.textTertiary }]}>Loading more...</Text>
       </View>
     );
   };
 
   var renderHeader = function() {
     return (
-      <View>
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { backgroundColor: '#e8f5e9' }]}>
-            <Text style={[styles.summaryCount, { color: '#4caf50' }]}>{checkedInCount}</Text>
-            <Text style={styles.summaryLabel}>Checked In</Text>
+      <View style={styles.headerContent}>
+        {/* Stats Cards */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
+            <View style={[styles.statIconBg, { backgroundColor: theme.successBg }]}>
+              <Text style={styles.statEmoji}>✅</Text>
+            </View>
+            <Text style={[styles.statNumber, { color: theme.success }]}>{presentCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>Present</Text>
           </View>
-          <View style={[styles.summaryCard, { backgroundColor: '#e3f2fd' }]}>
-            <Text style={[styles.summaryCount, { color: '#1565c0' }]}>{checkedOutCount}</Text>
-            <Text style={styles.summaryLabel}>Checked Out</Text>
+
+          <View style={[styles.statCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
+            <View style={[styles.statIconBg, { backgroundColor: theme.infoBg }]}>
+              <Text style={styles.statEmoji}>🔵</Text>
+            </View>
+            <Text style={[styles.statNumber, { color: theme.info }]}>{checkedOutCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>Checked Out</Text>
           </View>
-          <View style={[styles.summaryCard, { backgroundColor: '#f3e5f5' }]}>
-            <Text style={[styles.summaryCount, { color: '#9c27b0' }]}>{totalRecords}</Text>
-            <Text style={styles.summaryLabel}>Total</Text>
+
+          <View style={[styles.statCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
+            <View style={[styles.statIconBg, { backgroundColor: isDark ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.1)' }]}>
+              <Text style={styles.statEmoji}>📊</Text>
+            </View>
+            <Text style={[styles.statNumber, { color: theme.secondary }]}>{totalRecords}</Text>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>Total Records</Text>
           </View>
         </View>
-        <Text style={styles.sectionTitle}>Attendance Records</Text>
+
+        {/* Section Title */}
+        <View style={styles.sectionHeader}>
+          <View style={[styles.sectionIndicator, { backgroundColor: theme.primary }]} />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Attendance History</Text>
+        </View>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      <View style={styles.header}>
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
-        <View style={styles.headerTop}>
-          <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
-            <Text style={styles.backText}>← Back</Text>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+        {/* Decorative elements */}
+        <View style={[styles.headerDecor1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+        <View style={[styles.headerDecor2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+        <View style={[styles.headerDecor3, { backgroundColor: theme.secondary, opacity: 0.15 }]} />
+
+        {/* Nav Row */}
+        <View style={styles.navRow}>
+          <TouchableOpacity style={styles.backButton} onPress={onGoBack} activeOpacity={0.7}>
+            <Text style={styles.backArrow}>{'‹'}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Attendance</Text>
-          <View style={{ width: 60 }} />
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Attendance</Text>
+          </View>
+          <View style={styles.headerRightPlaceholder} />
         </View>
-        <Text style={styles.headerSubtitle}>{fullName}</Text>
+
+        {/* User Info in Header */}
+        <View style={styles.userInfoRow}>
+          <View style={styles.userAvatar}>
+            <Text style={styles.avatarText}>{fullName.charAt(0).toUpperCase()}</Text>
+          </View>
+          <View style={styles.userDetails}>
+            <Text style={styles.userName} numberOfLines={1}>{fullName}</Text>
+            {designation ? <Text style={styles.userRole}>{designation}</Text> : null}
+          </View>
+        </View>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1565c0" />
-          <Text style={styles.loadingText}>Loading attendance...</Text>
+          <View style={[styles.loadingCard, { backgroundColor: theme.surface }]}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading attendance...</Text>
+          </View>
         </View>
       ) : (
         <FlatList
           data={records}
           renderItem={renderRecord}
           keyExtractor={function(item, index) { return item._id || String(index); }}
-          contentContainerStyle={styles.bodyContent}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1565c0']} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListHeaderComponent={renderHeader}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyIcon}>📋</Text>
-              <Text style={styles.emptyText}>No attendance records found</Text>
+            <View style={[styles.emptyContainer, { backgroundColor: theme.surface }]}>
+              <View style={[styles.emptyIconBg, { backgroundColor: theme.surfaceVariant }]}>
+                <Text style={styles.emptyIconText}>📋</Text>
+              </View>
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>No Records Found</Text>
+              <Text style={[styles.emptySubtitle, { color: theme.textTertiary }]}>Your attendance records will appear here</Text>
             </View>
           }
         />
       )}
 
+      {/* Bottom Pagination */}
       {!loading && totalPages > 0 && (
-        <View style={styles.paginationBar}>
-          <Text style={styles.paginationText}>
-            Page {currentPage} of {totalPages}  ({totalRecords} records)
-          </Text>
+        <View style={[styles.paginationBar, { backgroundColor: theme.surface, borderTopColor: theme.divider }]}>
+          <View style={styles.paginationContent}>
+            <View style={[styles.pageIndicator, { backgroundColor: theme.primary }]}>
+              <Text style={styles.pageIndicatorText}>{currentPage}</Text>
+            </View>
+            <Text style={[styles.paginationText, { color: theme.textSecondary }]}>
+              of {totalPages} pages
+            </Text>
+            <View style={[styles.recordsBadge, { backgroundColor: theme.surfaceVariant }]}>
+              <Text style={[styles.recordsBadgeText, { color: theme.textSecondary }]}>{totalRecords} records</Text>
+            </View>
+          </View>
         </View>
       )}
     </View>
@@ -259,88 +323,395 @@ export default function AttendanceScreen({ user, onGoBack }) {
 var styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
   },
+
+  /* ===== HEADER ===== */
   header: {
-    backgroundColor: '#1a1a2e',
     paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 25,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
-  circle1: {
-    position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(229, 57, 53, 0.2)', top: -50, right: -40,
+  headerDecor1: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    top: -40,
+    right: -30,
   },
-  circle2: {
-    position: 'absolute', width: 150, height: 150, borderRadius: 75,
-    backgroundColor: 'rgba(255, 87, 34, 0.15)', top: 60, left: -50,
+  headerDecor2: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    bottom: -20,
+    left: -30,
   },
-  headerTop: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
+  headerDecor3: {
+    position: 'absolute',
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    top: -100,
+    left: width * 0.3,
   },
-  backBtn: {
-    backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
-  backText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  headerSubtitle: {
-    color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center', marginBottom: 5,
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#999', fontWeight: '600' },
-  bodyContent: { padding: 16, paddingBottom: 30 },
-  summaryRow: {
-    flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20,
+  backArrow: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '300',
+    marginTop: -2,
   },
-  summaryCard: {
-    flex: 1, borderRadius: 14, padding: 12, marginHorizontal: 4, alignItems: 'center',
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
   },
-  summaryCount: { fontSize: 22, fontWeight: '900' },
-  summaryLabel: { fontSize: 11, fontWeight: '600', color: '#666', marginTop: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a2e', marginBottom: 15 },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  headerRightPlaceholder: {
+    width: 38,
+  },
+  userInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  userAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  userDetails: {
+    flex: 1,
+  },
+  userName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  userRole: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+
+  /* ===== LOADING ===== */
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingCard: {
+    padding: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    width: '80%',
+    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  /* ===== LIST CONTENT ===== */
+  listContent: {
+    padding: 16,
+    paddingBottom: 30,
+  },
+
+  /* ===== STATS ===== */
+  headerContent: {
+    marginBottom: 8,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  statCard: {
+    flex: 1,
+    marginHorizontal: 4,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  statIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statEmoji: {
+    fontSize: 16,
+  },
+  statNumber: {
+    fontSize: 22,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  /* ===== SECTION HEADER ===== */
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  sectionIndicator: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: 10,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+
+  /* ===== RECORD CARD ===== */
   recordCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10,
-    flexDirection: 'row', alignItems: 'center',
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4,
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
   },
-  recordLeft: { marginRight: 12 },
-  dateBox: {
-    width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center',
+  accentBar: {
+    width: 4,
   },
-  dateNum: { fontSize: 18, fontWeight: '800' },
-  dateDay: { fontSize: 10, fontWeight: '600' },
-  recordMiddle: { flex: 1 },
-  recordName: { fontSize: 14, fontWeight: '700', color: '#333', marginBottom: 3 },
-  statusBadge: {
-    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginBottom: 4,
+  recordContent: {
+    flex: 1,
+    padding: 14,
   },
-  statusDotSmall: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  statusBadgeText: { fontSize: 12, fontWeight: '700' },
-  recordTime: { fontSize: 12, color: '#999', fontWeight: '500' },
-  recordMeta: { fontSize: 10, color: '#bbb', fontWeight: '500', marginTop: 2 },
-  recordRight: { alignItems: 'center', minWidth: 55 },
-  kmValue: { fontSize: 16, fontWeight: '800', color: '#1a1a2e' },
-  kmLabel: { fontSize: 10, color: '#999', fontWeight: '600' },
-  hoursBadge: {
-    backgroundColor: '#f0f0f5', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4,
+  recordTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  hoursValue: { fontSize: 11, fontWeight: '700', color: '#555' },
-  emptyCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 40, alignItems: 'center', elevation: 2,
+  dateSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyText: { fontSize: 15, color: '#999', fontWeight: '600' },
+  dateCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  dateNum: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  dateInfo: {
+    justifyContent: 'center',
+  },
+  dayText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  monthText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  statusIcon: {
+    fontSize: 8,
+    marginRight: 5,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  recordDivider: {
+    height: 1,
+    marginBottom: 12,
+  },
+
+  /* ===== RECORD BOTTOM ROW ===== */
+  recordBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timeBlock: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  blockLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  blockValue: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  timeDivider: {
+    width: 1,
+    height: 28,
+  },
+
+  /* ===== LOCATION ===== */
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  locationIcon: {
+    fontSize: 11,
+    marginRight: 6,
+  },
+  locationText: {
+    fontSize: 11,
+    fontWeight: '500',
+    flex: 1,
+  },
+
+  /* ===== EMPTY STATE ===== */
+  emptyContainer: {
+    borderRadius: 20,
+    padding: 40,
+    alignItems: 'center',
+    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+  },
+  emptyIconBg: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyIconText: {
+    fontSize: 28,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  /* ===== FOOTER ===== */
   footerLoader: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
   },
-  footerText: { fontSize: 12, color: '#999', marginLeft: 8 },
+  footerText: {
+    fontSize: 13,
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+
+  /* ===== PAGINATION ===== */
   paginationBar: {
-    backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 20, alignItems: 'center',
-    borderTopWidth: 1, borderTopColor: '#f0f0f0',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
   },
-  paginationText: { fontSize: 12, color: '#888', fontWeight: '600' },
+  paginationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageIndicator: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  pageIndicatorText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  paginationText: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginRight: 12,
+  },
+  recordsBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  recordsBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
 });

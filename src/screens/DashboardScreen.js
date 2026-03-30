@@ -20,8 +20,11 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import GPSCameraScreen from '../components/GPSCameraScreen';
 import { extractKmFromImage } from '../utils/ocrHelper';
+import { useTheme } from '../theme/ThemeContext';
 
 export default function DashboardScreen({ user, onLogout, vendors, onVendorsChange, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits, onGoToInventory }) {
+  const { theme, isDark, toggleTheme } = useTheme();
+
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState(null);
   const [checkOutTime, setCheckOutTime] = useState(null);
@@ -490,22 +493,47 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
     return hours + 'h ' + minutes + 'm';
   };
 
+  const userName = user && user.fullName ? user.fullName : 'Employee';
+  const userInitial = userName.charAt(0).toUpperCase();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      <View style={styles.header}>
+      {/* ===== HEADER ===== */}
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
         <View style={styles.circle1} />
         <View style={styles.circle2} />
-        <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.greeting}>Welcome Back,</Text>
-            <Text style={styles.userName}>{user && user.fullName ? user.fullName : 'Employee'}</Text>
+        <View style={[styles.circle3, { backgroundColor: theme.secondary }]} />
+
+        <View style={styles.headerTopRow}>
+          {/* Avatar */}
+          <View style={styles.headerLeftGroup}>
+            <View style={[styles.avatar, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <Text style={styles.avatarText}>{userInitial}</Text>
+            </View>
+            <View style={styles.headerGreetingBlock}>
+              <Text style={styles.greeting}>Welcome Back,</Text>
+              <Text style={styles.userName}>{userName}</Text>
+            </View>
           </View>
-          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
+
+          <View style={styles.headerRightGroup}>
+            {/* Theme toggle */}
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={toggleTheme}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.headerIconText}>{isDark ? '\u2600\uFE0F' : '\uD83C\uDF19'}</Text>
+            </TouchableOpacity>
+            {/* Logout */}
+            <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} activeOpacity={0.7}>
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
         <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
         <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
       </View>
@@ -515,16 +543,18 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.statusCard}>
-          <View style={[styles.statusDot, checkedIn ? styles.dotActive : styles.dotInactive]} />
-          <Text style={styles.statusText}>
+        {/* ===== STATUS CHIP ===== */}
+        <View style={[styles.statusChip, { backgroundColor: theme.surface }]}>
+          <View style={[styles.statusDot, checkedIn ? { backgroundColor: theme.success } : { backgroundColor: theme.textTertiary }]} />
+          <Text style={[styles.statusText, { color: theme.text }]}>
             {checkedIn ? 'You are Checked In' : 'You are Checked Out'}
           </Text>
         </View>
 
-        <View style={styles.btnRow}>
+        {/* ===== ACTION BUTTONS ROW ===== */}
+        <View style={styles.actionBtnRow}>
           <TouchableOpacity
-            style={[styles.inlineBtn, checkedIn ? styles.checkOutBtn : styles.checkInBtn]}
+            style={[styles.primaryActionBtn, checkedIn ? { backgroundColor: theme.error, shadowColor: theme.error } : { backgroundColor: theme.success, shadowColor: theme.success }]}
             onPress={() => {
               if (checkedIn) {
                 setModalType('checkout');
@@ -535,94 +565,108 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
             }}
             activeOpacity={0.7}
           >
-            <Text style={styles.inlineBtnIcon}>{checkedIn ? '↗' : '↙'}</Text>
-            <Text style={styles.inlineBtnText}>{checkedIn ? 'CHECK OUT' : 'CHECK IN'}</Text>
+            <Text style={styles.actionBtnIcon}>{checkedIn ? '\u2197' : '\u2199'}</Text>
+            <Text style={styles.actionBtnLabel}>{checkedIn ? 'CHECK OUT' : 'CHECK IN'}</Text>
           </TouchableOpacity>
 
+          <View style={{ width: 12 }} />
+
           <TouchableOpacity
-            style={[styles.inlineBtn, styles.vendorBtnStyle]}
+            style={[styles.primaryActionBtn, { backgroundColor: theme.info, shadowColor: theme.info }]}
             onPress={() => setShowVendorModal(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.inlineBtnIcon}>🏪</Text>
-            <Text style={styles.inlineBtnText}>VENDOR</Text>
+            <Text style={styles.actionBtnIcon}>{'\uD83C\uDFEA'}</Text>
+            <Text style={styles.actionBtnLabel}>VENDOR</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.infoRow}>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>Check In</Text>
-            <Text style={styles.infoValue}>{formatTime(checkInTime)}</Text>
+        {/* ===== STATS CARDS ===== */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statIconCircle, { backgroundColor: theme.successBg || 'rgba(34,197,94,0.12)' }]}>
+              <Text style={styles.statIconEmoji}>{'\u2199'}</Text>
+            </View>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECK IN</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{formatTime(checkInTime)}</Text>
           </View>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>Check Out</Text>
-            <Text style={styles.infoValue}>{formatTime(checkOutTime)}</Text>
+
+          <View style={{ width: 12 }} />
+
+          <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statIconCircle, { backgroundColor: theme.errorBg || 'rgba(239,68,68,0.12)' }]}>
+              <Text style={styles.statIconEmoji}>{'\u2197'}</Text>
+            </View>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECK OUT</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{formatTime(checkOutTime)}</Text>
           </View>
         </View>
 
-        <View style={styles.infoRow}>
-          <View style={[styles.infoCard, styles.infoCardFull]}>
-            <Text style={styles.infoLabel}>Working Hours</Text>
-            <Text style={styles.infoValueLarge}>{getWorkingHours()}</Text>
+        {/* Working Hours Card */}
+        <View style={[styles.workingHoursCard, { backgroundColor: theme.surface }]}>
+          <View style={styles.workingHoursLeft}>
+            <View style={[styles.statIconCircle, { backgroundColor: theme.infoBg || 'rgba(59,130,246,0.12)' }]}>
+              <Text style={styles.statIconEmoji}>{'\u23F1'}</Text>
+            </View>
+            <View style={{ marginLeft: 14 }}>
+              <Text style={[styles.statLabel, { color: theme.textTertiary }]}>WORKING HOURS</Text>
+              <Text style={[styles.workingHoursValue, { color: theme.primary }]}>{getWorkingHours()}</Text>
+            </View>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionCard}>
-            <View style={[styles.actionIcon, { backgroundColor: '#e3f2fd' }]}>
-              <Text style={styles.actionEmoji}>📊</Text>
-            </View>
-            <Text style={styles.actionText}>My Reports</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={onGoToAttendance}>
-            <View style={[styles.actionIcon, { backgroundColor: '#fce4ec' }]}>
-              <Text style={styles.actionEmoji}>📅</Text>
-            </View>
-            <Text style={styles.actionText}>Attendance</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={onGoToVisits}>
-            <View style={[styles.actionIcon, { backgroundColor: '#e8f5e9' }]}>
-              <Text style={styles.actionEmoji}>📍</Text>
-            </View>
-            <Text style={styles.actionText}>Visits</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={onGoToProfile}>
-            <View style={[styles.actionIcon, { backgroundColor: '#fff3e0' }]}>
-              <Text style={styles.actionEmoji}>👤</Text>
-            </View>
-            <Text style={styles.actionText}>Profile</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={onGoToInventory}>
-            <View style={[styles.actionIcon, { backgroundColor: '#f3e5f5' }]}>
-              <Text style={styles.actionEmoji}>📦</Text>
-            </View>
-            <Text style={styles.actionText}>Inventory</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={onGoToDailyAllowance}>
-            <View style={[styles.actionIcon, { backgroundColor: '#e0f7fa' }]}>
-              <Text style={styles.actionEmoji}>💰</Text>
-            </View>
-            <Text style={styles.actionText}>Allowance</Text>
-          </TouchableOpacity>
+        {/* ===== QUICK ACTIONS SECTION ===== */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={[styles.sectionIndicator, { backgroundColor: theme.primary }]} />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Actions</Text>
         </View>
 
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionCard} onPress={onGoToDailyAllowance}>
-            <View style={[styles.actionIcon, { backgroundColor: '#f3e5f5' }]}>
-              <Text style={styles.actionEmoji}>💰</Text>
+        <View style={styles.quickActionsGrid}>
+          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} activeOpacity={0.7}>
+            <View style={[styles.quickActionIconBg, { backgroundColor: theme.infoBg || 'rgba(59,130,246,0.12)' }]}>
+              <Text style={styles.quickActionEmoji}>{'\uD83D\uDCCA'}</Text>
             </View>
-            <Text style={styles.actionText}>Allowance</Text>
+            <Text style={[styles.quickActionText, { color: theme.text }]}>My Reports</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} onPress={onGoToAttendance} activeOpacity={0.7}>
+            <View style={[styles.quickActionIconBg, { backgroundColor: theme.errorBg || 'rgba(239,68,68,0.12)' }]}>
+              <Text style={styles.quickActionEmoji}>{'\uD83D\uDCC5'}</Text>
+            </View>
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Attendance</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} onPress={onGoToVisits} activeOpacity={0.7}>
+            <View style={[styles.quickActionIconBg, { backgroundColor: theme.successBg || 'rgba(34,197,94,0.12)' }]}>
+              <Text style={styles.quickActionEmoji}>{'\uD83D\uDCCD'}</Text>
+            </View>
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Visits</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} onPress={onGoToProfile} activeOpacity={0.7}>
+            <View style={[styles.quickActionIconBg, { backgroundColor: theme.warningBg || 'rgba(245,158,11,0.12)' }]}>
+              <Text style={styles.quickActionEmoji}>{'\uD83D\uDC64'}</Text>
+            </View>
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Profile</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} onPress={onGoToInventory} activeOpacity={0.7}>
+            <View style={[styles.quickActionIconBg, { backgroundColor: theme.surfaceVariant || 'rgba(107,114,128,0.12)' }]}>
+              <Text style={styles.quickActionEmoji}>{'\uD83D\uDCE6'}</Text>
+            </View>
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Inventory</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} onPress={onGoToDailyAllowance} activeOpacity={0.7}>
+            <View style={[styles.quickActionIconBg, { backgroundColor: theme.infoBg || 'rgba(59,130,246,0.12)' }]}>
+              <Text style={styles.quickActionEmoji}>{'\uD83D\uDCB0'}</Text>
+            </View>
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Allowance</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Check-In / Check-Out Modal */}
+      {/* ===== CHECK-IN / CHECK-OUT MODAL ===== */}
       <Modal
         visible={showModal}
         transparent={true}
@@ -630,159 +674,199 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         onRequestClose={() => { setShowModal(false); resetModalFields(); }}
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* Modal Header */}
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {modalType === 'checkin' ? 'Check In Details' : 'Check Out Details'}
-                </Text>
-                <TouchableOpacity onPress={() => { setShowModal(false); resetModalFields(); }}>
-                  <Text style={styles.modalClose}>✕</Text>
+                <View style={styles.modalHeaderLeft}>
+                  <View style={[styles.sectionIndicator, { backgroundColor: modalType === 'checkout' ? theme.error : theme.success }]} />
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>
+                    {modalType === 'checkin' ? 'Check In Details' : 'Check Out Details'}
+                  </Text>
+                </View>
+                <TouchableOpacity style={[styles.modalCloseBtn, { backgroundColor: theme.background }]} onPress={() => { setShowModal(false); resetModalFields(); }}>
+                  <Text style={[styles.modalCloseText, { color: theme.textTertiary }]}>{'\u2715'}</Text>
                 </TouchableOpacity>
               </View>
 
+              {/* Selfie */}
               <View>
-                <Text style={styles.modalLabel}>Selfie</Text>
+                <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>SELFIE</Text>
                 {selfieImage ? (
                   <View style={styles.imagePreviewWrapper}>
                     <Image source={{ uri: selfieImage }} style={styles.imagePreview} />
                     <TouchableOpacity style={styles.removeImageBtn} onPress={() => setSelfieImage(null)}>
-                      <Text style={styles.removeImageText}>✕</Text>
+                      <Text style={styles.removeImageText}>{'\u2715'}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <View style={styles.uploadRow}>
-                    <TouchableOpacity style={styles.uploadBtn} onPress={takeSelfie}>
-                      <Text style={styles.uploadIcon}>🤳</Text>
-                      <Text style={styles.uploadText}>Take Selfie</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={takeSelfie} activeOpacity={0.7}>
+                    <Text style={styles.uploadEmoji}>{'\uD83E\uDD33'}</Text>
+                    <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Take Selfie</Text>
+                  </TouchableOpacity>
                 )}
               </View>
 
-              <Text style={styles.modalLabel}>KM Image</Text>
+              {/* KM Image */}
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>KM IMAGE</Text>
               {kmImage ? (
                 <View style={styles.imagePreviewWrapper}>
                   <Image source={{ uri: kmImage }} style={styles.imagePreview} />
                   <TouchableOpacity style={styles.removeImageBtn} onPress={() => setKmImage(null)}>
-                    <Text style={styles.removeImageText}>✕</Text>
+                    <Text style={styles.removeImageText}>{'\u2715'}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={styles.uploadRow}>
-                  <TouchableOpacity style={styles.uploadBtn} onPress={takePhoto}>
-                    <Text style={styles.uploadIcon}>📷</Text>
-                    <Text style={styles.uploadText}>Camera</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={takePhoto} activeOpacity={0.7}>
+                  <Text style={styles.uploadEmoji}>{'\uD83D\uDCF7'}</Text>
+                  <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Capture KM Photo</Text>
+                </TouchableOpacity>
               )}
 
-              <Text style={styles.modalLabel}>KM Reading {ocrLoading ? '(Reading from image...)' : ''}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* KM Reading */}
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>KM READING {ocrLoading ? '(Reading...)' : ''}</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                <Text style={styles.inputIcon}>{'\uD83D\uDEE3'}</Text>
                 <TextInput
-                  style={[styles.modalInput, { flex: 1 }]}
+                  style={[styles.inputField, { color: theme.text }]}
                   placeholder={ocrLoading ? 'Detecting KM...' : 'Enter KM reading'}
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.textTertiary}
                   keyboardType="numeric"
                   value={kmReading}
                   onChangeText={setKmReading}
                 />
                 {ocrLoading ? (
-                  <ActivityIndicator size="small" color="#e53935" style={{ marginLeft: 10 }} />
+                  <ActivityIndicator size="small" color={theme.primary} />
                 ) : null}
               </View>
 
-              <Text style={styles.modalLabel}>HQ Name</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter headquarter name"
-                placeholderTextColor="#999"
-                value={hqName}
-                onChangeText={setHqName}
-              />
+              {/* HQ Name */}
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>HQ NAME</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                <Text style={styles.inputIcon}>{'\uD83C\uDFE2'}</Text>
+                <TextInput
+                  style={[styles.inputField, { color: theme.text }]}
+                  placeholder="Enter headquarter name"
+                  placeholderTextColor={theme.textTertiary}
+                  value={hqName}
+                  onChangeText={setHqName}
+                />
+              </View>
 
-              <Text style={styles.modalLabel}>Working Town</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter working town"
-                placeholderTextColor="#999"
-                value={workingTown}
-                onChangeText={setWorkingTown}
-              />
+              {/* Working Town */}
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>WORKING TOWN</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                <Text style={styles.inputIcon}>{'\uD83C\uDFD8'}</Text>
+                <TextInput
+                  style={[styles.inputField, { color: theme.text }]}
+                  placeholder="Enter working town"
+                  placeholderTextColor={theme.textTertiary}
+                  value={workingTown}
+                  onChangeText={setWorkingTown}
+                />
+              </View>
 
-              <Text style={styles.modalLabel}>Route</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter route"
-                placeholderTextColor="#999"
-                value={route}
-                onChangeText={setRoute}
-              />
+              {/* Route */}
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>ROUTE</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                <Text style={styles.inputIcon}>{'\uD83D\uDEA3'}</Text>
+                <TextInput
+                  style={[styles.inputField, { color: theme.text }]}
+                  placeholder="Enter route"
+                  placeholderTextColor={theme.textTertiary}
+                  value={route}
+                  onChangeText={setRoute}
+                />
+              </View>
 
+              {/* Out of Town Checkbox */}
               <TouchableOpacity
                 style={styles.checkboxRow}
                 onPress={() => setOutOfTown(!outOfTown)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.checkbox, outOfTown && styles.checkboxChecked]}>
-                  {outOfTown ? <Text style={styles.checkboxTick}>✓</Text> : null}
+                <View style={[styles.checkbox, { borderColor: theme.divider }, outOfTown && { backgroundColor: theme.info, borderColor: theme.info }]}>
+                  {outOfTown ? <Text style={styles.checkboxTick}>{'\u2713'}</Text> : null}
                 </View>
-                <Text style={styles.checkboxLabel}>Out of Town</Text>
+                <Text style={[styles.checkboxLabel, { color: theme.text }]}>Out of Town</Text>
               </TouchableOpacity>
 
+              {/* Out of Town Expenses */}
               {outOfTown ? (
-                <View style={styles.outOfTownSection}>
-                  <Text style={styles.outOfTownTitle}>Out of Town Expenses</Text>
+                <View style={[styles.outOfTownSection, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]}>
+                  <View style={styles.sectionHeaderRow}>
+                    <View style={[styles.sectionIndicator, { backgroundColor: theme.info }]} />
+                    <Text style={[styles.outOfTownTitle, { color: theme.text }]}>Out of Town Expenses</Text>
+                  </View>
 
-                  <Text style={styles.modalLabel}>Stay Bill Amount</Text>
-                  <TextInput style={styles.modalInput} placeholder="Enter stay bill amount" placeholderTextColor="#999" keyboardType="numeric" value={stayBillAmount} onChangeText={setStayBillAmount} />
-                  <Text style={styles.modalLabel}>Stay Bill Image</Text>
+                  {/* Stay Bill */}
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>STAY BILL AMOUNT</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.inputIcon}>{'\uD83C\uDFE8'}</Text>
+                    <TextInput style={[styles.inputField, { color: theme.text }]} placeholder="Enter stay bill amount" placeholderTextColor={theme.textTertiary} keyboardType="numeric" value={stayBillAmount} onChangeText={setStayBillAmount} />
+                  </View>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>STAY BILL IMAGE</Text>
                   {stayBillImage ? (
                     <View style={styles.imagePreviewWrapper}>
                       <Image source={{ uri: stayBillImage }} style={styles.imagePreview} />
-                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setStayBillImage(null)}><Text style={styles.removeImageText}>✕</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setStayBillImage(null)}><Text style={styles.removeImageText}>{'\u2715'}</Text></TouchableOpacity>
                     </View>
                   ) : (
-                    <View style={styles.uploadRow}>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={() => takeBillPhoto(setStayBillImage)}><Text style={styles.uploadIcon}>📷</Text><Text style={styles.uploadText}>Camera</Text></TouchableOpacity>
-                    </View>
+                    <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={() => takeBillPhoto(setStayBillImage)} activeOpacity={0.7}>
+                      <Text style={styles.uploadEmoji}>{'\uD83D\uDCF7'}</Text>
+                      <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Capture Photo</Text>
+                    </TouchableOpacity>
                   )}
 
-                  <Text style={styles.modalLabel}>Food Bill Amount</Text>
-                  <TextInput style={styles.modalInput} placeholder="Enter food bill amount" placeholderTextColor="#999" keyboardType="numeric" value={foodBillAmount} onChangeText={setFoodBillAmount} />
-                  <Text style={styles.modalLabel}>Food Bill Image</Text>
+                  {/* Food Bill */}
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>FOOD BILL AMOUNT</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.inputIcon}>{'\uD83C\uDF7D'}</Text>
+                    <TextInput style={[styles.inputField, { color: theme.text }]} placeholder="Enter food bill amount" placeholderTextColor={theme.textTertiary} keyboardType="numeric" value={foodBillAmount} onChangeText={setFoodBillAmount} />
+                  </View>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>FOOD BILL IMAGE</Text>
                   {foodBillImage ? (
                     <View style={styles.imagePreviewWrapper}>
                       <Image source={{ uri: foodBillImage }} style={styles.imagePreview} />
-                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setFoodBillImage(null)}><Text style={styles.removeImageText}>✕</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setFoodBillImage(null)}><Text style={styles.removeImageText}>{'\u2715'}</Text></TouchableOpacity>
                     </View>
                   ) : (
-                    <View style={styles.uploadRow}>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={() => takeBillPhoto(setFoodBillImage)}><Text style={styles.uploadIcon}>📷</Text><Text style={styles.uploadText}>Camera</Text></TouchableOpacity>
-                    </View>
+                    <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={() => takeBillPhoto(setFoodBillImage)} activeOpacity={0.7}>
+                      <Text style={styles.uploadEmoji}>{'\uD83D\uDCF7'}</Text>
+                      <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Capture Photo</Text>
+                    </TouchableOpacity>
                   )}
 
-                  <Text style={styles.modalLabel}>Other Expense Description</Text>
-                  <TextInput style={styles.modalInput} placeholder="Enter expense description" placeholderTextColor="#999" value={otherBillDescription} onChangeText={setOtherBillDescription} />
-                  <Text style={styles.modalLabel}>Other Expense Amount</Text>
-                  <TextInput style={styles.modalInput} placeholder="Enter other expense amount" placeholderTextColor="#999" keyboardType="numeric" value={otherBillAmount} onChangeText={setOtherBillAmount} />
-                  <Text style={styles.modalLabel}>Other Expense Image</Text>
+                  {/* Other Expense */}
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>OTHER EXPENSE DESCRIPTION</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.inputIcon}>{'\uD83D\uDCDD'}</Text>
+                    <TextInput style={[styles.inputField, { color: theme.text }]} placeholder="Enter expense description" placeholderTextColor={theme.textTertiary} value={otherBillDescription} onChangeText={setOtherBillDescription} />
+                  </View>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>OTHER EXPENSE AMOUNT</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                    <Text style={styles.inputIcon}>{'\uD83D\uDCB5'}</Text>
+                    <TextInput style={[styles.inputField, { color: theme.text }]} placeholder="Enter other expense amount" placeholderTextColor={theme.textTertiary} keyboardType="numeric" value={otherBillAmount} onChangeText={setOtherBillAmount} />
+                  </View>
+                  <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>OTHER EXPENSE IMAGE</Text>
                   {otherBillImage ? (
                     <View style={styles.imagePreviewWrapper}>
                       <Image source={{ uri: otherBillImage }} style={styles.imagePreview} />
-                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setOtherBillImage(null)}><Text style={styles.removeImageText}>✕</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setOtherBillImage(null)}><Text style={styles.removeImageText}>{'\u2715'}</Text></TouchableOpacity>
                     </View>
                   ) : (
-                    <View style={styles.uploadRow}>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={() => takeBillPhoto(setOtherBillImage)}><Text style={styles.uploadIcon}>📷</Text><Text style={styles.uploadText}>Camera</Text></TouchableOpacity>
-                    </View>
+                    <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={() => takeBillPhoto(setOtherBillImage)} activeOpacity={0.7}>
+                      <Text style={styles.uploadEmoji}>{'\uD83D\uDCF7'}</Text>
+                      <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Capture Photo</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
               ) : null}
 
+              {/* Submit Button */}
               <TouchableOpacity
-                style={[styles.modalSubmitBtn, modalType === 'checkout' && styles.modalSubmitBtnCheckout, submitting && { opacity: 0.7 }]}
+                style={[styles.submitBtn, { backgroundColor: modalType === 'checkout' ? theme.error : theme.success }, submitting && { opacity: 0.7 }]}
                 onPress={submitModal}
                 activeOpacity={0.8}
                 disabled={submitting}
@@ -790,7 +874,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                 {submitting ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.modalSubmitText}>
+                  <Text style={styles.submitBtnText}>
                     {modalType === 'checkin' ? 'CHECK IN' : 'CHECK OUT'}
                   </Text>
                 )}
@@ -801,7 +885,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Visit Vendor Modal */}
+      {/* ===== VENDOR MODAL ===== */}
       <Modal
         visible={showVendorModal}
         transparent={true}
@@ -809,87 +893,107 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         onRequestClose={() => { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* Modal Header */}
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Visit Vendor</Text>
-                <TouchableOpacity onPress={() => { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}>
-                  <Text style={styles.modalClose}>✕</Text>
+                <View style={styles.modalHeaderLeft}>
+                  <View style={[styles.sectionIndicator, { backgroundColor: theme.info }]} />
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Visit Vendor</Text>
+                </View>
+                <TouchableOpacity style={[styles.modalCloseBtn, { backgroundColor: theme.background }]} onPress={() => { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}>
+                  <Text style={[styles.modalCloseText, { color: theme.textTertiary }]}>{'\u2715'}</Text>
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.modalLabel}>Vendor Name</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter vendor name"
-                placeholderTextColor="#999"
-                value={vendorName}
-                onChangeText={setVendorName}
-              />
+              {/* Vendor Name */}
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>VENDOR NAME</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                <Text style={styles.inputIcon}>{'\uD83C\uDFEA'}</Text>
+                <TextInput
+                  style={[styles.inputField, { color: theme.text }]}
+                  placeholder="Enter vendor name"
+                  placeholderTextColor={theme.textTertiary}
+                  value={vendorName}
+                  onChangeText={setVendorName}
+                />
+              </View>
 
-              <Text style={styles.modalLabel}>Vendor Mobile</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter vendor mobile number"
-                placeholderTextColor="#999"
-                value={vendorMobile}
-                onChangeText={setVendorMobile}
-                keyboardType="phone-pad"
-              />
+              {/* Vendor Mobile */}
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>VENDOR MOBILE</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+                <Text style={styles.inputIcon}>{'\uD83D\uDCDE'}</Text>
+                <TextInput
+                  style={[styles.inputField, { color: theme.text }]}
+                  placeholder="Enter vendor mobile number"
+                  placeholderTextColor={theme.textTertiary}
+                  value={vendorMobile}
+                  onChangeText={setVendorMobile}
+                  keyboardType="phone-pad"
+                />
+              </View>
 
-              <Text style={styles.modalLabel}>Selfie with Vendor</Text>
+              {/* Selfie with Vendor */}
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>SELFIE WITH VENDOR</Text>
               {vendorSelfie ? (
                 <View style={styles.imagePreviewWrapper}>
                   <Image source={{ uri: vendorSelfie }} style={styles.imagePreview} />
                   <TouchableOpacity style={styles.removeImageBtn} onPress={() => setVendorSelfie(null)}>
-                    <Text style={styles.removeImageText}>✕</Text>
+                    <Text style={styles.removeImageText}>{'\u2715'}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={styles.uploadRow}>
-                  <TouchableOpacity style={styles.uploadBtn} onPress={takeVendorSelfie}>
-                    <Text style={styles.uploadIcon}>📷</Text>
-                    <Text style={styles.uploadText}>Camera</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={takeVendorSelfie} activeOpacity={0.7}>
+                  <Text style={styles.uploadEmoji}>{'\uD83D\uDCF7'}</Text>
+                  <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Take Photo with Vendor</Text>
+                </TouchableOpacity>
               )}
 
-              <Text style={styles.modalLabel}>Note</Text>
-              <TextInput
-                style={[styles.modalInput, { height: 80, textAlignVertical: 'top' }]}
-                placeholder="Enter note (optional)"
-                placeholderTextColor="#999"
-                value={vendorNote}
-                onChangeText={setVendorNote}
-                multiline={true}
-                numberOfLines={3}
-              />
+              {/* Note */}
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>NOTE</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider, alignItems: 'flex-start', minHeight: 80 }]}>
+                <Text style={[styles.inputIcon, { marginTop: 4 }]}>{'\uD83D\uDCDD'}</Text>
+                <TextInput
+                  style={[styles.inputField, { color: theme.text, height: 70, textAlignVertical: 'top' }]}
+                  placeholder="Enter note (optional)"
+                  placeholderTextColor={theme.textTertiary}
+                  value={vendorNote}
+                  onChangeText={setVendorNote}
+                  multiline={true}
+                  numberOfLines={3}
+                />
+              </View>
 
-              <Text style={styles.modalLabel}>Is this vendor onboarded?</Text>
+              {/* Onboard Status */}
+              <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>IS THIS VENDOR ONBOARDED?</Text>
               <View style={styles.onboardRow}>
                 <TouchableOpacity
-                  style={[styles.onboardOption, isOnboarded === 'yes' && styles.onboardOptionYes]}
+                  style={[styles.onboardOption, { backgroundColor: theme.background, borderColor: theme.divider }, isOnboarded === 'yes' && { backgroundColor: theme.successBg, borderColor: theme.success }]}
                   onPress={() => setIsOnboarded('yes')}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.onboardText, isOnboarded === 'yes' && styles.onboardTextSelected]}>
+                  <View style={[styles.onboardDot, { backgroundColor: theme.textTertiary }, isOnboarded === 'yes' && { backgroundColor: theme.success }]} />
+                  <Text style={[styles.onboardText, { color: theme.textSecondary }, isOnboarded === 'yes' && { color: theme.text, fontWeight: '700' }]}>
                     Yes, Onboarded
                   </Text>
                 </TouchableOpacity>
+                <View style={{ width: 12 }} />
                 <TouchableOpacity
-                  style={[styles.onboardOption, isOnboarded === 'no' && styles.onboardOptionNo]}
+                  style={[styles.onboardOption, { backgroundColor: theme.background, borderColor: theme.divider }, isOnboarded === 'no' && { backgroundColor: theme.errorBg, borderColor: theme.error }]}
                   onPress={() => setIsOnboarded('no')}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.onboardText, isOnboarded === 'no' && styles.onboardTextSelected]}>
+                  <View style={[styles.onboardDot, { backgroundColor: theme.textTertiary }, isOnboarded === 'no' && { backgroundColor: theme.error }]} />
+                  <Text style={[styles.onboardText, { color: theme.textSecondary }, isOnboarded === 'no' && { color: theme.text, fontWeight: '700' }]}>
                     Not Onboarded
                   </Text>
                 </TouchableOpacity>
               </View>
 
+              {/* Submit */}
               <TouchableOpacity
-                style={[styles.vendorSubmitBtn, submitting && { opacity: 0.7 }]}
+                style={[styles.submitBtn, { backgroundColor: theme.info }, submitting && { opacity: 0.7 }]}
                 onPress={submitVendor}
                 activeOpacity={0.8}
                 disabled={submitting}
@@ -897,7 +1001,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                 {submitting ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.modalSubmitText}>ADD VENDOR VISIT</Text>
+                  <Text style={styles.submitBtnText}>ADD VENDOR VISIT</Text>
                 )}
               </TouchableOpacity>
             </ScrollView>
@@ -906,6 +1010,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* ===== GPS CAMERA MODAL ===== */}
       <Modal
         visible={showGPSCamera}
         animationType="slide"
@@ -925,15 +1030,15 @@ var screenWidth = Dimensions.get('window').width;
 var styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
   },
+
+  /* ===== HEADER ===== */
   header: {
-    backgroundColor: '#1a1a2e',
-    paddingTop: 50,
-    paddingBottom: 25,
-    paddingHorizontal: 25,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingTop: 52,
+    paddingBottom: 28,
+    paddingHorizontal: 22,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
   circle1: {
@@ -941,57 +1046,108 @@ var styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(229, 57, 53, 0.2)',
     top: -50,
     right: -40,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   circle2: {
     position: 'absolute',
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(255, 87, 34, 0.15)',
-    top: 60,
+    top: 70,
     left: -50,
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  headerContent: {
+  circle3: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    bottom: -30,
+    right: 60,
+    opacity: 0.15,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
+  },
+  headerLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  headerGreetingBlock: {
+    marginLeft: 12,
+    flex: 1,
   },
   greeting: {
-    fontSize: 14,
+    fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 0.3,
   },
   userName: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: '#fff',
-    marginTop: 2,
+    marginTop: 1,
+  },
+  headerRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  headerIconText: {
+    fontSize: 18,
   },
   logoutBtn: {
-    backgroundColor: 'rgba(229, 57, 53, 0.3)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 9,
+    borderRadius: 12,
   },
   logoutText: {
-    color: '#ff8a80',
+    color: 'rgba(255,255,255,0.9)',
     fontSize: 13,
     fontWeight: '700',
+    letterSpacing: 0.5,
   },
   dateText: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 0.3,
   },
   timeText: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '900',
     color: '#fff',
     marginTop: 4,
     letterSpacing: 2,
   },
+
+  /* ===== BODY ===== */
   body: {
     flex: 1,
   },
@@ -999,13 +1155,15 @@ var styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 80,
   },
-  statusCard: {
+
+  /* ===== STATUS CHIP ===== */
+  statusChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 14,
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    marginBottom: 16,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -1013,152 +1171,167 @@ var styles = StyleSheet.create({
     shadowRadius: 4,
   },
   statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12,
-  },
-  dotActive: {
-    backgroundColor: '#4caf50',
-  },
-  dotInactive: {
-    backgroundColor: '#bdbdbd',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
   },
   statusText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#333',
   },
-  btnRow: {
+
+  /* ===== ACTION BUTTONS ===== */
+  actionBtnRow: {
     flexDirection: 'row',
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  inlineBtn: {
+  primaryActionBtn: {
     flex: 1,
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 16,
     alignItems: 'center',
     elevation: 4,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
   },
-  checkInBtn: {
-    backgroundColor: '#4caf50',
-    shadowColor: '#4caf50',
-    marginRight: 8,
-  },
-  checkOutBtn: {
-    backgroundColor: '#e53935',
-    shadowColor: '#e53935',
-    marginRight: 8,
-  },
-  vendorBtnStyle: {
-    backgroundColor: '#1565c0',
-    shadowColor: '#1565c0',
-    marginLeft: 8,
-  },
-  inlineBtnIcon: {
+  actionBtnIcon: {
     fontSize: 20,
     color: '#fff',
     marginBottom: 4,
   },
-  inlineBtnText: {
+  actionBtnLabel: {
     fontSize: 13,
     fontWeight: '800',
     color: '#fff',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
-  infoRow: {
+
+  /* ===== STATS CARDS ===== */
+  statsRow: {
     flexDirection: 'row',
     marginBottom: 12,
   },
-  infoCard: {
+  statCard: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 16,
-    marginHorizontal: 4,
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowRadius: 6,
   },
-  infoCardFull: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: '#999',
-    fontWeight: '600',
-    marginBottom: 6,
-    letterSpacing: 0.5,
-  },
-  infoValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1a1a2e',
-  },
-  infoValueLarge: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#e53935',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    marginTop: 10,
-    marginBottom: 15,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  actionCard: {
-    width: (screenWidth - 52) / 2,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-  },
-  actionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 15,
+  statIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
-  actionEmoji: {
+  statIconEmoji: {
+    fontSize: 18,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+
+  /* Working Hours */
+  workingHoursCard: {
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  workingHoursLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  workingHoursValue: {
+    fontSize: 26,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+
+  /* ===== SECTION HEADER ===== */
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  sectionIndicator: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+
+  /* ===== QUICK ACTIONS GRID ===== */
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  quickActionCard: {
+    width: (screenWidth - 52) / 2,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  quickActionIconBg: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  quickActionEmoji: {
     fontSize: 24,
   },
-  actionText: {
+  quickActionText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#333',
+    letterSpacing: 0.3,
   },
+
+  /* ===== MODALS ===== */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    paddingHorizontal: 25,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 22,
     paddingTop: 20,
     paddingBottom: 40,
-    maxHeight: '85%',
+    maxHeight: '88%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1166,77 +1339,91 @@ var styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   modalTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1a1a2e',
   },
-  modalClose: {
-    fontSize: 20,
-    color: '#999',
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontSize: 16,
     fontWeight: '700',
-    padding: 5,
   },
   modalLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#555',
-    marginBottom: 6,
-    marginTop: 12,
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 8,
+    marginTop: 16,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
-  modalInput: {
-    backgroundColor: '#f5f5f7',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    fontSize: 15,
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  uploadRow: {
+
+  /* ===== INPUTS (wrapped with emoji icon) ===== */
+  inputWrapper: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  uploadBtn: {
-    flex: 1,
-    backgroundColor: '#f5f5f7',
-    borderRadius: 14,
-    paddingVertical: 22,
     alignItems: 'center',
-    marginHorizontal: 6,
-    borderWidth: 1.5,
-    borderColor: '#e0e0e0',
-    borderStyle: 'dashed',
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 2,
   },
-  uploadIcon: {
-    fontSize: 28,
+  inputIcon: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+  inputField: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 12,
+  },
+
+  /* ===== UPLOAD AREA ===== */
+  uploadArea: {
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadEmoji: {
+    fontSize: 30,
     marginBottom: 6,
   },
-  uploadText: {
+  uploadLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#777',
   },
+
+  /* ===== IMAGE PREVIEW ===== */
   imagePreviewWrapper: {
     position: 'relative',
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   imagePreview: {
     width: '100%',
     height: 180,
-    borderRadius: 14,
+    borderRadius: 16,
   },
   removeImageBtn: {
     position: 'absolute',
     top: 8,
     right: 8,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1245,36 +1432,22 @@ var styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-  modalSubmitBtn: {
-    backgroundColor: '#4caf50',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 22,
-    elevation: 6,
-  },
-  modalSubmitBtnCheckout: {
-    backgroundColor: '#e53935',
-  },
+
+  /* ===== CHECKBOX ===== */
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 18,
     marginBottom: 8,
   },
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#ddd',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
-  },
-  checkboxChecked: {
-    backgroundColor: '#1565c0',
-    borderColor: '#1565c0',
   },
   checkboxTick: {
     color: '#fff',
@@ -1284,65 +1457,59 @@ var styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
   },
+
+  /* ===== OUT OF TOWN ===== */
   outOfTownSection: {
-    backgroundColor: '#f9f9fb',
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#eee',
   },
   outOfTownTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1a1a2e',
-    marginBottom: 12,
   },
-  vendorSubmitBtn: {
-    backgroundColor: '#1565c0',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 22,
-    elevation: 6,
-  },
+
+  /* ===== ONBOARD OPTIONS ===== */
   onboardRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     marginTop: 4,
   },
   onboardOption: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    marginHorizontal: 6,
+    justifyContent: 'center',
+    flexDirection: 'row',
     borderWidth: 2,
-    borderColor: '#eee',
   },
-  onboardOptionYes: {
-    backgroundColor: '#e8f5e9',
-    borderColor: '#4caf50',
-  },
-  onboardOptionNo: {
-    backgroundColor: '#fce4ec',
-    borderColor: '#e53935',
+  onboardDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
   },
   onboardText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#777',
   },
-  onboardTextSelected: {
-    color: '#333',
-    fontWeight: '700',
+
+  /* ===== SUBMIT BUTTON ===== */
+  submitBtn: {
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 24,
+    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
   },
-  modalSubmitText: {
+  submitBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     letterSpacing: 2,
   },

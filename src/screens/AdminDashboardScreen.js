@@ -21,6 +21,7 @@ import * as Location from 'expo-location';
 import { WebView } from 'react-native-webview';
 import GPSCameraScreen from '../components/GPSCameraScreen';
 import { extractKmFromImage } from '../utils/ocrHelper';
+import { useTheme } from '../theme/ThemeContext';
 
 var SAMPLE_EMPLOYEES = [
   { id: '1', name: 'Rahul Sharma', designation: 'Sales Executive', hq: 'Delhi', phone: '9876543210', status: 'present', checkIn: '09:15 AM', vendors: 4, allowance: 850 },
@@ -51,26 +52,6 @@ function generateAttendanceData() {
   return data.reverse();
 }
 
-function getStatusColor(status) {
-  switch (status) {
-    case 'present': return '#4caf50';
-    case 'absent': return '#e53935';
-    case 'half-day': return '#ff9800';
-    case 'leave': return '#1565c0';
-    default: return '#bdbdbd';
-  }
-}
-
-function getStatusBg(status) {
-  switch (status) {
-    case 'present': return '#e8f5e9';
-    case 'absent': return '#ffebee';
-    case 'half-day': return '#fff3e0';
-    case 'leave': return '#e3f2fd';
-    default: return '#f5f5f5';
-  }
-}
-
 function getStatusLabel(status) {
   switch (status) {
     case 'present': return 'Present';
@@ -86,6 +67,28 @@ var getImageFile = function(uri, prefix) {
 };
 
 export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits, onGoToVendorMap, onGoToEmployeeList, onGoToAttendanceList, onGoToInventory, vendors, onVendorsChange }) {
+  var { theme, isDark, toggleTheme } = useTheme();
+
+  function getStatusColor(status) {
+    switch (status) {
+      case 'present': return theme.success;
+      case 'absent': return theme.primary;
+      case 'half-day': return theme.warning;
+      case 'leave': return theme.info;
+      default: return theme.textTertiary;
+    }
+  }
+
+  function getStatusBg(status) {
+    switch (status) {
+      case 'present': return theme.successBg;
+      case 'absent': return theme.errorBg;
+      case 'half-day': return theme.warningBg;
+      case 'leave': return theme.infoBg;
+      default: return theme.background;
+    }
+  }
+
   var [activeTab, setActiveTab] = useState('overview');
   var [selectedEmployee, setSelectedEmployee] = useState(null);
   var [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -712,238 +715,258 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
     }
   };
 
+  /* ======================== RENDER ======================== */
+
+  var renderSectionHeader = function(title) {
+    return (
+      <View style={s.sectionHeaderRow}>
+        <View style={[s.sectionBar, { backgroundColor: theme.primary }]} />
+        <Text style={[s.sectionTitle, { color: theme.text }]}>{title}</Text>
+      </View>
+    );
+  };
+
+  var renderStatusBadge = function(status) {
+    return (
+      <View style={[s.statusBadge, { backgroundColor: getStatusBg(status) }]}>
+        <View style={[s.statusDot, { backgroundColor: getStatusColor(status) }]} />
+        <Text style={[s.statusText, { color: getStatusColor(status) }]}>{getStatusLabel(status)}</Text>
+      </View>
+    );
+  };
+
+  var renderInput = function(props) {
+    var emoji = props.emoji || '';
+    return (
+      <View style={[s.inputWrapper, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]}>
+        {emoji ? <Text style={s.inputEmoji}>{emoji}</Text> : null}
+        <TextInput
+          style={[s.inputField, { color: theme.text }, !emoji && { paddingLeft: 16 }]}
+          placeholderTextColor={theme.textTertiary}
+          {...props}
+        />
+      </View>
+    );
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={[s.container, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      <View style={styles.header}>
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
-        <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.greeting}>Admin Panel</Text>
-            <Text style={styles.userName}>{fullName}</Text>
-          </View>
-          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-            <Text style={styles.logoutText}>Logout</Text>
+      {/* ===== HEADER ===== */}
+      <View style={[s.header, { backgroundColor: theme.primary }]}>
+        <View style={[s.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+        <View style={[s.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+        <View style={[s.decorCircle3, { backgroundColor: theme.secondary ? (theme.secondary + '26') : 'rgba(255,200,0,0.15)' }]} />
+
+        {/* Nav Row */}
+        <View style={s.navRow}>
+          <TouchableOpacity onPress={toggleTheme} style={s.navBtn}>
+            <Text style={s.navBtnText}>{isDark ? '☀️' : '🌙'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.navBtn} onPress={onLogout}>
+            <Text style={s.logoutLabel}>Logout</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.dateText}>{dateStr}</Text>
-        <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+
+        {/* User Info */}
+        <View style={s.userRow}>
+          <View style={s.headerAvatar}>
+            <Text style={s.headerAvatarLetter}>{fullName.charAt(0).toUpperCase()}</Text>
+          </View>
+          <View style={s.userTextCol}>
+            <Text style={s.userName}>{fullName}</Text>
+            <Text style={s.userRole}>Admin / Distributor</Text>
+          </View>
+        </View>
+
+        <Text style={s.dateText}>{dateStr}</Text>
+        <Text style={s.timeText}>{formatTime(currentTime)}</Text>
       </View>
 
-      {/* Manager Check-In/Out Card */}
-      <View style={styles.managerCheckCard}>
-        <View style={styles.managerCheckTop}>
-          <View style={[styles.managerStatusDot, checkedIn ? styles.dotActive : styles.dotInactive]} />
-          <Text style={styles.managerStatusText}>
+      {/* ===== MANAGER CHECK-IN CARD ===== */}
+      <View style={[s.checkCard, { backgroundColor: theme.surface }]}>
+        <View style={s.checkCardTop}>
+          <View style={[s.checkStatusDot, checkedIn ? { backgroundColor: theme.success } : { backgroundColor: theme.textTertiary }]} />
+          <Text style={[s.checkStatusLabel, { color: theme.text }]}>
             {checkedIn ? 'You are Checked In' : 'You are Checked Out'}
           </Text>
         </View>
-        <View style={styles.managerCheckRow}>
-          <View style={styles.managerTimeBox}>
-            <Text style={styles.managerTimeLabel}>Check In</Text>
-            <Text style={styles.managerTimeValue}>{formatTime(checkInTime)}</Text>
+
+        <View style={s.checkTimesRow}>
+          <View style={[s.checkTimeBox, { backgroundColor: theme.surfaceVariant }]}>
+            <Text style={s.checkTimeBoxEmoji}>{"🕐"}</Text>
+            <Text style={[s.checkTimeBoxLabel, { color: theme.textTertiary }]}>CHECK IN</Text>
+            <Text style={[s.checkTimeBoxValue, { color: theme.primary }]}>{formatTime(checkInTime)}</Text>
           </View>
-          <View style={styles.managerTimeBox}>
-            <Text style={styles.managerTimeLabel}>Check Out</Text>
-            <Text style={styles.managerTimeValue}>{formatTime(checkOutTime)}</Text>
+          <View style={[s.checkTimeBox, { backgroundColor: theme.surfaceVariant }]}>
+            <Text style={s.checkTimeBoxEmoji}>{"🕕"}</Text>
+            <Text style={[s.checkTimeBoxLabel, { color: theme.textTertiary }]}>CHECK OUT</Text>
+            <Text style={[s.checkTimeBoxValue, { color: theme.primary }]}>{formatTime(checkOutTime)}</Text>
           </View>
-          <View style={styles.managerTimeBox}>
-            <Text style={styles.managerTimeLabel}>Hours</Text>
-            <Text style={styles.managerTimeValueHours}>{getWorkingHours()}</Text>
+          <View style={[s.checkTimeBox, { backgroundColor: theme.surfaceVariant }]}>
+            <Text style={s.checkTimeBoxEmoji}>{"⏱"}</Text>
+            <Text style={[s.checkTimeBoxLabel, { color: theme.textTertiary }]}>HOURS</Text>
+            <Text style={[s.checkTimeBoxValue, { color: theme.success }]}>{getWorkingHours()}</Text>
           </View>
         </View>
-        <View style={styles.managerBtnRow}>
+
+        <View style={s.checkBtnRow}>
           <TouchableOpacity
-            style={[styles.managerCheckBtn, checkedIn ? styles.managerCheckOutBtn : styles.managerCheckInBtn]}
+            style={[s.checkActionBtn, { backgroundColor: checkedIn ? theme.primary : theme.success, elevation: 4 }]}
             onPress={function() {
               setCheckModalType(checkedIn ? 'checkout' : 'checkin');
               setShowCheckModal(true);
             }}
             activeOpacity={0.7}
           >
-            <Text style={styles.managerCheckBtnIcon}>{checkedIn ? '↗' : '↙'}</Text>
-            <Text style={styles.managerCheckBtnText}>{checkedIn ? 'CHECK OUT' : 'CHECK IN'}</Text>
+            <Text style={s.checkActionIcon}>{checkedIn ? '↗' : '↙'}</Text>
+            <Text style={s.checkActionLabel}>{checkedIn ? 'CHECK OUT' : 'CHECK IN'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.managerCheckBtn, styles.managerVendorBtn]}
+            style={[s.checkActionBtn, { backgroundColor: theme.info, elevation: 4 }]}
             onPress={function() { setShowVendorModal(true); }}
             activeOpacity={0.7}
           >
-            <Text style={styles.managerCheckBtnIcon}>🏪</Text>
-            <Text style={styles.managerCheckBtnText}>VENDOR</Text>
+            <Text style={s.checkActionIcon}>{"🏪"}</Text>
+            <Text style={s.checkActionLabel}>VENDOR</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Quick Actions for Manager */}
-      <View style={styles.quickActionsRow}>
-        <TouchableOpacity style={styles.quickActionItem} onPress={onGoToAttendance}>
-          <View style={[styles.quickActionIconBox, { backgroundColor: '#fce4ec' }]}>
-            <Text style={styles.quickActionEmoji}>📅</Text>
-          </View>
-          <Text style={styles.quickActionLabel}>Attendance</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionItem} onPress={onGoToVisits}>
-          <View style={[styles.quickActionIconBox, { backgroundColor: '#e8f5e9' }]}>
-            <Text style={styles.quickActionEmoji}>📍</Text>
-          </View>
-          <Text style={styles.quickActionLabel}>Visits</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionItem} onPress={onGoToDailyAllowance}>
-          <View style={[styles.quickActionIconBox, { backgroundColor: '#f3e5f5' }]}>
-            <Text style={styles.quickActionEmoji}>💰</Text>
-          </View>
-          <Text style={styles.quickActionLabel}>Allowance</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionItem} onPress={onGoToProfile}>
-          <View style={[styles.quickActionIconBox, { backgroundColor: '#fff3e0' }]}>
-            <Text style={styles.quickActionEmoji}>👤</Text>
-          </View>
-          <Text style={styles.quickActionLabel}>Profile</Text>
-        </TouchableOpacity>
+      {/* ===== QUICK ACTIONS GRID ===== */}
+      <View style={s.quickGrid}>
+        {[
+          { emoji: '📅', label: 'Attendance', bg: theme.errorBg, onPress: onGoToAttendance },
+          { emoji: '📍', label: 'Visits', bg: theme.successBg, onPress: onGoToVisits },
+          { emoji: '💰', label: 'Allowance', bg: theme.warningBg, onPress: onGoToDailyAllowance },
+          { emoji: '👤', label: 'Profile', bg: theme.infoBg, onPress: onGoToProfile },
+          { emoji: '📦', label: 'Inventory', bg: theme.surfaceVariant, onPress: onGoToInventory },
+          { emoji: '📋', label: 'Employees', bg: theme.successBg, onPress: onGoToEmployeeList },
+          { emoji: '📊', label: 'Reports', bg: theme.errorBg, onPress: onGoToAttendanceList },
+        ].map(function(item, idx) {
+          return (
+            <TouchableOpacity key={idx} style={s.quickItem} onPress={item.onPress} activeOpacity={0.7}>
+              <View style={[s.quickIconBox, { backgroundColor: item.bg }]}>
+                <Text style={s.quickEmoji}>{item.emoji}</Text>
+              </View>
+              <Text style={[s.quickLabel, { color: theme.textSecondary }]}>{item.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      <View style={styles.quickActionsRow}>
-        <TouchableOpacity style={styles.quickActionItem} onPress={onGoToInventory}>
-          <View style={[styles.quickActionIconBox, { backgroundColor: '#e0f7fa' }]}>
-            <Text style={styles.quickActionEmoji}>📦</Text>
-          </View>
-          <Text style={styles.quickActionLabel}>Inventory</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionItem} onPress={onGoToEmployeeList}>
-          <View style={[styles.quickActionIconBox, { backgroundColor: '#e8eaf6' }]}>
-            <Text style={styles.quickActionEmoji}>📋</Text>
-          </View>
-          <Text style={styles.quickActionLabel}>Employees</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionItem} onPress={onGoToAttendanceList}>
-          <View style={[styles.quickActionIconBox, { backgroundColor: '#fbe9e7' }]}>
-            <Text style={styles.quickActionEmoji}>📊</Text>
-          </View>
-          <Text style={styles.quickActionLabel}>Reports</Text>
-        </TouchableOpacity>
-        <View style={styles.quickActionItem} />
-      </View>
-
-      {/* Vendor Map Button */}
-      <TouchableOpacity style={styles.vendorMapBtn} onPress={onGoToVendorMap} activeOpacity={0.8}>
-        <Text style={styles.vendorMapIcon}>🗺</Text>
-        <View style={styles.vendorMapTextBox}>
-          <Text style={styles.vendorMapTitle}>Vendor Visit Map</Text>
-          <Text style={styles.vendorMapSubtitle}>View all vendor locations on map</Text>
+      {/* ===== VENDOR MAP BUTTON ===== */}
+      <TouchableOpacity style={[s.vendorMapCard, { backgroundColor: theme.surface }]} onPress={onGoToVendorMap} activeOpacity={0.8}>
+        <View style={[s.vendorMapAccent, { backgroundColor: theme.primary }]} />
+        <Text style={s.vendorMapEmoji}>{"🗺"}</Text>
+        <View style={s.vendorMapTextCol}>
+          <Text style={[s.vendorMapTitle, { color: theme.text }]}>Vendor Visit Map</Text>
+          <Text style={[s.vendorMapSub, { color: theme.textTertiary }]}>View all vendor locations on map</Text>
         </View>
-        <Text style={styles.vendorMapArrow}>→</Text>
+        <Text style={[s.vendorMapArrow, { color: theme.primary }]}>{">"}</Text>
       </TouchableOpacity>
 
-      {/* Tabs */}
-      <View style={styles.tabRow}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'overview' && styles.tabActive]}
-          onPress={function() { setActiveTab('overview'); }}
-        >
-          <Text style={[styles.tabText, activeTab === 'overview' && styles.tabTextActive]}>Overview</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'employees' && styles.tabActive]}
-          onPress={function() { setActiveTab('employees'); }}
-        >
-          <Text style={[styles.tabText, activeTab === 'employees' && styles.tabTextActive]}>Employees</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'attendance' && styles.tabActive]}
-          onPress={function() { setActiveTab('attendance'); }}
-        >
-          <Text style={[styles.tabText, activeTab === 'attendance' && styles.tabTextActive]}>Attendance</Text>
-        </TouchableOpacity>
+      {/* ===== TAB / FILTER BAR ===== */}
+      <View style={s.tabBar}>
+        {['overview', 'employees', 'attendance'].map(function(tab) {
+          var isActive = activeTab === tab;
+          return (
+            <TouchableOpacity
+              key={tab}
+              style={[s.tabPill, isActive && { backgroundColor: theme.primary }]}
+              onPress={function() { setActiveTab(tab); }}
+              activeOpacity={0.7}
+            >
+              <Text style={[s.tabPillText, { color: theme.textTertiary }, isActive && { color: '#fff' }]}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      <ScrollView
-        style={styles.body}
-        contentContainerStyle={styles.bodyContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* OVERVIEW TAB */}
+      {/* ===== SCROLLABLE BODY ===== */}
+      <ScrollView style={s.body} contentContainerStyle={s.bodyContent} showsVerticalScrollIndicator={false}>
+
+        {/* ===== OVERVIEW TAB ===== */}
         {activeTab === 'overview' ? (
           <View>
-            <View style={styles.statsGrid}>
-              <View style={[styles.statCard, { backgroundColor: '#e8f5e9' }]}>
-                <Text style={styles.statIcon}>👥</Text>
-                <Text style={[styles.statCount, { color: '#4caf50' }]}>{totalEmployees}</Text>
-                <Text style={styles.statLabel}>Total Employees</Text>
-              </View>
-              <View style={[styles.statCard, { backgroundColor: '#e3f2fd' }]}>
-                <Text style={styles.statIcon}>✅</Text>
-                <Text style={[styles.statCount, { color: '#1565c0' }]}>{presentToday}</Text>
-                <Text style={styles.statLabel}>Present Today</Text>
-              </View>
-              <View style={[styles.statCard, { backgroundColor: '#ffebee' }]}>
-                <Text style={styles.statIcon}>❌</Text>
-                <Text style={[styles.statCount, { color: '#e53935' }]}>{absentToday + onLeaveToday}</Text>
-                <Text style={styles.statLabel}>Absent / Leave</Text>
-              </View>
-              <View style={[styles.statCard, { backgroundColor: '#fff3e0' }]}>
-                <Text style={styles.statIcon}>🏪</Text>
-                <Text style={[styles.statCount, { color: '#ff9800' }]}>{totalVendors}</Text>
-                <Text style={styles.statLabel}>Vendor Visits</Text>
-              </View>
+            {/* KPI Stats Cards */}
+            <View style={s.kpiGrid}>
+              {[
+                { emoji: '👥', num: totalEmployees, label: 'TOTAL EMPLOYEES', color: theme.success, bg: theme.successBg },
+                { emoji: '✅', num: presentToday, label: 'PRESENT TODAY', color: theme.info, bg: theme.infoBg },
+                { emoji: '❌', num: absentToday + onLeaveToday, label: 'ABSENT / LEAVE', color: theme.primary, bg: theme.errorBg },
+                { emoji: '🏪', num: totalVendors, label: 'VENDOR VISITS', color: theme.warning, bg: theme.warningBg },
+              ].map(function(kpi, idx) {
+                return (
+                  <View key={idx} style={[s.kpiCard, { backgroundColor: theme.surface }]}>
+                    <View style={[s.kpiIconBox, { backgroundColor: kpi.bg }]}>
+                      <Text style={s.kpiEmoji}>{kpi.emoji}</Text>
+                    </View>
+                    <Text style={[s.kpiNumber, { color: kpi.color }]}>{kpi.num}</Text>
+                    <Text style={[s.kpiLabel, { color: theme.textTertiary }]}>{kpi.label}</Text>
+                  </View>
+                );
+              })}
             </View>
 
-            <View style={styles.totalAllowanceCard}>
+            {/* Total Allowance Card */}
+            <View style={[s.allowanceBanner, { backgroundColor: theme.primary }]}>
               <View>
-                <Text style={styles.totalAllowanceLabel}>Total Daily Allowance</Text>
-                <Text style={styles.totalAllowanceSub}>All employees today</Text>
+                <Text style={s.allowanceBannerTitle}>Total Daily Allowance</Text>
+                <Text style={s.allowanceBannerSub}>All employees today</Text>
               </View>
-              <Text style={styles.totalAllowanceValue}>₹{totalAllowance.toLocaleString()}</Text>
+              <Text style={s.allowanceBannerValue}>{"₹"}{totalAllowance.toLocaleString()}</Text>
             </View>
 
-            <Text style={styles.sectionTitle}>Today's Attendance</Text>
-            <View style={styles.attendanceBar}>
-              <View style={[styles.attendanceSegment, { flex: presentToday, backgroundColor: '#4caf50' }]} />
-              <View style={[styles.attendanceSegment, { flex: halfDayToday || 0.01, backgroundColor: '#ff9800' }]} />
-              <View style={[styles.attendanceSegment, { flex: absentToday || 0.01, backgroundColor: '#e53935' }]} />
-              <View style={[styles.attendanceSegment, { flex: onLeaveToday || 0.01, backgroundColor: '#1565c0' }]} />
+            {/* Attendance Breakdown */}
+            {renderSectionHeader("Today's Attendance")}
+            <View style={s.attBarOuter}>
+              <View style={[s.attBarSeg, { flex: presentToday, backgroundColor: theme.success, borderTopLeftRadius: 7, borderBottomLeftRadius: 7 }]} />
+              <View style={[s.attBarSeg, { flex: halfDayToday || 0.01, backgroundColor: theme.warning }]} />
+              <View style={[s.attBarSeg, { flex: absentToday || 0.01, backgroundColor: theme.primary }]} />
+              <View style={[s.attBarSeg, { flex: onLeaveToday || 0.01, backgroundColor: theme.info, borderTopRightRadius: 7, borderBottomRightRadius: 7 }]} />
             </View>
-            <View style={styles.legendRow}>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#4caf50' }]} />
-                <Text style={styles.legendText}>Present ({presentToday})</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#ff9800' }]} />
-                <Text style={styles.legendText}>Half Day ({halfDayToday})</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#e53935' }]} />
-                <Text style={styles.legendText}>Absent ({absentToday})</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#1565c0' }]} />
-                <Text style={styles.legendText}>Leave ({onLeaveToday})</Text>
-              </View>
+            <View style={s.legendRow}>
+              {[
+                { label: 'Present (' + presentToday + ')', color: theme.success },
+                { label: 'Half Day (' + halfDayToday + ')', color: theme.warning },
+                { label: 'Absent (' + absentToday + ')', color: theme.primary },
+                { label: 'Leave (' + onLeaveToday + ')', color: theme.info },
+              ].map(function(l, i) {
+                return (
+                  <View key={i} style={s.legendItem}>
+                    <View style={[s.legendDot, { backgroundColor: l.color }]} />
+                    <Text style={[s.legendText, { color: theme.textSecondary }]}>{l.label}</Text>
+                  </View>
+                );
+              })}
             </View>
 
+            {/* Top Performers */}
             {employees.length > 0 ? (
               <View>
-                <Text style={styles.sectionTitle}>Top Performers (Vendor Visits)</Text>
+                {renderSectionHeader('Top Performers (Vendor Visits)')}
                 {employees
                   .slice()
                   .sort(function(a, b) { return (b.vendors || b.vendor_visits || 0) - (a.vendors || a.vendor_visits || 0); })
                   .slice(0, 5)
                   .map(function(emp, index) {
                     return (
-                      <View key={emp._id || emp.id || index} style={styles.performerCard}>
-                        <View style={styles.performerRank}>
-                          <Text style={styles.performerRankText}>#{index + 1}</Text>
+                      <View key={emp._id || emp.id || index} style={[s.performerCard, { backgroundColor: theme.surface }]}>
+                        <View style={[s.performerAccent, { backgroundColor: theme.warning }]} />
+                        <View style={[s.performerRank, { backgroundColor: theme.warningBg }]}>
+                          <Text style={[s.performerRankText, { color: theme.warning }]}>#{index + 1}</Text>
                         </View>
-                        <View style={styles.performerInfo}>
-                          <Text style={styles.performerName}>{emp.full_name || emp.name || 'Employee'}</Text>
-                          <Text style={styles.performerDesig}>{emp.designation_name || emp.designation || ''} - {emp.headquarter_name || emp.hq || ''}</Text>
+                        <View style={s.performerInfo}>
+                          <Text style={[s.performerName, { color: theme.text }]}>{emp.full_name || emp.name || 'Employee'}</Text>
+                          <Text style={[s.performerDesig, { color: theme.textTertiary }]}>{emp.designation_name || emp.designation || ''} - {emp.headquarter_name || emp.hq || ''}</Text>
                         </View>
-                        <View style={styles.performerStats}>
-                          <Text style={styles.performerVendors}>{emp.vendors || emp.vendor_visits || 0}</Text>
-                          <Text style={styles.performerVendorsLabel}>visits</Text>
+                        <View style={s.performerStats}>
+                          <Text style={[s.performerCount, { color: theme.success }]}>{emp.vendors || emp.vendor_visits || 0}</Text>
+                          <Text style={[s.performerCountLabel, { color: theme.textTertiary }]}>visits</Text>
                         </View>
                       </View>
                     );
@@ -953,17 +976,27 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
           </View>
         ) : null}
 
-        {/* EMPLOYEES TAB */}
+        {/* ===== EMPLOYEES TAB ===== */}
         {activeTab === 'employees' ? (
           <View>
-            <View style={styles.empSummaryRow}>
-              <Text style={styles.empSummaryText}>{employees.length} employees</Text>
+            <View style={s.listHeaderRow}>
+              <Text style={[s.listHeaderCount, { color: theme.textTertiary }]}>{employees.length} employees</Text>
               {employees.length > 5 ? (
                 <TouchableOpacity onPress={onGoToEmployeeList} activeOpacity={0.7}>
-                  <Text style={styles.viewAllText}>View All →</Text>
+                  <Text style={[s.viewAllLink, { color: theme.primary }]}>View All  {">"}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
+
+            {employees.length === 0 ? (
+              <View style={s.emptyState}>
+                <View style={[s.emptyIconBox, { backgroundColor: theme.surfaceVariant }]}>
+                  <Text style={s.emptyEmoji}>{"👥"}</Text>
+                </View>
+                <Text style={[s.emptyTitle, { color: theme.text }]}>No Employees</Text>
+                <Text style={[s.emptySub, { color: theme.textTertiary }]}>No employee data available yet</Text>
+              </View>
+            ) : null}
 
             {employees.slice(0, 5).map(function(emp, index) {
               var empName = emp.full_name || emp.name || 'Employee';
@@ -973,27 +1006,23 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
               return (
                 <TouchableOpacity
                   key={emp._id || emp.id || index}
-                  style={styles.empCard}
+                  style={[s.empCard, { backgroundColor: theme.surface }]}
                   onPress={function() { openEmployee(emp); }}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.empAvatar}>
-                    <Text style={styles.empAvatarText}>
+                  <View style={[s.empCardAccent, { backgroundColor: getStatusColor(empStatus) }]} />
+                  <View style={[s.empAvatar, { backgroundColor: theme.primary }]}>
+                    <Text style={s.empAvatarLetter}>
                       {empName.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase()}
                     </Text>
                   </View>
-                  <View style={styles.empInfo}>
-                    <Text style={styles.empName}>{empName}</Text>
-                    <Text style={styles.empDesig}>{empDesig}</Text>
-                    <Text style={styles.empHq}>{empHq}</Text>
+                  <View style={s.empInfoCol}>
+                    <Text style={[s.empName, { color: theme.text }]}>{empName}</Text>
+                    <Text style={[s.empDesig, { color: theme.textSecondary }]}>{empDesig}</Text>
+                    <Text style={[s.empHq, { color: theme.textTertiary }]}>{empHq}</Text>
                   </View>
-                  <View style={styles.empRight}>
-                    <View style={[styles.empStatusBadge, { backgroundColor: getStatusBg(empStatus) }]}>
-                      <View style={[styles.empStatusDot, { backgroundColor: getStatusColor(empStatus) }]} />
-                      <Text style={[styles.empStatusText, { color: getStatusColor(empStatus) }]}>
-                        {getStatusLabel(empStatus)}
-                      </Text>
-                    </View>
+                  <View style={s.empRightCol}>
+                    {renderStatusBadge(empStatus)}
                   </View>
                 </TouchableOpacity>
               );
@@ -1001,42 +1030,42 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
           </View>
         ) : null}
 
-        {/* ATTENDANCE TAB */}
+        {/* ===== ATTENDANCE TAB ===== */}
         {activeTab === 'attendance' ? (
           <View>
-            <Text style={styles.sectionTitle}>Weekly Overview</Text>
-            <View style={styles.weekChart}>
+            {renderSectionHeader('Weekly Overview')}
+            <View style={[s.weekChart, { backgroundColor: theme.surface }]}>
               {attendanceWeek.map(function(day, i) {
                 var maxHeight = 100;
                 var presentH = (day.present / 10) * maxHeight;
                 var absentH = (day.absent / 10) * maxHeight;
                 return (
-                  <View key={i} style={styles.weekDay}>
-                    <View style={styles.barWrapper}>
-                      <View style={[styles.bar, { height: presentH, backgroundColor: '#4caf50' }]} />
-                      <View style={[styles.bar, { height: absentH, backgroundColor: '#ef5350', marginTop: 2 }]} />
+                  <View key={i} style={s.weekCol}>
+                    <View style={s.weekBarStack}>
+                      <View style={[s.weekBar, { height: presentH, backgroundColor: theme.success, borderTopLeftRadius: 4, borderTopRightRadius: 4 }]} />
+                      <View style={[s.weekBar, { height: absentH, backgroundColor: theme.error, marginTop: 2, borderBottomLeftRadius: 4, borderBottomRightRadius: 4 }]} />
                     </View>
-                    <Text style={styles.weekDayLabel}>{day.date}</Text>
+                    <Text style={[s.weekLabel, { color: theme.textTertiary }]}>{day.date}</Text>
                   </View>
                 );
               })}
             </View>
-            <View style={styles.legendRow}>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#4caf50' }]} />
-                <Text style={styles.legendText}>Present</Text>
+            <View style={s.legendRow}>
+              <View style={s.legendItem}>
+                <View style={[s.legendDot, { backgroundColor: theme.success }]} />
+                <Text style={[s.legendText, { color: theme.textSecondary }]}>Present</Text>
               </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#ef5350' }]} />
-                <Text style={styles.legendText}>Absent</Text>
+              <View style={s.legendItem}>
+                <View style={[s.legendDot, { backgroundColor: theme.error }]} />
+                <Text style={[s.legendText, { color: theme.textSecondary }]}>Absent</Text>
               </View>
             </View>
 
-            <View style={styles.empSummaryRow}>
-              <Text style={styles.sectionTitle}>Today's Employee Attendance</Text>
+            <View style={s.listHeaderRow}>
+              {renderSectionHeader("Today's Employee Attendance")}
               {employees.length > 5 ? (
                 <TouchableOpacity onPress={onGoToAttendanceList} activeOpacity={0.7}>
-                  <Text style={styles.viewAllText}>View All →</Text>
+                  <Text style={[s.viewAllLink, { color: theme.primary }]}>View All  {">"}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -1045,18 +1074,15 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
               var empCheckIn = emp.check_in_time || emp.checkIn || null;
               var empStatus = emp.status ? emp.status.toLowerCase() : (empCheckIn ? 'present' : 'absent');
               return (
-                <View key={emp._id || emp.id || index} style={styles.attendanceRow}>
-                  <View style={styles.attendanceLeft}>
-                    <Text style={styles.attendanceName}>{empName}</Text>
-                    <Text style={styles.attendanceCheckIn}>
+                <View key={emp._id || emp.id || index} style={[s.attListCard, { backgroundColor: theme.surface }]}>
+                  <View style={[s.attListAccent, { backgroundColor: getStatusColor(empStatus) }]} />
+                  <View style={s.attListInfo}>
+                    <Text style={[s.attListName, { color: theme.text }]}>{empName}</Text>
+                    <Text style={[s.attListTime, { color: theme.textTertiary }]}>
                       {empCheckIn ? 'Check In: ' + empCheckIn : 'Not checked in'}
                     </Text>
                   </View>
-                  <View style={[styles.attendanceStatusBadge, { backgroundColor: getStatusBg(empStatus) }]}>
-                    <Text style={[styles.attendanceStatusText, { color: getStatusColor(empStatus) }]}>
-                      {getStatusLabel(empStatus)}
-                    </Text>
-                  </View>
+                  {renderStatusBadge(empStatus)}
                 </View>
               );
             })}
@@ -1064,78 +1090,68 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
         ) : null}
       </ScrollView>
 
-      {/* Employee Detail Modal */}
+      {/* ===== EMPLOYEE DETAIL MODAL ===== */}
       <Modal
         visible={showEmployeeModal}
         transparent={true}
         animationType="slide"
         onRequestClose={function() { setShowEmployeeModal(false); }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[s.modalOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[s.modalSheet, { backgroundColor: theme.surface }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Employee Details</Text>
-                <TouchableOpacity onPress={function() { setShowEmployeeModal(false); }}>
-                  <Text style={styles.modalClose}>✕</Text>
+              <View style={s.modalHead}>
+                <Text style={[s.modalHeadTitle, { color: theme.text }]}>Employee Details</Text>
+                <TouchableOpacity onPress={function() { setShowEmployeeModal(false); }} style={s.modalCloseBtn}>
+                  <Text style={[s.modalCloseX, { color: theme.textTertiary }]}>{"✕"}</Text>
                 </TouchableOpacity>
               </View>
 
               {employeeDetailLoading ? (
-                <ActivityIndicator size="large" color="#9c27b0" style={{ marginTop: 40, marginBottom: 40 }} />
+                <ActivityIndicator size="large" color={theme.secondary || theme.primary} style={{ marginTop: 40, marginBottom: 40 }} />
               ) : selectedEmployee ? (
                 <View>
-                  <View style={styles.modalProfile}>
-                    <View style={styles.modalAvatar}>
-                      <Text style={styles.modalAvatarText}>
+                  <View style={s.modalProfileBlock}>
+                    <View style={[s.modalAvatarLg, { backgroundColor: theme.primary }]}>
+                      <Text style={s.modalAvatarLgText}>
                         {(selectedEmployee.full_name || selectedEmployee.name || 'E').split(' ').map(function(n) { return n[0]; }).join('').toUpperCase()}
                       </Text>
                     </View>
-                    <Text style={styles.modalProfileName}>{selectedEmployee.full_name || selectedEmployee.name || 'Employee'}</Text>
-                    <Text style={styles.modalProfileDesig}>{selectedEmployee.designation_name || selectedEmployee.designation || ''}</Text>
-                    <View style={[styles.empStatusBadge, { backgroundColor: getStatusBg((selectedEmployee.status || 'present').toLowerCase()), alignSelf: 'center', marginTop: 8 }]}>
-                      <View style={[styles.empStatusDot, { backgroundColor: getStatusColor((selectedEmployee.status || 'present').toLowerCase()) }]} />
-                      <Text style={[styles.empStatusText, { color: getStatusColor((selectedEmployee.status || 'present').toLowerCase()) }]}>
-                        {getStatusLabel((selectedEmployee.status || 'present').toLowerCase())}
-                      </Text>
+                    <Text style={[s.modalProfileName, { color: theme.text }]}>{selectedEmployee.full_name || selectedEmployee.name || 'Employee'}</Text>
+                    <Text style={[s.modalProfileDesig, { color: theme.textSecondary }]}>{selectedEmployee.designation_name || selectedEmployee.designation || ''}</Text>
+                    <View style={{ alignSelf: 'center', marginTop: 10 }}>
+                      {renderStatusBadge((selectedEmployee.status || 'present').toLowerCase())}
                     </View>
                   </View>
 
-                  <View style={styles.modalDetailRow}>
-                    <Text style={styles.modalDetailIcon}>🏢</Text>
-                    <View>
-                      <Text style={styles.modalDetailLabel}>Headquarter</Text>
-                      <Text style={styles.modalDetailValue}>{selectedEmployee.headquarter_name || selectedEmployee.hq || '--'}</Text>
-                    </View>
-                  </View>
+                  {/* Detail Rows */}
+                  {[
+                    { emoji: '🏢', label: 'Headquarter', value: selectedEmployee.headquarter_name || selectedEmployee.hq || '--' },
+                    { emoji: '📱', label: 'Phone', value: selectedEmployee.phone_number || selectedEmployee.phone || '--' },
+                    { emoji: '⏰', label: 'Check In Time', value: selectedEmployee.check_in_time || selectedEmployee.start_time || selectedEmployee.checkIn || 'Not checked in' },
+                  ].map(function(row, i) {
+                    return (
+                      <View key={i} style={[s.modalDetailRow, { backgroundColor: theme.surfaceVariant }]}>
+                        <Text style={s.modalDetailEmoji}>{row.emoji}</Text>
+                        <View>
+                          <Text style={[s.modalDetailLabel, { color: theme.textTertiary }]}>{row.label}</Text>
+                          <Text style={[s.modalDetailValue, { color: theme.text }]}>{row.value}</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
 
-                  <View style={styles.modalDetailRow}>
-                    <Text style={styles.modalDetailIcon}>📱</Text>
-                    <View>
-                      <Text style={styles.modalDetailLabel}>Phone</Text>
-                      <Text style={styles.modalDetailValue}>{selectedEmployee.phone_number || selectedEmployee.phone || '--'}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.modalDetailRow}>
-                    <Text style={styles.modalDetailIcon}>⏰</Text>
-                    <View>
-                      <Text style={styles.modalDetailLabel}>Check In Time</Text>
-                      <Text style={styles.modalDetailValue}>{selectedEmployee.check_in_time || selectedEmployee.start_time || selectedEmployee.checkIn || 'Not checked in'}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.modalStatsRow}>
-                    <TouchableOpacity style={[styles.modalStatCard, { backgroundColor: '#e8f5e9' }]} onPress={openEmpVendorMap} activeOpacity={0.7}>
-                      <Text style={styles.modalStatIcon}>🏪</Text>
-                      <Text style={[styles.modalStatValue, { color: '#4caf50' }]}>{selectedEmployee.vendor_visits != null ? selectedEmployee.vendor_visits : (selectedEmployee.vendors || 0)}</Text>
-                      <Text style={styles.modalStatLabel}>Vendor Visits</Text>
-                      <Text style={{ fontSize: 10, color: '#4caf50', fontWeight: '600', marginTop: 4 }}>Tap to view map</Text>
+                  <View style={s.modalStatsRow}>
+                    <TouchableOpacity style={[s.modalStatBox, { backgroundColor: theme.successBg }]} onPress={openEmpVendorMap} activeOpacity={0.7}>
+                      <Text style={s.modalStatEmoji}>{"🏪"}</Text>
+                      <Text style={[s.modalStatNum, { color: theme.success }]}>{selectedEmployee.vendor_visits != null ? selectedEmployee.vendor_visits : (selectedEmployee.vendors || 0)}</Text>
+                      <Text style={[s.modalStatLabel, { color: theme.textSecondary }]}>Vendor Visits</Text>
+                      <Text style={{ fontSize: 10, color: theme.success, fontWeight: '600', marginTop: 4 }}>Tap to view map</Text>
                     </TouchableOpacity>
-                    <View style={[styles.modalStatCard, { backgroundColor: '#f3e5f5' }]}>
-                      <Text style={styles.modalStatIcon}>💰</Text>
-                      <Text style={[styles.modalStatValue, { color: '#9c27b0' }]}>₹{selectedEmployee.total_allowance != null ? selectedEmployee.total_allowance : (selectedEmployee.allowance || selectedEmployee.daily_allowance || 0)}</Text>
-                      <Text style={styles.modalStatLabel}>Allowance</Text>
+                    <View style={[s.modalStatBox, { backgroundColor: theme.surfaceVariant }]}>
+                      <Text style={s.modalStatEmoji}>{"💰"}</Text>
+                      <Text style={[s.modalStatNum, { color: theme.secondary || theme.primary }]}>{"₹"}{selectedEmployee.total_allowance != null ? selectedEmployee.total_allowance : (selectedEmployee.allowance || selectedEmployee.daily_allowance || 0)}</Text>
+                      <Text style={[s.modalStatLabel, { color: theme.textSecondary }]}>Allowance</Text>
                     </View>
                   </View>
                 </View>
@@ -1145,51 +1161,51 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
         </View>
       </Modal>
 
-      {/* Employee Vendor Visits Map Modal */}
+      {/* ===== EMPLOYEE VENDOR MAP MODAL ===== */}
       <Modal
         visible={showEmpVendorMap}
         animationType="slide"
         onRequestClose={function() { setShowEmpVendorMap(false); }}
       >
-        <View style={{ flex: 1, backgroundColor: '#f5f5f7' }}>
-          <View style={styles.empMapHeader}>
-            <View style={styles.circle1} />
-            <View style={styles.circle2} />
-            <View style={styles.empMapHeaderTop}>
-              <TouchableOpacity style={styles.empMapBackBtn} onPress={function() { setShowEmpVendorMap(false); }}>
-                <Text style={styles.empMapBackText}>← Back</Text>
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <View style={[s.mapHeader, { backgroundColor: theme.primary }]}>
+            <View style={[s.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+            <View style={[s.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+            <View style={s.mapHeaderTop}>
+              <TouchableOpacity style={s.mapBackBtn} onPress={function() { setShowEmpVendorMap(false); }}>
+                <Text style={s.mapBackText}>{"<"} Back</Text>
               </TouchableOpacity>
-              <Text style={styles.empMapTitle}>Vendor Map</Text>
+              <Text style={s.mapHeaderTitle}>Vendor Map</Text>
               <View style={{ width: 60 }} />
             </View>
-            <Text style={styles.empMapSubtitle}>{empVendorMapName}'s Visits</Text>
-            <View style={styles.empMapStatsBar}>
-              <View style={styles.empMapStatItem}>
-                <Text style={styles.empMapStatCount}>{empVendorVisits.length}</Text>
-                <Text style={styles.empMapStatLabel}>Total</Text>
+            <Text style={s.mapSubtitle}>{empVendorMapName}'s Visits</Text>
+            <View style={s.mapStatsBar}>
+              <View style={s.mapStatItem}>
+                <Text style={s.mapStatCount}>{empVendorVisits.length}</Text>
+                <Text style={s.mapStatLabel}>Total</Text>
               </View>
-              <View style={styles.empMapStatDivider} />
-              <View style={styles.empMapStatItem}>
-                <Text style={[styles.empMapStatCount, { color: '#4caf50' }]}>
+              <View style={s.mapStatDivider} />
+              <View style={s.mapStatItem}>
+                <Text style={[s.mapStatCount, { color: theme.success }]}>
                   {empVendorVisits.filter(function(v) { return v.on_board === true || v.on_board === 'true' || v.is_onboarded === true || v.is_onboarded === 'true'; }).length}
                 </Text>
-                <Text style={styles.empMapStatLabel}>Onboarded</Text>
+                <Text style={s.mapStatLabel}>Onboarded</Text>
               </View>
-              <View style={styles.empMapStatDivider} />
-              <View style={styles.empMapStatItem}>
-                <Text style={[styles.empMapStatCount, { color: '#ff9800' }]}>
+              <View style={s.mapStatDivider} />
+              <View style={s.mapStatItem}>
+                <Text style={[s.mapStatCount, { color: theme.warning }]}>
                   {empVendorVisits.filter(function(v) { return v.on_board === false || v.on_board === 'false' || v.is_onboarded === false || v.is_onboarded === 'false'; }).length}
                 </Text>
-                <Text style={styles.empMapStatLabel}>Pending</Text>
+                <Text style={s.mapStatLabel}>Pending</Text>
               </View>
             </View>
           </View>
 
-          <View style={{ flex: 1, margin: 12, borderRadius: 20, overflow: 'hidden', backgroundColor: '#fff', elevation: 4 }}>
+          <View style={[s.mapWebViewBox, { backgroundColor: theme.surface }]}>
             {empVendorMapLoading ? (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#4caf50" />
-                <Text style={{ marginTop: 12, fontSize: 14, color: '#999', fontWeight: '600' }}>Loading vendor visits...</Text>
+                <ActivityIndicator size="large" color={theme.success} />
+                <Text style={{ marginTop: 12, fontSize: 14, color: theme.textTertiary, fontWeight: '600' }}>Loading vendor visits...</Text>
               </View>
             ) : generateEmpVendorMapHTML(empVendorVisits, empVendorMapName) ? (
               <WebView
@@ -1201,41 +1217,43 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
                 startInLoadingState={true}
                 renderLoading={function() {
                   return (
-                    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f7' }}>
-                      <Text style={{ fontSize: 16, fontWeight: '700', color: '#999' }}>Loading Map...</Text>
+                    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+                      <Text style={{ fontSize: 16, fontWeight: '700', color: theme.textTertiary }}>Loading Map...</Text>
                     </View>
                   );
                 }}
               />
             ) : (
-              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
-                <Text style={{ fontSize: 50, marginBottom: 14 }}>🗺</Text>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: '#333', marginBottom: 8 }}>No Location Data</Text>
-                <Text style={{ fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 20 }}>No vendor visits with GPS data found for this employee</Text>
+              <View style={s.emptyState}>
+                <View style={[s.emptyIconBox, { backgroundColor: theme.surfaceVariant }]}>
+                  <Text style={s.emptyEmoji}>{"🗺"}</Text>
+                </View>
+                <Text style={[s.emptyTitle, { color: theme.text }]}>No Location Data</Text>
+                <Text style={[s.emptySub, { color: theme.textTertiary }]}>No vendor visits with GPS data found for this employee</Text>
               </View>
             )}
           </View>
 
           {empVendorVisits.length > 0 && !empVendorMapLoading ? (
-            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#f0f0f0' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 12 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#4caf50', marginRight: 6 }} />
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#666' }}>Onboarded</Text>
+            <View style={[s.mapLegendBar, { backgroundColor: theme.surface, borderTopColor: theme.divider }]}>
+              <View style={s.mapLegendItem}>
+                <View style={[s.legendDot, { backgroundColor: theme.success }]} />
+                <Text style={[s.mapLegendText, { color: theme.textSecondary }]}>Onboarded</Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 12 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#ff9800', marginRight: 6 }} />
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#666' }}>Pending</Text>
+              <View style={s.mapLegendItem}>
+                <View style={[s.legendDot, { backgroundColor: theme.warning }]} />
+                <Text style={[s.mapLegendText, { color: theme.textSecondary }]}>Pending</Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 12 }}>
-                <View style={{ width: 18, height: 2, backgroundColor: '#e53935', marginRight: 6 }} />
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#666' }}>Route</Text>
+              <View style={s.mapLegendItem}>
+                <View style={{ width: 18, height: 2, backgroundColor: theme.primary, marginRight: 6 }} />
+                <Text style={[s.mapLegendText, { color: theme.textSecondary }]}>Route</Text>
               </View>
             </View>
           ) : null}
         </View>
       </Modal>
 
-      {/* Manager Check-In / Check-Out Modal */}
+      {/* ===== CHECK-IN / CHECK-OUT MODAL ===== */}
       <Modal
         visible={showCheckModal}
         transparent={true}
@@ -1243,222 +1261,170 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
         onRequestClose={function() { setShowCheckModal(false); resetCheckFields(); }}
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {checkModalType === 'checkin' ? 'Check In Details' : 'Check Out Details'}
-                </Text>
-                <TouchableOpacity onPress={function() { setShowCheckModal(false); resetCheckFields(); }}>
-                  <Text style={styles.modalClose}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View>
-                <Text style={styles.checkModalLabel}>Selfie</Text>
-                {selfieImage ? (
-                  <View style={styles.imagePreviewWrapper}>
-                    <Image source={{ uri: selfieImage }} style={styles.selfiePreview} />
-                    <TouchableOpacity style={styles.removeImageBtn} onPress={function() { setSelfieImage(null); }}>
-                      <Text style={styles.removeImageText}>✕</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={styles.uploadRow}>
-                    <TouchableOpacity style={styles.uploadBtn} onPress={takeSelfie}>
-                      <Text style={styles.uploadIcon}>🤳</Text>
-                      <Text style={styles.uploadText}>Take Selfie</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-
-              <Text style={styles.checkModalLabel}>KM Image</Text>
-              {kmImage ? (
-                <View style={styles.imagePreviewWrapper}>
-                  <Image source={{ uri: kmImage }} style={styles.imagePreview} />
-                  <TouchableOpacity style={styles.removeImageBtn} onPress={function() { setKmImage(null); setKmReading(''); }}>
-                    <Text style={styles.removeImageText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.uploadRow}>
-                  <TouchableOpacity style={styles.uploadBtn} onPress={takePhoto}>
-                    <Text style={styles.uploadIcon}>📷</Text>
-                    <Text style={styles.uploadText}>Camera</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              <Text style={styles.checkModalLabel}>KM Reading</Text>
-              {ocrLoading ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                  <ActivityIndicator size="small" color="#1976d2" />
-                  <Text style={{ marginLeft: 8, color: '#1976d2', fontSize: 13 }}>Reading odometer...</Text>
-                </View>
-              ) : null}
-              <TextInput
-                style={styles.checkModalInput}
-                placeholder="Enter KM reading"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                value={kmReading}
-                onChangeText={setKmReading}
-              />
-
-              <Text style={styles.checkModalLabel}>HQ Name</Text>
-              <TextInput
-                style={styles.checkModalInput}
-                placeholder="Enter headquarter name"
-                placeholderTextColor="#999"
-                value={hqName}
-                onChangeText={setHqName}
-              />
-
-              <Text style={styles.checkModalLabel}>Working Town</Text>
-              <TextInput
-                style={styles.checkModalInput}
-                placeholder="Enter working town"
-                placeholderTextColor="#999"
-                value={workingTown}
-                onChangeText={setWorkingTown}
-              />
-
-              <Text style={styles.checkModalLabel}>Route</Text>
-              <TextInput
-                style={styles.checkModalInput}
-                placeholder="Enter route"
-                placeholderTextColor="#999"
-                value={route}
-                onChangeText={setRoute}
-              />
-
-              {/* Out of Town Checkbox */}
-              <TouchableOpacity
-                style={styles.checkboxRow}
-                onPress={function() { setOutOfTown(!outOfTown); }}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.checkbox, outOfTown && styles.checkboxChecked]}>
-                  {outOfTown ? <Text style={styles.checkboxTick}>✓</Text> : null}
-                </View>
-                <Text style={styles.checkboxLabel}>Out of Town</Text>
-              </TouchableOpacity>
-
-              {outOfTown ? (
-                <View style={styles.outOfTownSection}>
-                  <Text style={styles.outOfTownTitle}>Out of Town Expenses</Text>
-
-                  <Text style={styles.checkModalLabel}>Stay Bill Amount</Text>
-                  <TextInput
-                    style={styles.checkModalInput}
-                    placeholder="Enter stay bill amount"
-                    placeholderTextColor="#999"
-                    keyboardType="numeric"
-                    value={stayBillAmount}
-                    onChangeText={setStayBillAmount}
-                  />
-                  <Text style={styles.checkModalLabel}>Stay Bill Image</Text>
-                  {stayBillImage ? (
-                    <View style={styles.imagePreviewWrapper}>
-                      <Image source={{ uri: stayBillImage }} style={styles.imagePreview} />
-                      <TouchableOpacity style={styles.removeImageBtn} onPress={function() { setStayBillImage(null); }}>
-                        <Text style={styles.removeImageText}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.uploadRow}>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={function() { takeBillPhoto(setStayBillImage); }}>
-                        <Text style={styles.uploadIcon}>📷</Text>
-                        <Text style={styles.uploadText}>Camera</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                  <Text style={styles.checkModalLabel}>Food Bill Amount</Text>
-                  <TextInput
-                    style={styles.checkModalInput}
-                    placeholder="Enter food bill amount"
-                    placeholderTextColor="#999"
-                    keyboardType="numeric"
-                    value={foodBillAmount}
-                    onChangeText={setFoodBillAmount}
-                  />
-                  <Text style={styles.checkModalLabel}>Food Bill Image</Text>
-                  {foodBillImage ? (
-                    <View style={styles.imagePreviewWrapper}>
-                      <Image source={{ uri: foodBillImage }} style={styles.imagePreview} />
-                      <TouchableOpacity style={styles.removeImageBtn} onPress={function() { setFoodBillImage(null); }}>
-                        <Text style={styles.removeImageText}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.uploadRow}>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={function() { takeBillPhoto(setFoodBillImage); }}>
-                        <Text style={styles.uploadIcon}>📷</Text>
-                        <Text style={styles.uploadText}>Camera</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                  <Text style={styles.checkModalLabel}>Other Expense Description</Text>
-                  <TextInput
-                    style={styles.checkModalInput}
-                    placeholder="Enter expense description"
-                    placeholderTextColor="#999"
-                    value={otherBillDescription}
-                    onChangeText={setOtherBillDescription}
-                  />
-                  <Text style={styles.checkModalLabel}>Other Expense Amount</Text>
-                  <TextInput
-                    style={styles.checkModalInput}
-                    placeholder="Enter other expense amount"
-                    placeholderTextColor="#999"
-                    keyboardType="numeric"
-                    value={otherBillAmount}
-                    onChangeText={setOtherBillAmount}
-                  />
-                  <Text style={styles.checkModalLabel}>Other Expense Image</Text>
-                  {otherBillImage ? (
-                    <View style={styles.imagePreviewWrapper}>
-                      <Image source={{ uri: otherBillImage }} style={styles.imagePreview} />
-                      <TouchableOpacity style={styles.removeImageBtn} onPress={function() { setOtherBillImage(null); }}>
-                        <Text style={styles.removeImageText}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.uploadRow}>
-                      <TouchableOpacity style={styles.uploadBtn} onPress={function() { takeBillPhoto(setOtherBillImage); }}>
-                        <Text style={styles.uploadIcon}>📷</Text>
-                        <Text style={styles.uploadText}>Camera</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              ) : null}
-
-              <TouchableOpacity
-                style={[styles.checkSubmitBtn, checkModalType === 'checkout' && styles.checkSubmitBtnCheckout, submitting && { opacity: 0.7 }]}
-                onPress={submitCheckModal}
-                activeOpacity={0.8}
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.checkSubmitText}>
-                    {checkModalType === 'checkin' ? 'CHECK IN' : 'CHECK OUT'}
+          <View style={[s.modalOverlay, { backgroundColor: theme.overlay }]}>
+            <View style={[s.modalSheet, { backgroundColor: theme.surface }]}>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <View style={s.modalHead}>
+                  <Text style={[s.modalHeadTitle, { color: theme.text }]}>
+                    {checkModalType === 'checkin' ? 'Check In Details' : 'Check Out Details'}
                   </Text>
+                  <TouchableOpacity onPress={function() { setShowCheckModal(false); resetCheckFields(); }} style={s.modalCloseBtn}>
+                    <Text style={[s.modalCloseX, { color: theme.textTertiary }]}>{"✕"}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Selfie */}
+                <View>
+                  <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>{"🤳"}  Selfie</Text>
+                  {selfieImage ? (
+                    <View style={s.imgPreviewWrap}>
+                      <Image source={{ uri: selfieImage }} style={s.imgPreviewSelfie} />
+                      <TouchableOpacity style={s.imgRemoveBtn} onPress={function() { setSelfieImage(null); }}>
+                        <Text style={s.imgRemoveX}>{"✕"}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity style={[s.uploadArea, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]} onPress={takeSelfie}>
+                      <Text style={s.uploadAreaEmoji}>{"🤳"}</Text>
+                      <Text style={[s.uploadAreaText, { color: theme.textSecondary }]}>Take Selfie</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* KM Image */}
+                <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>{"📷"}  KM Image</Text>
+                {kmImage ? (
+                  <View style={s.imgPreviewWrap}>
+                    <Image source={{ uri: kmImage }} style={s.imgPreview} />
+                    <TouchableOpacity style={s.imgRemoveBtn} onPress={function() { setKmImage(null); setKmReading(''); }}>
+                      <Text style={s.imgRemoveX}>{"✕"}</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={[s.uploadArea, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]} onPress={takePhoto}>
+                    <Text style={s.uploadAreaEmoji}>{"📷"}</Text>
+                    <Text style={[s.uploadAreaText, { color: theme.textSecondary }]}>Camera</Text>
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
-            </ScrollView>
+
+                {/* KM Reading */}
+                <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>{"🔢"}  KM Reading</Text>
+                {ocrLoading ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                    <ActivityIndicator size="small" color={theme.info} />
+                    <Text style={{ marginLeft: 8, color: theme.info, fontSize: 13 }}>Reading odometer...</Text>
+                  </View>
+                ) : null}
+                {renderInput({ emoji: '🔢', placeholder: 'Enter KM reading', keyboardType: 'numeric', value: kmReading, onChangeText: setKmReading })}
+
+                {/* HQ Name */}
+                <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>{"🏢"}  HQ Name</Text>
+                {renderInput({ emoji: '🏢', placeholder: 'Enter headquarter name', value: hqName, onChangeText: setHqName })}
+
+                {/* Working Town */}
+                <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>{"🏘"}  Working Town</Text>
+                {renderInput({ emoji: '🏘', placeholder: 'Enter working town', value: workingTown, onChangeText: setWorkingTown })}
+
+                {/* Route */}
+                <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>{"🛣"}  Route</Text>
+                {renderInput({ emoji: '🛣', placeholder: 'Enter route', value: route, onChangeText: setRoute })}
+
+                {/* Out of Town */}
+                <TouchableOpacity
+                  style={s.checkboxRow}
+                  onPress={function() { setOutOfTown(!outOfTown); }}
+                  activeOpacity={0.7}
+                >
+                  <View style={[s.checkbox, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }, outOfTown && { backgroundColor: theme.primary, borderColor: theme.primary }]}>
+                    {outOfTown ? <Text style={s.checkboxTick}>{"✓"}</Text> : null}
+                  </View>
+                  <Text style={[s.checkboxLabel, { color: theme.text }]}>Out of Town</Text>
+                </TouchableOpacity>
+
+                {outOfTown ? (
+                  <View style={[s.outOfTownBox, { backgroundColor: theme.warningBg, borderColor: theme.warning }]}>
+                    <Text style={[s.outOfTownHeading, { color: theme.warning }]}>Out of Town Expenses</Text>
+
+                    <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>Stay Bill Amount</Text>
+                    {renderInput({ emoji: '🏨', placeholder: 'Enter stay bill amount', keyboardType: 'numeric', value: stayBillAmount, onChangeText: setStayBillAmount })}
+
+                    <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>Stay Bill Image</Text>
+                    {stayBillImage ? (
+                      <View style={s.imgPreviewWrap}>
+                        <Image source={{ uri: stayBillImage }} style={s.imgPreview} />
+                        <TouchableOpacity style={s.imgRemoveBtn} onPress={function() { setStayBillImage(null); }}>
+                          <Text style={s.imgRemoveX}>{"✕"}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity style={[s.uploadArea, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]} onPress={function() { takeBillPhoto(setStayBillImage); }}>
+                        <Text style={s.uploadAreaEmoji}>{"📷"}</Text>
+                        <Text style={[s.uploadAreaText, { color: theme.textSecondary }]}>Camera</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>Food Bill Amount</Text>
+                    {renderInput({ emoji: '🍽', placeholder: 'Enter food bill amount', keyboardType: 'numeric', value: foodBillAmount, onChangeText: setFoodBillAmount })}
+
+                    <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>Food Bill Image</Text>
+                    {foodBillImage ? (
+                      <View style={s.imgPreviewWrap}>
+                        <Image source={{ uri: foodBillImage }} style={s.imgPreview} />
+                        <TouchableOpacity style={s.imgRemoveBtn} onPress={function() { setFoodBillImage(null); }}>
+                          <Text style={s.imgRemoveX}>{"✕"}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity style={[s.uploadArea, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]} onPress={function() { takeBillPhoto(setFoodBillImage); }}>
+                        <Text style={s.uploadAreaEmoji}>{"📷"}</Text>
+                        <Text style={[s.uploadAreaText, { color: theme.textSecondary }]}>Camera</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>Other Expense Description</Text>
+                    {renderInput({ emoji: '📝', placeholder: 'Enter expense description', value: otherBillDescription, onChangeText: setOtherBillDescription })}
+
+                    <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>Other Expense Amount</Text>
+                    {renderInput({ emoji: '💵', placeholder: 'Enter other expense amount', keyboardType: 'numeric', value: otherBillAmount, onChangeText: setOtherBillAmount })}
+
+                    <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>Other Expense Image</Text>
+                    {otherBillImage ? (
+                      <View style={s.imgPreviewWrap}>
+                        <Image source={{ uri: otherBillImage }} style={s.imgPreview} />
+                        <TouchableOpacity style={s.imgRemoveBtn} onPress={function() { setOtherBillImage(null); }}>
+                          <Text style={s.imgRemoveX}>{"✕"}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity style={[s.uploadArea, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]} onPress={function() { takeBillPhoto(setOtherBillImage); }}>
+                        <Text style={s.uploadAreaEmoji}>{"📷"}</Text>
+                        <Text style={[s.uploadAreaText, { color: theme.textSecondary }]}>Camera</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : null}
+
+                <TouchableOpacity
+                  style={[s.primaryBtn, { backgroundColor: checkModalType === 'checkout' ? theme.primary : theme.success, elevation: 4 }, submitting && { opacity: 0.7 }]}
+                  onPress={submitCheckModal}
+                  activeOpacity={0.8}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={s.primaryBtnText}>
+                      {checkModalType === 'checkin' ? 'CHECK IN' : 'CHECK OUT'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
           </View>
-        </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Visit Vendor Modal */}
+      {/* ===== VENDOR VISIT MODAL ===== */}
       <Modal
         visible={showVendorModal}
         transparent={true}
@@ -1466,105 +1432,91 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
         onRequestClose={function() { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Visit Vendor</Text>
-                <TouchableOpacity onPress={function() { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}>
-                  <Text style={styles.modalClose}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.checkModalLabel}>Vendor Name</Text>
-              <TextInput
-                style={styles.checkModalInput}
-                placeholder="Enter vendor name"
-                placeholderTextColor="#999"
-                value={vendorName}
-                onChangeText={setVendorName}
-              />
-
-              <Text style={styles.checkModalLabel}>Vendor Mobile Number</Text>
-              <TextInput
-                style={styles.checkModalInput}
-                placeholder="Enter vendor mobile number"
-                placeholderTextColor="#999"
-                keyboardType="phone-pad"
-                maxLength={10}
-                value={vendorMobile}
-                onChangeText={setVendorMobile}
-              />
-
-              <Text style={styles.checkModalLabel}>Selfie with Vendor</Text>
-              {vendorSelfie ? (
-                <View style={styles.imagePreviewWrapper}>
-                  <Image source={{ uri: vendorSelfie }} style={styles.imagePreview} />
-                  <TouchableOpacity style={styles.removeImageBtn} onPress={function() { setVendorSelfie(null); }}>
-                    <Text style={styles.removeImageText}>✕</Text>
+          <View style={[s.modalOverlay, { backgroundColor: theme.overlay }]}>
+            <View style={[s.modalSheet, { backgroundColor: theme.surface }]}>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <View style={s.modalHead}>
+                  <Text style={[s.modalHeadTitle, { color: theme.text }]}>Visit Vendor</Text>
+                  <TouchableOpacity onPress={function() { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }} style={s.modalCloseBtn}>
+                    <Text style={[s.modalCloseX, { color: theme.textTertiary }]}>{"✕"}</Text>
                   </TouchableOpacity>
                 </View>
-              ) : (
-                <View style={styles.uploadRow}>
-                  <TouchableOpacity style={styles.uploadBtn} onPress={takeVendorSelfie}>
-                    <Text style={styles.uploadIcon}>📷</Text>
-                    <Text style={styles.uploadText}>Camera</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
 
-              <Text style={styles.checkModalLabel}>Note</Text>
-              <TextInput
-                style={[styles.checkModalInput, { height: 80, textAlignVertical: 'top' }]}
-                placeholder="Enter note (optional)"
-                placeholderTextColor="#999"
-                value={vendorNote}
-                onChangeText={setVendorNote}
-                multiline={true}
-                numberOfLines={3}
-              />
+                <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>{"🏪"}  Vendor Name</Text>
+                {renderInput({ emoji: '🏪', placeholder: 'Enter vendor name', value: vendorName, onChangeText: setVendorName })}
 
-              <Text style={styles.checkModalLabel}>Is this vendor onboarded?</Text>
-              <View style={styles.onboardRow}>
-                <TouchableOpacity
-                  style={[styles.onboardOption, isOnboarded === 'yes' && styles.onboardOptionYes]}
-                  onPress={function() { setIsOnboarded('yes'); }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.onboardText, isOnboarded === 'yes' && styles.onboardTextSelected]}>
-                    Yes, Onboarded
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.onboardOption, isOnboarded === 'no' && styles.onboardOptionNo]}
-                  onPress={function() { setIsOnboarded('no'); }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.onboardText, isOnboarded === 'no' && styles.onboardTextSelected]}>
-                    Visit
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>{"📱"}  Vendor Mobile Number</Text>
+                {renderInput({ emoji: '📱', placeholder: 'Enter vendor mobile number', keyboardType: 'phone-pad', maxLength: 10, value: vendorMobile, onChangeText: setVendorMobile })}
 
-              <TouchableOpacity
-                style={[styles.vendorSubmitBtn, submitting && { opacity: 0.7 }]}
-                onPress={submitVendor}
-                activeOpacity={0.8}
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#fff" />
+                <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>{"📷"}  Selfie with Vendor</Text>
+                {vendorSelfie ? (
+                  <View style={s.imgPreviewWrap}>
+                    <Image source={{ uri: vendorSelfie }} style={s.imgPreview} />
+                    <TouchableOpacity style={s.imgRemoveBtn} onPress={function() { setVendorSelfie(null); }}>
+                      <Text style={s.imgRemoveX}>{"✕"}</Text>
+                    </TouchableOpacity>
+                  </View>
                 ) : (
-                  <Text style={styles.checkSubmitText}>ADD VENDOR VISIT</Text>
+                  <TouchableOpacity style={[s.uploadArea, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]} onPress={takeVendorSelfie}>
+                    <Text style={s.uploadAreaEmoji}>{"📷"}</Text>
+                    <Text style={[s.uploadAreaText, { color: theme.textSecondary }]}>Camera</Text>
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
-            </ScrollView>
+
+                <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>{"📝"}  Note</Text>
+                <View style={[s.inputWrapper, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider, minHeight: 80 }]}>
+                  <TextInput
+                    style={[s.inputField, { color: theme.text, paddingLeft: 16, textAlignVertical: 'top', minHeight: 70 }]}
+                    placeholder="Enter note (optional)"
+                    placeholderTextColor={theme.textTertiary}
+                    value={vendorNote}
+                    onChangeText={setVendorNote}
+                    multiline={true}
+                    numberOfLines={3}
+                  />
+                </View>
+
+                <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>Is this vendor onboarded?</Text>
+                <View style={s.onboardRow}>
+                  <TouchableOpacity
+                    style={[s.onboardPill, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }, isOnboarded === 'yes' && { backgroundColor: theme.successBg, borderColor: theme.success }]}
+                    onPress={function() { setIsOnboarded('yes'); }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[s.onboardPillText, { color: theme.textSecondary }, isOnboarded === 'yes' && { color: theme.success, fontWeight: '700' }]}>
+                      Yes, Onboarded
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.onboardPill, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }, isOnboarded === 'no' && { backgroundColor: theme.errorBg, borderColor: theme.primary }]}
+                    onPress={function() { setIsOnboarded('no'); }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[s.onboardPillText, { color: theme.textSecondary }, isOnboarded === 'no' && { color: theme.primary, fontWeight: '700' }]}>
+                      Visit
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  style={[s.primaryBtn, { backgroundColor: theme.info, elevation: 4 }, submitting && { opacity: 0.7 }]}
+                  onPress={submitVendor}
+                  activeOpacity={0.8}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={s.primaryBtnText}>ADD VENDOR VISIT</Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
           </View>
-        </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* GPS Camera Modal */}
+      {/* ===== GPS CAMERA MODAL ===== */}
       <Modal
         visible={showGPSCamera}
         animationType="slide"
@@ -1579,315 +1531,360 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
   );
 }
 
+/* ======================== STYLES ======================== */
+
 var screenWidth = Dimensions.get('window').width;
 
-var styles = StyleSheet.create({
+var s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
   },
-  empMapHeader: {
-    backgroundColor: '#1a1a2e',
-    paddingTop: 50,
-    paddingBottom: 18,
-    paddingHorizontal: 25,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: 'hidden',
-    zIndex: 10,
-  },
-  empMapHeaderTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  empMapBackBtn: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  empMapBackText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  empMapTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  empMapSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 13,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  empMapStatsBar: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  empMapStatItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  empMapStatCount: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  empMapStatLabel: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  empMapStatDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    marginHorizontal: 12,
-  },
+
+  /* ----- Header ----- */
   header: {
-    backgroundColor: '#1a1a2e',
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 25,
+    paddingTop: 48,
+    paddingBottom: 22,
+    paddingHorizontal: 22,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
-  circle1: {
+  decorCircle1: {
     position: 'absolute',
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(229, 57, 53, 0.2)',
-    top: -50,
-    right: -40,
+    top: -60,
+    right: -50,
   },
-  circle2: {
+  decorCircle2: {
     position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255, 87, 34, 0.15)',
-    top: 60,
-    left: -50,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    top: 70,
+    left: -60,
   },
-  headerContent: {
+  decorCircle3: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    bottom: -30,
+    right: 60,
+  },
+  navRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 14,
+    gap: 10,
   },
-  greeting: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#fff',
-    marginTop: 2,
-  },
-  logoutBtn: {
-    backgroundColor: 'rgba(229, 57, 53, 0.3)',
-    paddingHorizontal: 16,
+  navBtn: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 12,
   },
-  logoutText: {
+  navBtnText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  logoutLabel: {
     color: '#ff8a80',
     fontSize: 13,
     fontWeight: '700',
   },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  headerAvatarLetter: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  userTextCol: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  userRole: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 2,
+  },
   dateText: {
-    fontSize: 13,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.5)',
+    marginTop: 4,
   },
   timeText: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
     color: '#fff',
     marginTop: 4,
     letterSpacing: 2,
   },
-  // Manager Check-In Card
-  managerCheckCard: {
-    backgroundColor: '#fff',
+
+  /* ----- Check-In Card ----- */
+  checkCard: {
     marginHorizontal: 16,
-    marginTop: -1,
+    marginTop: -4,
     borderRadius: 16,
-    padding: 16,
-    elevation: 4,
+    padding: 18,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowRadius: 8,
   },
-  managerCheckTop: {
+  checkCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  managerStatusDot: {
+  checkStatusDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
     marginRight: 10,
   },
-  dotActive: {
-    backgroundColor: '#4caf50',
-  },
-  dotInactive: {
-    backgroundColor: '#bdbdbd',
-  },
-  managerStatusText: {
+  checkStatusLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#333',
   },
-  managerCheckRow: {
+  checkTimesRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 14,
+    gap: 8,
   },
-  managerTimeBox: {
+  checkTimeBox: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingVertical: 10,
-    marginHorizontal: 4,
+    paddingHorizontal: 4,
   },
-  managerTimeLabel: {
-    fontSize: 11,
-    color: '#999',
-    fontWeight: '600',
+  checkTimeBoxEmoji: {
+    fontSize: 16,
     marginBottom: 4,
   },
-  managerTimeValue: {
+  checkTimeBoxLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  checkTimeBoxValue: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1a1a2e',
   },
-  managerTimeValueHours: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#e53935',
-  },
-  managerBtnRow: {
+  checkBtnRow: {
     flexDirection: 'row',
+    gap: 10,
   },
-  managerCheckBtn: {
+  checkActionBtn: {
     flex: 1,
-    borderRadius: 12,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
   },
-  managerCheckInBtn: {
-    backgroundColor: '#4caf50',
-    shadowColor: '#4caf50',
-    marginRight: 6,
-  },
-  managerCheckOutBtn: {
-    backgroundColor: '#e53935',
-    shadowColor: '#e53935',
-    marginRight: 6,
-  },
-  managerVendorBtn: {
-    backgroundColor: '#1565c0',
-    shadowColor: '#1565c0',
-    marginLeft: 6,
-  },
-  managerCheckBtnIcon: {
+  checkActionIcon: {
     fontSize: 18,
     color: '#fff',
     marginRight: 8,
   },
-  managerCheckBtnText: {
-    fontSize: 14,
+  checkActionLabel: {
+    fontSize: 13,
     fontWeight: '800',
     color: '#fff',
     letterSpacing: 1,
   },
-  // Tabs
-  tabRow: {
+
+  /* ----- Quick Actions Grid ----- */
+  quickGrid: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    paddingHorizontal: 10,
-    paddingTop: 6,
-    marginTop: 10,
-    elevation: 3,
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  quickItem: {
+    width: (screenWidth - 32) / 4,
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  quickIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  quickEmoji: {
+    fontSize: 22,
+  },
+  quickLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+
+  /* ----- Vendor Map Card ----- */
+  vendorMapCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
+    overflow: 'hidden',
   },
-  tab: {
+  vendorMapAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  vendorMapEmoji: {
+    fontSize: 28,
+    marginRight: 14,
+    marginLeft: 6,
+  },
+  vendorMapTextCol: {
     flex: 1,
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
   },
-  tabActive: {
-    borderBottomColor: '#e53935',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#999',
-  },
-  tabTextActive: {
-    color: '#e53935',
+  vendorMapTitle: {
+    fontSize: 15,
     fontWeight: '800',
   },
+  vendorMapSub: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  vendorMapArrow: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+
+  /* ----- Tab / Filter Bar ----- */
+  tabBar: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 6,
+    backgroundColor: 'transparent',
+    gap: 8,
+  },
+  tabPill: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 20,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  tabPillText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  /* ----- Body ----- */
   body: {
     flex: 1,
   },
   bodyContent: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 80,
   },
-  // Stats grid
-  statsGrid: {
+
+  /* ----- Section Header ----- */
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    marginTop: 4,
+  },
+  sectionBar: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: 10,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+
+  /* ----- KPI Cards ----- */
+  kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  statCard: {
-    width: (screenWidth - 52) / 2,
+  kpiCard: {
+    width: (screenWidth - 48) / 2,
     borderRadius: 16,
-    padding: 18,
+    padding: 16,
     alignItems: 'center',
     marginBottom: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
-  statIcon: {
-    fontSize: 24,
-    marginBottom: 8,
+  kpiIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  statCount: {
+  kpiEmoji: {
+    fontSize: 18,
+  },
+  kpiNumber: {
     fontSize: 28,
     fontWeight: '900',
   },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
+  kpiLabel: {
+    fontSize: 10,
+    fontWeight: '700',
     marginTop: 4,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  totalAllowanceCard: {
-    backgroundColor: '#1a1a2e',
+
+  /* ----- Allowance Banner ----- */
+  allowanceBanner: {
     borderRadius: 16,
     padding: 20,
     flexDirection: 'row',
@@ -1895,39 +1892,35 @@ var styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  totalAllowanceLabel: {
+  allowanceBannerTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
   },
-  totalAllowanceSub: {
+  allowanceBannerSub: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.5)',
     marginTop: 2,
   },
-  totalAllowanceValue: {
+  allowanceBannerValue: {
     fontSize: 24,
     fontWeight: '900',
     color: '#69f0ae',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    marginTop: 6,
-    marginBottom: 15,
-  },
-  // Attendance bar
-  attendanceBar: {
+
+  /* ----- Attendance Bar ----- */
+  attBarOuter: {
     flexDirection: 'row',
     height: 14,
     borderRadius: 7,
     overflow: 'hidden',
     marginBottom: 12,
   },
-  attendanceSegment: {
+  attBarSeg: {
     height: 14,
   },
+
+  /* ----- Legend ----- */
   legendRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1947,28 +1940,35 @@ var styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    color: '#666',
     fontWeight: '600',
   },
-  // Performers
+
+  /* ----- Performer Cards ----- */
   performerCard: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
+    paddingLeft: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
+    overflow: 'hidden',
+  },
+  performerAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
   },
   performerRank: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#fff3e0',
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1976,7 +1976,6 @@ var styles = StyleSheet.create({
   performerRankText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#ff9800',
   },
   performerInfo: {
     flex: 1,
@@ -1984,47 +1983,44 @@ var styles = StyleSheet.create({
   performerName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#333',
   },
   performerDesig: {
     fontSize: 12,
-    color: '#999',
     marginTop: 2,
   },
   performerStats: {
     alignItems: 'center',
   },
-  performerVendors: {
+  performerCount: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#4caf50',
   },
-  performerVendorsLabel: {
+  performerCountLabel: {
     fontSize: 10,
-    color: '#999',
     fontWeight: '600',
   },
-  // Employee list
-  empSummaryRow: {
+
+  /* ----- List Header Row ----- */
+  listHeaderRow: {
     marginBottom: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  empSummaryText: {
+  listHeaderCount: {
     fontSize: 14,
-    color: '#999',
     fontWeight: '600',
   },
-  viewAllText: {
+  viewAllLink: {
     fontSize: 14,
-    color: '#e53935',
     fontWeight: '700',
   },
+
+  /* ----- Employee Cards ----- */
   empCard: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
+    paddingLeft: 18,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
@@ -2033,65 +2029,71 @@ var styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
+    overflow: 'hidden',
+  },
+  empCardAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
   },
   empAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: '#1a1a2e',
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  empAvatarText: {
+  empAvatarLetter: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '800',
   },
-  empInfo: {
+  empInfoCol: {
     flex: 1,
   },
   empName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#333',
   },
   empDesig: {
     fontSize: 12,
-    color: '#777',
     marginTop: 2,
   },
   empHq: {
     fontSize: 11,
-    color: '#999',
     marginTop: 1,
   },
-  empRight: {
+  empRightCol: {
     alignItems: 'flex-end',
   },
-  empStatusBadge: {
+
+  /* ----- Status Badge ----- */
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 10,
+    borderRadius: 20,
   },
-  empStatusDot: {
+  statusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     marginRight: 6,
   },
-  empStatusText: {
+  statusText: {
     fontSize: 11,
     fontWeight: '700',
   },
-  // Attendance tab
+
+  /* ----- Attendance Tab ----- */
   weekChart: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -2101,367 +2103,278 @@ var styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
   },
-  weekDay: {
+  weekCol: {
     alignItems: 'center',
     flex: 1,
   },
-  barWrapper: {
+  weekBarStack: {
     alignItems: 'center',
     marginBottom: 8,
   },
-  bar: {
+  weekBar: {
     width: 22,
-    borderRadius: 4,
   },
-  weekDayLabel: {
+  weekLabel: {
     fontSize: 11,
-    color: '#999',
     fontWeight: '600',
   },
-  attendanceRow: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
+  attListCard: {
+    borderRadius: 16,
     padding: 14,
+    paddingLeft: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 10,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
+    overflow: 'hidden',
   },
-  attendanceLeft: {
+  attListAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+  },
+  attListInfo: {
     flex: 1,
   },
-  attendanceName: {
+  attListName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#333',
   },
-  attendanceCheckIn: {
+  attListTime: {
     fontSize: 12,
-    color: '#999',
     marginTop: 2,
   },
-  attendanceStatusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
+
+  /* ----- Empty State ----- */
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 30,
   },
-  attendanceStatusText: {
-    fontSize: 12,
-    fontWeight: '700',
+  emptyIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  // Modal
+  emptyEmoji: {
+    fontSize: 30,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  emptySub: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+  /* ----- Modal ----- */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    paddingHorizontal: 25,
+  modalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 22,
     paddingTop: 20,
     paddingBottom: 40,
     maxHeight: '85%',
   },
-  modalHeader: {
+  modalHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
   },
-  modalTitle: {
+  modalHeadTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1a1a2e',
   },
-  modalClose: {
+  modalCloseBtn: {
+    padding: 6,
+  },
+  modalCloseX: {
     fontSize: 20,
-    color: '#999',
     fontWeight: '700',
-    padding: 5,
   },
-  modalProfile: {
+
+  /* ----- Modal Profile ----- */
+  modalProfileBlock: {
     alignItems: 'center',
     marginBottom: 20,
   },
-  modalAvatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#e53935',
+  modalAvatarLg: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
-  modalAvatarText: {
+  modalAvatarLgText: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
   },
   modalProfileName: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#333',
   },
   modalProfileDesig: {
     fontSize: 14,
-    color: '#777',
     marginTop: 4,
   },
+
+  /* ----- Modal Detail Row ----- */
   modalDetailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
     marginBottom: 10,
   },
-  modalDetailIcon: {
+  modalDetailEmoji: {
     fontSize: 20,
     marginRight: 14,
   },
   modalDetailLabel: {
     fontSize: 11,
-    color: '#999',
     fontWeight: '600',
   },
   modalDetailValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#333',
     marginTop: 2,
   },
+
+  /* ----- Modal Stats ----- */
   modalStatsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 16,
+    gap: 10,
   },
-  modalStatCard: {
+  modalStatBox: {
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 18,
     alignItems: 'center',
-    marginHorizontal: 5,
   },
-  modalStatIcon: {
+  modalStatEmoji: {
     fontSize: 22,
     marginBottom: 6,
   },
-  modalStatValue: {
+  modalStatNum: {
     fontSize: 20,
     fontWeight: '900',
   },
   modalStatLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#666',
     marginTop: 4,
   },
-  // Check-in modal styles
-  checkModalLabel: {
+
+  /* ----- Form Elements ----- */
+  fieldLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#555',
     marginBottom: 6,
-    marginTop: 12,
-    letterSpacing: 0.5,
+    marginTop: 14,
+    letterSpacing: 0.3,
   },
-  checkModalInput: {
-    backgroundColor: '#f5f5f7',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  inputEmoji: {
+    fontSize: 18,
+    paddingLeft: 14,
+  },
+  inputField: {
+    flex: 1,
+    paddingHorizontal: 10,
     paddingVertical: 13,
     fontSize: 15,
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#eee',
   },
-  uploadRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  uploadBtn: {
-    flex: 1,
-    backgroundColor: '#f5f5f7',
+  uploadArea: {
     borderRadius: 14,
-    paddingVertical: 22,
+    paddingVertical: 24,
     alignItems: 'center',
-    marginHorizontal: 6,
     borderWidth: 1.5,
-    borderColor: '#e0e0e0',
     borderStyle: 'dashed',
   },
-  uploadIcon: {
+  uploadAreaEmoji: {
     fontSize: 28,
     marginBottom: 6,
   },
-  uploadText: {
+  uploadAreaText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#777',
   },
-  imagePreviewWrapper: {
+  imgPreviewWrap: {
     position: 'relative',
     borderRadius: 14,
     overflow: 'hidden',
   },
-  imagePreview: {
+  imgPreview: {
     width: '100%',
     height: 180,
     borderRadius: 14,
   },
-  selfiePreview: {
+  imgPreviewSelfie: {
     width: '100%',
     height: 200,
     borderRadius: 14,
   },
-  removeImageBtn: {
+  imgRemoveBtn: {
     position: 'absolute',
     top: 8,
     right: 8,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  removeImageText: {
+  imgRemoveX: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '700',
   },
-  checkSubmitBtn: {
-    backgroundColor: '#4caf50',
-    borderRadius: 12,
+
+  /* ----- Buttons ----- */
+  primaryBtn: {
+    borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 22,
-    elevation: 6,
   },
-  checkSubmitBtnCheckout: {
-    backgroundColor: '#e53935',
-  },
-  checkSubmitText: {
+  primaryBtnText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 2,
   },
-  // Quick Actions
-  quickActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginTop: 12,
-  },
-  quickActionItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  quickActionIconBox: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  quickActionEmoji: {
-    fontSize: 22,
-  },
-  quickActionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#555',
-  },
-  vendorMapBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    borderLeftWidth: 4,
-    borderLeftColor: '#e53935',
-  },
-  vendorMapIcon: {
-    fontSize: 28,
-    marginRight: 14,
-  },
-  vendorMapTextBox: {
-    flex: 1,
-  },
-  vendorMapTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1a1a2e',
-  },
-  vendorMapSubtitle: {
-    fontSize: 12,
-    color: '#999',
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  vendorMapArrow: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#e53935',
-  },
-  // Vendor modal styles
-  onboardRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  onboardOption: {
-    flex: 1,
-    backgroundColor: '#f5f5f7',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginHorizontal: 6,
-    borderWidth: 2,
-    borderColor: '#eee',
-  },
-  onboardOptionYes: {
-    backgroundColor: '#e8f5e9',
-    borderColor: '#4caf50',
-  },
-  onboardOptionNo: {
-    backgroundColor: '#fce4ec',
-    borderColor: '#e53935',
-  },
-  onboardText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#777',
-  },
-  onboardTextSelected: {
-    color: '#333',
-    fontWeight: '700',
-  },
-  vendorSubmitBtn: {
-    backgroundColor: '#1565c0',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 22,
-    elevation: 6,
-  },
-  // Checkbox & Out of Town
+
+  /* ----- Checkbox ----- */
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2471,17 +2384,11 @@ var styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#ccc',
-    backgroundColor: '#f5f5f7',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  checkboxChecked: {
-    backgroundColor: '#e53935',
-    borderColor: '#e53935',
   },
   checkboxTick: {
     color: '#fff',
@@ -2491,20 +2398,129 @@ var styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#333',
   },
-  outOfTownSection: {
-    backgroundColor: '#fff8e1',
-    borderRadius: 14,
+
+  /* ----- Out of Town ----- */
+  outOfTownBox: {
+    borderRadius: 16,
     padding: 14,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: '#ffe082',
   },
-  outOfTownTitle: {
+  outOfTownHeading: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#f57f17',
     marginBottom: 6,
+  },
+
+  /* ----- Onboard Row ----- */
+  onboardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    gap: 10,
+  },
+  onboardPill: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 2,
+  },
+  onboardPillText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  /* ----- Map Modal ----- */
+  mapHeader: {
+    paddingTop: 48,
+    paddingBottom: 18,
+    paddingHorizontal: 22,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: 'hidden',
+    zIndex: 10,
+  },
+  mapHeaderTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  mapBackBtn: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  mapBackText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  mapHeaderTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  mapSubtitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  mapStatsBar: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  mapStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  mapStatCount: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  mapStatLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  mapStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginHorizontal: 12,
+  },
+  mapWebViewBox: {
+    flex: 1,
+    margin: 12,
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 4,
+  },
+  mapLegendBar: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+  },
+  mapLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 12,
+  },
+  mapLegendText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

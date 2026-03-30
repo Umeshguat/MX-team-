@@ -10,6 +10,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
 import { BASE_URL } from '../config';
+import { useTheme } from '../theme/ThemeContext';
 
 function generateMapHTML(visits) {
   var markers = visits.map(function(v, i) {
@@ -82,6 +83,7 @@ function generateMapHTML(visits) {
 }
 
 export default function VendorMapScreen({ user, onGoBack }) {
+  var { theme } = useTheme();
   var [visits, setVisits] = useState([]);
   var [loading, setLoading] = useState(true);
 
@@ -128,54 +130,65 @@ export default function VendorMapScreen({ user, onGoBack }) {
   var mapHTML = generateMapHTML(visits);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
 
-      <View style={styles.header}>
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
-        <View style={styles.headerTop}>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+        <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
+
+        <View style={styles.navRow}>
           <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
-            <Text style={styles.backText}>← Back</Text>
+            <Text style={styles.backArrow}>{'\u2039'}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Vendor Visit Map</Text>
-          <View style={{ width: 60 }} />
+          <View style={styles.navSpacer} />
         </View>
+
         <Text style={styles.headerSubtitle}>All Vendor Visits</Text>
 
-        <View style={styles.statsBar}>
-          <View style={styles.statItem}>
-            <Text style={styles.statCount}>{visits.length}</Text>
-            <Text style={styles.statLabel}>Total</Text>
+        {/* Stats Cards Row */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statEmojiWrap, { backgroundColor: theme.primary + '1A' }]}>
+              <Text style={styles.statEmoji}>{'📍'}</Text>
+            </View>
+            <Text style={[styles.statNumber, { color: theme.text }]}>{visits.length}</Text>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>TOTAL</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statCount, { color: '#4caf50' }]}>
-              {onboardedCount}
-            </Text>
-            <Text style={styles.statLabel}>Onboarded</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statEmojiWrap, { backgroundColor: theme.success + '1A' }]}>
+              <Text style={styles.statEmoji}>{'✅'}</Text>
+            </View>
+            <Text style={[styles.statNumber, { color: theme.success }]}>{onboardedCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>ONBOARDED</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statCount, { color: '#ff9800' }]}>
-              {pendingCount}
-            </Text>
-            <Text style={styles.statLabel}>Pending</Text>
+          <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+            <View style={[styles.statEmojiWrap, { backgroundColor: theme.warning + '1A' }]}>
+              <Text style={styles.statEmoji}>{'⏳'}</Text>
+            </View>
+            <Text style={[styles.statNumber, { color: theme.warning }]}>{pendingCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>PENDING</Text>
           </View>
         </View>
       </View>
 
-      <View style={styles.mapContainer}>
+      {/* Map Container */}
+      <View style={[styles.mapContainer, { backgroundColor: theme.surface }]}>
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#e53935" />
-            <Text style={styles.loadingText}>Loading vendor visits...</Text>
+          <View style={[styles.loadingWrap, { backgroundColor: theme.background }]}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.textTertiary }]}>Loading vendor visits...</Text>
           </View>
         ) : !mapHTML ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>🗺</Text>
-            <Text style={styles.emptyTitle}>No Visits Found</Text>
-            <Text style={styles.emptyText}>No vendor visits with GPS data available</Text>
+          <View style={styles.emptyWrap}>
+            <View style={[styles.emptyIconWrap, { backgroundColor: theme.warning + '1A' }]}>
+              <Text style={styles.emptyIcon}>{'🗺'}</Text>
+            </View>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No Visits Found</Text>
+            <Text style={[styles.emptySubtitle, { color: theme.textTertiary }]}>No vendor visits with GPS data available</Text>
           </View>
         ) : (
           <WebView
@@ -187,8 +200,9 @@ export default function VendorMapScreen({ user, onGoBack }) {
             startInLoadingState={true}
             renderLoading={function() {
               return (
-                <View style={styles.loadingContainer}>
-                  <Text style={styles.loadingText}>Loading Map...</Text>
+                <View style={[styles.loadingWrap, { backgroundColor: theme.background }]}>
+                  <ActivityIndicator size="large" color={theme.primary} />
+                  <Text style={[styles.loadingText, { color: theme.textTertiary }]}>Loading Map...</Text>
                 </View>
               );
             }}
@@ -196,19 +210,20 @@ export default function VendorMapScreen({ user, onGoBack }) {
         )}
       </View>
 
+      {/* Legend Bar */}
       {!loading && mapHTML ? (
-        <View style={styles.legendBar}>
+        <View style={[styles.legendBar, { backgroundColor: theme.surfaceVariant }]}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#4caf50' }]} />
-            <Text style={styles.legendText}>Onboarded</Text>
+            <View style={[styles.legendDot, { backgroundColor: theme.success }]} />
+            <Text style={[styles.legendText, { color: theme.textSecondary }]}>Onboarded</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#ff9800' }]} />
-            <Text style={styles.legendText}>Pending</Text>
+            <View style={[styles.legendDot, { backgroundColor: theme.warning }]} />
+            <Text style={[styles.legendText, { color: theme.textSecondary }]}>Pending</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendLine]} />
-            <Text style={styles.legendText}>Route</Text>
+            <View style={[styles.legendLine, { backgroundColor: theme.error }]} />
+            <Text style={[styles.legendText, { color: theme.textSecondary }]}>Route</Text>
           </View>
         </View>
       ) : null}
@@ -219,153 +234,188 @@ export default function VendorMapScreen({ user, onGoBack }) {
 var styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f7',
   },
+
+  /* ── Header ── */
   header: {
-    backgroundColor: '#1a1a2e',
     paddingTop: 50,
-    paddingBottom: 18,
-    paddingHorizontal: 25,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
     zIndex: 10,
   },
-  circle1: {
+  decorCircle1: {
     position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(229, 57, 53, 0.2)',
-    top: -50,
-    right: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    top: -40,
+    right: -30,
   },
-  circle2: {
+  decorCircle2: {
     position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255, 87, 34, 0.15)',
-    top: 60,
-    left: -50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: 70,
+    left: -40,
   },
-  headerTop: {
+  decorCircle3: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    bottom: -20,
+    right: 60,
+  },
+
+  /* ── Nav Row ── */
+  navRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  backText: {
+  backArrow: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 22,
     fontWeight: '700',
+    marginTop: -2,
   },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '800',
+    textAlign: 'center',
+  },
+  navSpacer: {
+    width: 38,
   },
   headerSubtitle: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 13,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  statsBar: {
+
+  /* ── Stats Cards ── */
+  statsRow: {
     flexDirection: 'row',
+    gap: 10,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  statEmojiWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    marginBottom: 6,
   },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statCount: {
-    color: '#fff',
+  statEmoji: {
     fontSize: 18,
+  },
+  statNumber: {
+    fontSize: 20,
     fontWeight: '900',
   },
   statLabel: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
     marginTop: 2,
   },
-  statDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    marginHorizontal: 12,
-  },
+
+  /* ── Map Container ── */
   mapContainer: {
     flex: 1,
-    margin: 12,
-    borderRadius: 20,
+    margin: 14,
+    borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#fff',
-    elevation: 4,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   webview: {
     flex: 1,
-    borderRadius: 20,
   },
-  loadingContainer: {
+
+  /* ── Loading ── */
+  loadingWrap: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f7',
   },
   loadingText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#999',
     marginTop: 12,
   },
-  emptyCard: {
+
+  /* ── Empty State ── */
+  emptyWrap: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
   },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   emptyIcon: {
-    fontSize: 50,
-    marginBottom: 14,
+    fontSize: 30,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#333',
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  emptyText: {
-    fontSize: 14,
-    color: '#999',
+  emptySubtitle: {
+    fontSize: 13,
     textAlign: 'center',
     lineHeight: 20,
   },
+
+  /* ── Legend Bar ── */
   legendBar: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginHorizontal: 14,
+    marginBottom: 14,
     paddingVertical: 12,
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderRadius: 12,
   },
   legendItem: {
     flexDirection: 'row',
@@ -380,14 +430,12 @@ var styles = StyleSheet.create({
   },
   legendLine: {
     width: 18,
-    height: 2,
-    backgroundColor: '#e53935',
+    height: 3,
+    borderRadius: 2,
     marginRight: 6,
-    borderStyle: 'dashed',
   },
   legendText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
   },
 });

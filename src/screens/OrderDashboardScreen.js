@@ -18,11 +18,49 @@ import {
   Keyboard,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useTheme } from '../theme/ThemeContext';
 
 const screenWidth = Dimensions.get('window').width;
 
+// ======================== SECTION HEADER ========================
+function SectionHeader({ title, color, theme }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 18, marginBottom: 10 }}>
+      <View style={{ width: 4, height: 20, borderRadius: 2, backgroundColor: color || theme.primary, marginRight: 10 }} />
+      <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>{title}</Text>
+    </View>
+  );
+}
+
+// ======================== MODAL INPUT ========================
+function ModalInput({ emoji, placeholder, value, onChangeText, theme, style, ...rest }) {
+  return (
+    <View style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surfaceVariant, borderRadius: 14, borderWidth: 1, borderColor: theme.divider, marginBottom: 10, paddingHorizontal: 12 }, style]}>
+      {emoji ? <Text style={{ fontSize: 16, marginRight: 8 }}>{emoji}</Text> : null}
+      <TextInput
+        style={{ flex: 1, paddingVertical: 13, fontSize: 14, color: theme.text }}
+        placeholder={placeholder}
+        placeholderTextColor={theme.textTertiary}
+        value={value}
+        onChangeText={onChangeText}
+        {...rest}
+      />
+    </View>
+  );
+}
+
+// ======================== HANDLE BAR ========================
+function HandleBar({ theme }) {
+  return (
+    <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 4 }}>
+      <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: theme.divider }} />
+    </View>
+  );
+}
+
 // ======================== CREATE ORDER MODAL ========================
 function CreateOrderModal({ visible, onClose, onSubmit, user }) {
+  const { theme, isDark } = useTheme();
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -41,11 +79,11 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
   const [deliveryPincode, setDeliveryPincode] = useState('');
 
   const paymentModes = [
-    { label: 'Cash', value: 'cash' },
-    { label: 'UPI', value: 'upi' },
-    { label: 'Bank Transfer', value: 'bank_transfer' },
-    { label: 'Cheque', value: 'cheque' },
-    { label: 'Credit', value: 'credit' },
+    { label: 'Cash', value: 'cash', emoji: '💵' },
+    { label: 'UPI', value: 'upi', emoji: '📱' },
+    { label: 'Bank Transfer', value: 'bank_transfer', emoji: '🏦' },
+    { label: 'Cheque', value: 'cheque', emoji: '📝' },
+    { label: 'Credit', value: 'credit', emoji: '💳' },
   ];
 
   useEffect(() => {
@@ -208,390 +246,436 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-        <View style={modalStyles.overlay}>
-          <View style={[modalStyles.container, keyboardHeight > 0 && { maxHeight: '95%', paddingBottom: keyboardHeight }]}>
-            <View style={modalStyles.header}>
-              <Text style={modalStyles.headerTitle}>Create New Order</Text>
-              <TouchableOpacity onPress={onClose} style={modalStyles.closeBtn}>
-                <Text style={modalStyles.closeBtnText}>X</Text>
-              </TouchableOpacity>
+      <View style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: 'flex-end' }}>
+        <View style={[{
+          backgroundColor: theme.surface,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          maxHeight: '92%',
+          paddingHorizontal: 20,
+          paddingBottom: 20,
+        }, keyboardHeight > 0 && { maxHeight: '95%', paddingBottom: keyboardHeight }]}>
+
+          <HandleBar theme={theme} />
+
+          {/* Modal Header */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.divider }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: theme.primary + '18', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                <Text style={{ fontSize: 18 }}>📦</Text>
+              </View>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>Create New Order</Text>
             </View>
-
-            <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? 40 : 20 }} keyboardShouldPersistTaps="handled">
-              {/* Vendor Details */}
-              <Text style={modalStyles.sectionLabel}>Vendor Details</Text>
-              <TextInput
-                style={modalStyles.input}
-                placeholder="Vendor Name *"
-                placeholderTextColor="#999"
-                value={vendorName}
-                onChangeText={setVendorName}
-              />
-              <TextInput
-                style={modalStyles.input}
-                placeholder="Vendor Mobile *"
-                placeholderTextColor="#999"
-                value={vendorMobile}
-                onChangeText={setVendorMobile}
-                keyboardType="phone-pad"
-                maxLength={10}
-              />
-
-              {/* Product Selection */}
-              <Text style={modalStyles.sectionLabel}>Select Products</Text>
-              <TextInput
-                style={modalStyles.searchInput}
-                placeholder="Search products..."
-                placeholderTextColor="#999"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-
-              {loadingProducts ? (
-                <ActivityIndicator size="small" color="#e53935" style={{ marginVertical: 20 }} />
-              ) : (
-                <View style={modalStyles.productList}>
-                  {filteredProducts.map((product) => {
-                    const isSelected = selectedProducts.find(p => p._id === product._id);
-                    return (
-                      <TouchableOpacity
-                        key={product._id}
-                        style={[modalStyles.productItem, isSelected && modalStyles.productItemSelected]}
-                        onPress={() => toggleProduct(product)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text style={modalStyles.productName}>{product.product_name}</Text>
-                          <Text style={modalStyles.productCode}>{product.product_code || ''} {product.brand ? '| ' + product.brand : ''}</Text>
-                          <Text style={modalStyles.productPrice}>Rs. {product.selling_price || 0}</Text>
-                        </View>
-                        <View style={[modalStyles.checkBox, isSelected && modalStyles.checkBoxSelected]}>
-                          {isSelected && <Text style={{ color: '#fff', fontWeight: '700' }}>+</Text>}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                  {filteredProducts.length === 0 && (
-                    <Text style={modalStyles.emptyText}>No products found</Text>
-                  )}
-                </View>
-              )}
-
-              {/* Selected Products with Quantity */}
-              {selectedProducts.length > 0 && (
-                <View>
-                  <Text style={modalStyles.sectionLabel}>Order Items ({selectedProducts.length})</Text>
-                  {selectedProducts.map((p) => (
-                    <View key={p._id} style={modalStyles.orderItem}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={modalStyles.orderItemName}>{p.product_name}</Text>
-                        <Text style={modalStyles.orderItemPrice}>Rs. {p.selling_price || 0} each</Text>
-                      </View>
-                      <View style={modalStyles.qtyRow}>
-                        <TouchableOpacity
-                          style={modalStyles.qtyBtn}
-                          onPress={() => {
-                            const val = Math.max(1, parseInt(p.orderQty || 1) - 1);
-                            updateQty(p._id, String(val));
-                          }}
-                        >
-                          <Text style={modalStyles.qtyBtnText}>-</Text>
-                        </TouchableOpacity>
-                        <TextInput
-                          style={modalStyles.qtyInput}
-                          value={p.orderQty}
-                          onChangeText={(val) => updateQty(p._id, val.replace(/[^0-9]/g, ''))}
-                          keyboardType="number-pad"
-                        />
-                        <TouchableOpacity
-                          style={modalStyles.qtyBtn}
-                          onPress={() => {
-                            const val = parseInt(p.orderQty || 0) + 1;
-                            updateQty(p._id, String(val));
-                          }}
-                        >
-                          <Text style={modalStyles.qtyBtnText}>+</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <Text style={modalStyles.itemTotal}>Rs. {(p.selling_price || 0) * parseInt(p.orderQty || 0)}</Text>
-                    </View>
-                  ))}
-                  {/* Subtotal, Discount, Tax, Grand Total */}
-                  <View style={{ padding: 14, backgroundColor: '#f8f8f8', borderRadius: 12, marginTop: 10 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text style={{ fontSize: 13, color: '#666' }}>Subtotal</Text>
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#333' }}>Rs. {subtotal}</Text>
-                    </View>
-                    {discountVal > 0 && (
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <Text style={{ fontSize: 13, color: '#4caf50' }}>Discount</Text>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#4caf50' }}>- Rs. {discountVal}</Text>
-                      </View>
-                    )}
-                    {taxVal > 0 && (
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <Text style={{ fontSize: 13, color: '#ff9800' }}>Tax</Text>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#ff9800' }}>+ Rs. {taxVal}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={modalStyles.totalRow}>
-                    <Text style={modalStyles.totalLabel}>Grand Total</Text>
-                    <Text style={modalStyles.totalValue}>Rs. {grandTotal}</Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Discount & Tax */}
-              <Text style={modalStyles.sectionLabel}>Discount & Tax</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <TextInput
-                  style={[modalStyles.input, { flex: 1 }]}
-                  placeholder="Discount (Rs.)"
-                  placeholderTextColor="#999"
-                  value={discount}
-                  onChangeText={setDiscount}
-                  keyboardType="numeric"
-                />
-                <TextInput
-                  style={[modalStyles.input, { flex: 1 }]}
-                  placeholder="Tax (Rs.)"
-                  placeholderTextColor="#999"
-                  value={tax}
-                  onChangeText={setTax}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              {/* Payment Mode */}
-              <Text style={modalStyles.sectionLabel}>Payment Mode</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-                {paymentModes.map((mode) => (
-                  <TouchableOpacity
-                    key={mode.value}
-                    style={{
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                      backgroundColor: paymentMode === mode.value ? '#e53935' : '#f8f8f8',
-                      borderWidth: 1,
-                      borderColor: paymentMode === mode.value ? '#e53935' : '#eee',
-                    }}
-                    onPress={() => {
-                      setPaymentMode(mode.value);
-                      if (mode.value === 'credit') {
-                        const d = new Date();
-                        d.setDate(d.getDate() + 5);
-                        const yyyy = d.getFullYear();
-                        const mm = String(d.getMonth() + 1).padStart(2, '0');
-                        const dd = String(d.getDate()).padStart(2, '0');
-                        setDueDate(`${yyyy}-${mm}-${dd}`);
-                      } else {
-                        setDueDate('');
-                      }
-                    }}
-                  >
-                    <Text style={{
-                      fontSize: 13,
-                      fontWeight: '600',
-                      color: paymentMode === mode.value ? '#fff' : '#666',
-                    }}>{mode.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Due Date (only for credit) */}
-              {paymentMode === 'credit' && (
-                <>
-                  <Text style={modalStyles.sectionLabel}>Due Date</Text>
-                  <TextInput
-                    style={modalStyles.input}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#999"
-                    value={dueDate}
-                    onChangeText={setDueDate}
-                  />
-                </>
-              )}
-
-              {/* Delivery Address */}
-              <Text style={modalStyles.sectionLabel}>Delivery Address</Text>
-              <TextInput
-                style={modalStyles.input}
-                placeholder="Address"
-                placeholderTextColor="#999"
-                value={deliveryAddress}
-                onChangeText={setDeliveryAddress}
-                multiline
-              />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <TextInput
-                  style={[modalStyles.input, { flex: 1 }]}
-                  placeholder="City"
-                  placeholderTextColor="#999"
-                  value={deliveryCity}
-                  onChangeText={setDeliveryCity}
-                />
-                <TextInput
-                  style={[modalStyles.input, { flex: 1 }]}
-                  placeholder="State"
-                  placeholderTextColor="#999"
-                  value={deliveryState}
-                  onChangeText={setDeliveryState}
-                />
-              </View>
-              <TextInput
-                style={modalStyles.input}
-                placeholder="Pincode"
-                placeholderTextColor="#999"
-                value={deliveryPincode}
-                onChangeText={setDeliveryPincode}
-                keyboardType="number-pad"
-                maxLength={6}
-              />
-
-              {/* Notes */}
-              <TextInput
-                style={[modalStyles.input, { height: 80, textAlignVertical: 'top', marginTop: 10 }]}
-                placeholder="Order notes (optional)"
-                placeholderTextColor="#999"
-                value={notes}
-                onChangeText={setNotes}
-                multiline
-                onFocus={() => {
-                  setTimeout(() => {
-                    scrollViewRef.current?.scrollToEnd({ animated: true });
-                  }, 300);
-                }}
-              />
-            </ScrollView>
-
-            <TouchableOpacity
-              style={[modalStyles.submitBtn, submitting && { opacity: 0.6 }]}
-              onPress={handleSubmit}
-              disabled={submitting}
-              activeOpacity={0.7}
-            >
-              {submitting ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={modalStyles.submitBtnText}>Place Order</Text>
-              )}
+            <TouchableOpacity onPress={onClose} style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textSecondary }}>X</Text>
             </TouchableOpacity>
           </View>
+
+          <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? 40 : 20 }} keyboardShouldPersistTaps="handled">
+            {/* Vendor Details */}
+            <SectionHeader title="Vendor Details" color={theme.info} theme={theme} />
+            <ModalInput emoji="👤" placeholder="Vendor Name *" value={vendorName} onChangeText={setVendorName} theme={theme} />
+            <ModalInput emoji="📞" placeholder="Vendor Mobile *" value={vendorMobile} onChangeText={setVendorMobile} theme={theme} keyboardType="phone-pad" maxLength={10} />
+
+            {/* Product Selection */}
+            <SectionHeader title="Select Products" color={theme.secondary} theme={theme} />
+            <ModalInput emoji="🔍" placeholder="Search products..." value={searchQuery} onChangeText={setSearchQuery} theme={theme} />
+
+            {loadingProducts ? (
+              <ActivityIndicator size="small" color={theme.primary} style={{ marginVertical: 20 }} />
+            ) : (
+              <View style={{ maxHeight: 250 }}>
+                {filteredProducts.map((product) => {
+                  const isSelected = selectedProducts.find(p => p._id === product._id);
+                  return (
+                    <TouchableOpacity
+                      key={product._id}
+                      style={[{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        padding: 12,
+                        backgroundColor: theme.surfaceVariant,
+                        borderRadius: 12,
+                        marginBottom: 8,
+                        borderWidth: 1.5,
+                        borderColor: theme.divider,
+                      },
+                      isSelected && { borderColor: theme.primary, backgroundColor: theme.primary + '10' }
+                      ]}
+                      onPress={() => toggleProduct(product)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: isSelected ? theme.primary + '20' : theme.background, justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                        <Text style={{ fontSize: 18 }}>🏷️</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{product.product_name}</Text>
+                        <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}>{product.product_code || ''} {product.brand ? '| ' + product.brand : ''}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.primary, marginTop: 3 }}>Rs. {product.selling_price || 0}</Text>
+                      </View>
+                      <View style={[{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        borderWidth: 2,
+                        borderColor: theme.textTertiary,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      },
+                      isSelected && { backgroundColor: theme.primary, borderColor: theme.primary }
+                      ]}>
+                        {isSelected && <Text style={{ color: theme.buttonText, fontWeight: '700', fontSize: 14 }}>✓</Text>}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+                {filteredProducts.length === 0 && (
+                  <View style={{ padding: 24, alignItems: 'center' }}>
+                    <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                      <Text style={{ fontSize: 22 }}>🔍</Text>
+                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: theme.textSecondary }}>No products found</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Selected Products with Quantity */}
+            {selectedProducts.length > 0 && (
+              <View>
+                <SectionHeader title={`Order Items (${selectedProducts.length})`} color={theme.primary} theme={theme} />
+                {selectedProducts.map((p) => (
+                  <View key={p._id} style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: 12,
+                    backgroundColor: theme.surfaceVariant,
+                    borderRadius: 12,
+                    marginBottom: 8,
+                    borderLeftWidth: 4,
+                    borderLeftColor: theme.primary,
+                  }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>{p.product_name}</Text>
+                      <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}>Rs. {p.selling_price || 0} each</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 8 }}>
+                      <TouchableOpacity
+                        style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: theme.primary, justifyContent: 'center', alignItems: 'center' }}
+                        onPress={() => {
+                          const val = Math.max(1, parseInt(p.orderQty || 1) - 1);
+                          updateQty(p._id, String(val));
+                        }}
+                      >
+                        <Text style={{ color: theme.buttonText, fontSize: 16, fontWeight: '700' }}>-</Text>
+                      </TouchableOpacity>
+                      <TextInput
+                        style={{ width: 44, textAlign: 'center', fontSize: 15, fontWeight: '800', color: theme.text }}
+                        value={p.orderQty}
+                        onChangeText={(val) => updateQty(p._id, val.replace(/[^0-9]/g, ''))}
+                        keyboardType="number-pad"
+                      />
+                      <TouchableOpacity
+                        style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: theme.primary, justifyContent: 'center', alignItems: 'center' }}
+                        onPress={() => {
+                          const val = parseInt(p.orderQty || 0) + 1;
+                          updateQty(p._id, String(val));
+                        }}
+                      >
+                        <Text style={{ color: theme.buttonText, fontSize: 16, fontWeight: '700' }}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: theme.primary, minWidth: 65, textAlign: 'right' }}>Rs. {(p.selling_price || 0) * parseInt(p.orderQty || 0)}</Text>
+                  </View>
+                ))}
+
+                {/* Summary */}
+                <View style={{ padding: 16, backgroundColor: theme.surfaceVariant, borderRadius: 16, marginTop: 10 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <Text style={{ fontSize: 13, color: theme.textSecondary }}>Subtotal</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>Rs. {subtotal}</Text>
+                  </View>
+                  {discountVal > 0 && (
+                    <>
+                      <View style={{ height: 1, backgroundColor: theme.divider, marginBottom: 8 }} />
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <Text style={{ fontSize: 13, color: theme.success }}>Discount</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.success }}>- Rs. {discountVal}</Text>
+                      </View>
+                    </>
+                  )}
+                  {taxVal > 0 && (
+                    <>
+                      <View style={{ height: 1, backgroundColor: theme.divider, marginBottom: 8 }} />
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <Text style={{ fontSize: 13, color: theme.warning }}>Tax</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.warning }}>+ Rs. {taxVal}</Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+
+                {/* Grand Total */}
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: 16,
+                  backgroundColor: theme.primary,
+                  borderRadius: 16,
+                  marginTop: 10,
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 18, marginRight: 8 }}>💰</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textOnPrimary }}>Grand Total</Text>
+                  </View>
+                  <Text style={{ fontSize: 20, fontWeight: '900', color: theme.textOnPrimary }}>Rs. {grandTotal}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Discount & Tax */}
+            <SectionHeader title="Discount & Tax" color={theme.success} theme={theme} />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <ModalInput emoji="🏷️" placeholder="Discount (Rs.)" value={discount} onChangeText={setDiscount} theme={theme} keyboardType="numeric" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ModalInput emoji="📊" placeholder="Tax (Rs.)" value={tax} onChangeText={setTax} theme={theme} keyboardType="numeric" />
+              </View>
+            </View>
+
+            {/* Payment Mode */}
+            <SectionHeader title="Payment Mode" color={theme.warning} theme={theme} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+              {paymentModes.map((mode) => (
+                <TouchableOpacity
+                  key={mode.value}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 9,
+                    borderRadius: 20,
+                    backgroundColor: paymentMode === mode.value ? theme.primary : theme.surfaceVariant,
+                    borderWidth: 1,
+                    borderColor: paymentMode === mode.value ? theme.primary : theme.divider,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    setPaymentMode(mode.value);
+                    if (mode.value === 'credit') {
+                      const d = new Date();
+                      d.setDate(d.getDate() + 5);
+                      const yyyy = d.getFullYear();
+                      const mm = String(d.getMonth() + 1).padStart(2, '0');
+                      const dd = String(d.getDate()).padStart(2, '0');
+                      setDueDate(`${yyyy}-${mm}-${dd}`);
+                    } else {
+                      setDueDate('');
+                    }
+                  }}
+                >
+                  <Text style={{ fontSize: 14, marginRight: 5 }}>{mode.emoji}</Text>
+                  <Text style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: paymentMode === mode.value ? theme.buttonText : theme.textSecondary,
+                  }}>{mode.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Due Date (only for credit) */}
+            {paymentMode === 'credit' && (
+              <>
+                <SectionHeader title="Due Date" color={theme.primary} theme={theme} />
+                <ModalInput emoji="📅" placeholder="YYYY-MM-DD" value={dueDate} onChangeText={setDueDate} theme={theme} />
+              </>
+            )}
+
+            {/* Delivery Address */}
+            <SectionHeader title="Delivery Address" color={theme.info} theme={theme} />
+            <ModalInput emoji="📍" placeholder="Address" value={deliveryAddress} onChangeText={setDeliveryAddress} theme={theme} multiline />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <ModalInput emoji="🏙️" placeholder="City" value={deliveryCity} onChangeText={setDeliveryCity} theme={theme} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ModalInput emoji="🗺️" placeholder="State" value={deliveryState} onChangeText={setDeliveryState} theme={theme} />
+              </View>
+            </View>
+            <ModalInput emoji="📮" placeholder="Pincode" value={deliveryPincode} onChangeText={setDeliveryPincode} theme={theme} keyboardType="number-pad" maxLength={6} />
+
+            {/* Notes */}
+            <ModalInput
+              emoji="📝"
+              placeholder="Order notes (optional)"
+              value={notes}
+              onChangeText={setNotes}
+              theme={theme}
+              multiline
+              style={{ minHeight: 70, alignItems: 'flex-start', paddingTop: 12 }}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 300);
+              }}
+            />
+          </ScrollView>
+
+          <TouchableOpacity
+            style={[{
+              backgroundColor: theme.primary,
+              borderRadius: 14,
+              padding: 16,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              marginTop: 8,
+            }, submitting && { opacity: 0.6 }]}
+            onPress={handleSubmit}
+            disabled={submitting}
+            activeOpacity={0.7}
+          >
+            {submitting ? (
+              <ActivityIndicator color={theme.buttonText} size="small" />
+            ) : (
+              <>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>🛒</Text>
+                <Text style={{ color: theme.buttonText, fontSize: 16, fontWeight: '800' }}>Place Order</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
+      </View>
     </Modal>
   );
 }
 
-const modalStyles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  container: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '92%', paddingHorizontal: 20, paddingBottom: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#1a1a2e' },
-  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' },
-  closeBtnText: { fontSize: 14, fontWeight: '700', color: '#666' },
-  sectionLabel: { fontSize: 14, fontWeight: '700', color: '#1a1a2e', marginTop: 16, marginBottom: 8 },
-  input: { backgroundColor: '#f8f8f8', borderRadius: 12, padding: 14, fontSize: 14, color: '#333', borderWidth: 1, borderColor: '#eee', marginBottom: 10 },
-  searchInput: { backgroundColor: '#f8f8f8', borderRadius: 12, padding: 12, fontSize: 14, color: '#333', borderWidth: 1, borderColor: '#eee', marginBottom: 10 },
-  productList: { maxHeight: 250 },
-  productItem: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#f8f8f8', borderRadius: 10, marginBottom: 6, borderWidth: 1, borderColor: '#eee' },
-  productItemSelected: { borderColor: '#e53935', backgroundColor: '#fff5f5' },
-  productName: { fontSize: 14, fontWeight: '700', color: '#333' },
-  productCode: { fontSize: 11, color: '#999', marginTop: 2 },
-  productPrice: { fontSize: 12, fontWeight: '600', color: '#e53935', marginTop: 2 },
-  checkBox: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: '#ccc', justifyContent: 'center', alignItems: 'center' },
-  checkBoxSelected: { backgroundColor: '#e53935', borderColor: '#e53935' },
-  orderItem: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#f8f8f8', borderRadius: 10, marginBottom: 6, borderLeftWidth: 3, borderLeftColor: '#e53935' },
-  orderItemName: { fontSize: 13, fontWeight: '700', color: '#333' },
-  orderItemPrice: { fontSize: 11, color: '#999', marginTop: 2 },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 8 },
-  qtyBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#e53935', justifyContent: 'center', alignItems: 'center' },
-  qtyBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  qtyInput: { width: 40, textAlign: 'center', fontSize: 14, fontWeight: '700', color: '#333' },
-  itemTotal: { fontSize: 13, fontWeight: '700', color: '#1a1a2e', minWidth: 60, textAlign: 'right' },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, backgroundColor: '#1a1a2e', borderRadius: 12, marginTop: 10 },
-  totalLabel: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  totalValue: { fontSize: 18, fontWeight: '900', color: '#ff8a80' },
-  submitBtn: { backgroundColor: '#e53935', borderRadius: 14, padding: 16, alignItems: 'center' },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  emptyText: { textAlign: 'center', color: '#999', fontSize: 13, marginVertical: 20 },
-});
-
 // ======================== ORDER DETAIL MODAL ========================
 function OrderDetailModal({ visible, order, onClose, onOpenPayment }) {
+  const { theme, isDark } = useTheme();
   if (!order) return null;
 
   const getStatusColor = (status) => {
     switch ((status || '').toLowerCase()) {
-      case 'pending': return '#ff9800';
-      case 'confirmed': case 'approved': return '#1565c0';
-      case 'dispatched': case 'shipped': return '#7b1fa2';
-      case 'delivered': case 'completed': return '#4caf50';
-      case 'cancelled': case 'rejected': return '#e53935';
-      default: return '#999';
+      case 'pending': return theme.warning;
+      case 'confirmed': case 'approved': return theme.info;
+      case 'dispatched': case 'shipped': return theme.secondary;
+      case 'delivered': case 'completed': return theme.success;
+      case 'cancelled': case 'rejected': return theme.primary;
+      default: return theme.textTertiary;
     }
   };
 
   const getStatusBg = (status) => {
     switch ((status || '').toLowerCase()) {
-      case 'pending': return '#fff3e0';
-      case 'confirmed': case 'approved': return '#e3f2fd';
-      case 'dispatched': case 'shipped': return '#f3e5f5';
-      case 'delivered': case 'completed': return '#e8f5e9';
-      case 'cancelled': case 'rejected': return '#ffebee';
-      default: return '#f5f5f5';
+      case 'pending': return theme.warningBg;
+      case 'confirmed': case 'approved': return theme.infoBg;
+      case 'dispatched': case 'shipped': return isDark ? theme.surfaceVariant : '#f3e5f5';
+      case 'delivered': case 'completed': return theme.successBg;
+      case 'cancelled': case 'rejected': return theme.errorBg;
+      default: return theme.surfaceVariant;
     }
   };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={modalStyles.overlay}>
-        <View style={modalStyles.container}>
-          <View style={modalStyles.header}>
-            <Text style={modalStyles.headerTitle}>Order Details</Text>
-            <TouchableOpacity onPress={onClose} style={modalStyles.closeBtn}>
-              <Text style={modalStyles.closeBtnText}>X</Text>
+      <View style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: 'flex-end' }}>
+        <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '92%', paddingHorizontal: 20, paddingBottom: 20 }}>
+
+          <HandleBar theme={theme} />
+
+          {/* Modal Header */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.divider }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: theme.info + '18', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                <Text style={{ fontSize: 18 }}>📋</Text>
+              </View>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>Order Details</Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textSecondary }}>X</Text>
             </TouchableOpacity>
           </View>
+
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#1a1a2e' }}>#{order.order_number || order._id?.slice(-6) || '--'}</Text>
-              <View style={{ backgroundColor: getStatusBg(order.order_status), paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: getStatusColor(order.order_status) }}>{(order.order_status || 'Pending').toUpperCase()}</Text>
+            {/* Order Number + Status */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: theme.text }}>#{order.order_number || order._id?.slice(-6) || '--'}</Text>
+              <View style={{ backgroundColor: getStatusBg(order.order_status), paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20 }}>
+                <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 0.5, color: getStatusColor(order.order_status) }}>{(order.order_status || 'Pending').toUpperCase()}</Text>
               </View>
             </View>
 
-            <View style={{ marginTop: 14, padding: 14, backgroundColor: '#f8f8f8', borderRadius: 12 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#333' }}>{order.vendor_name || '--'}</Text>
-              <Text style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{order.vendor_mobile || '--'}</Text>
-              {order.vendor_address ? <Text style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{order.vendor_address}</Text> : null}
+            {/* Vendor Info */}
+            <View style={{ marginTop: 14, padding: 16, backgroundColor: theme.surfaceVariant, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: theme.info }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontSize: 16, marginRight: 8 }}>👤</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>{order.vendor_name || '--'}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 14, marginRight: 8 }}>📞</Text>
+                <Text style={{ fontSize: 13, color: theme.textTertiary }}>{order.vendor_mobile || '--'}</Text>
+              </View>
+              {order.vendor_address ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                  <Text style={{ fontSize: 14, marginRight: 8 }}>📍</Text>
+                  <Text style={{ fontSize: 13, color: theme.textTertiary }}>{order.vendor_address}</Text>
+                </View>
+              ) : null}
             </View>
 
-            <Text style={modalStyles.sectionLabel}>Items ({(order.items || []).length})</Text>
+            {/* Items */}
+            <SectionHeader title={`Items (${(order.items || []).length})`} color={theme.secondary} theme={theme} />
             {(order.items || []).map((item, idx) => (
-              <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10, backgroundColor: '#f8f8f8', borderRadius: 8, marginBottom: 4 }}>
+              <View key={idx} style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                padding: 12,
+                backgroundColor: theme.surfaceVariant,
+                borderRadius: 12,
+                marginBottom: 6,
+                borderLeftWidth: 4,
+                borderLeftColor: theme.secondary,
+              }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#333' }}>{item.product_name}</Text>
-                  <Text style={{ fontSize: 11, color: '#999' }}>Qty: {item.quantity} x Rs. {item.unit_price || 0}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{item.product_name}</Text>
+                  <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 3 }}>Qty: {item.quantity} x Rs. {item.unit_price || 0}</Text>
                 </View>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#1a1a2e' }}>Rs. {item.total_price || 0}</Text>
+                <Text style={{ fontSize: 14, fontWeight: '800', color: theme.primary, alignSelf: 'center' }}>Rs. {item.total_price || 0}</Text>
               </View>
             ))}
 
-            <View style={modalStyles.totalRow}>
-              <Text style={modalStyles.totalLabel}>Total Amount</Text>
-              <Text style={modalStyles.totalValue}>Rs. {order.grand_total || 0}</Text>
+            {/* Total */}
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: 16,
+              backgroundColor: theme.primary,
+              borderRadius: 16,
+              marginTop: 12,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>💰</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textOnPrimary }}>Total Amount</Text>
+              </View>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: theme.textOnPrimary }}>Rs. {order.grand_total || 0}</Text>
             </View>
 
+            {/* Notes */}
             {order.note ? (
-              <View style={{ marginTop: 10, padding: 12, backgroundColor: '#fff3e0', borderRadius: 10 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#e65100' }}>Notes:</Text>
-                <Text style={{ fontSize: 12, color: '#333', marginTop: 4 }}>{order.note}</Text>
+              <View style={{ marginTop: 12, padding: 14, backgroundColor: theme.warningBg, borderRadius: 14, borderLeftWidth: 4, borderLeftColor: theme.warning }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                  <Text style={{ fontSize: 14, marginRight: 6 }}>📝</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: theme.warning }}>Notes</Text>
+                </View>
+                <Text style={{ fontSize: 13, color: theme.text, lineHeight: 19 }}>{order.note}</Text>
               </View>
             ) : null}
 
-            <Text style={{ fontSize: 11, color: '#999', marginTop: 14, textAlign: 'center' }}>
+            <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 16, textAlign: 'center' }}>
               Created: {order.createdAt ? new Date(order.createdAt).toLocaleString() : '--'}
             </Text>
 
@@ -599,15 +683,18 @@ function OrderDetailModal({ visible, order, onClose, onOpenPayment }) {
             <TouchableOpacity
               style={{
                 marginTop: 16,
-                backgroundColor: '#1565c0',
-                paddingVertical: 14,
-                borderRadius: 12,
+                backgroundColor: theme.info,
+                paddingVertical: 15,
+                borderRadius: 14,
                 alignItems: 'center',
+                flexDirection: 'row',
+                justifyContent: 'center',
               }}
               onPress={() => { if (onOpenPayment) onOpenPayment(order); }}
               activeOpacity={0.8}
             >
-              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Payment / Credit</Text>
+              <Text style={{ fontSize: 16, marginRight: 8 }}>💳</Text>
+              <Text style={{ color: theme.buttonText, fontSize: 15, fontWeight: '700' }}>Payment / Credit</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -618,6 +705,7 @@ function OrderDetailModal({ visible, order, onClose, onOpenPayment }) {
 
 // ======================== PAYMENT CREDIT MODAL ========================
 function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user }) {
+  const { theme, isDark } = useTheme();
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState('cash');
   const [paymentNote, setPaymentNote] = useState('');
@@ -642,10 +730,10 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
   }, []);
 
   const paymentModes = [
-    { label: 'Cash', value: 'cash' },
-    { label: 'UPI', value: 'upi' },
-    { label: 'Bank Transfer', value: 'bank_transfer' },
-    { label: 'Cheque', value: 'cheque' },
+    { label: 'Cash', value: 'cash', emoji: '💵' },
+    { label: 'UPI', value: 'upi', emoji: '📱' },
+    { label: 'Bank Transfer', value: 'bank_transfer', emoji: '🏦' },
+    { label: 'Cheque', value: 'cheque', emoji: '📝' },
   ];
 
   useEffect(() => {
@@ -663,7 +751,6 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
       const token = user && user.token ? user.token : '';
       const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
 
-      // Fetch order details with linked payment credit
       const response = await fetch(`${BASE_URL}/api/orders/${order._id}`, { headers });
       const result = await response.json();
 
@@ -709,7 +796,6 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
       const token = user && user.token ? user.token : '';
       const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
 
-      // Auto-create PaymentCredit if not exists for this order
       let creditId = paymentCreditId;
       if (!creditId) {
         const createRes = await fetch(`${BASE_URL}/api/payment-credits`, {
@@ -767,55 +853,96 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={modalStyles.overlay}>
-        <View style={[modalStyles.container, keyboardHeight > 0 && { maxHeight: '95%', paddingBottom: keyboardHeight }]}>
-          <View style={modalStyles.header}>
-            <Text style={modalStyles.headerTitle}>Payment / Credit</Text>
-            <TouchableOpacity onPress={onClose} style={modalStyles.closeBtn}>
-              <Text style={modalStyles.closeBtnText}>X</Text>
+      <View style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: 'flex-end' }}>
+        <View style={[{
+          backgroundColor: theme.surface,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          maxHeight: '92%',
+          paddingHorizontal: 20,
+          paddingBottom: 20,
+        }, keyboardHeight > 0 && { maxHeight: '95%', paddingBottom: keyboardHeight }]}>
+
+          <HandleBar theme={theme} />
+
+          {/* Modal Header */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.divider }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: theme.success + '18', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                <Text style={{ fontSize: 18 }}>💳</Text>
+              </View>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>Payment / Credit</Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textSecondary }}>X</Text>
             </TouchableOpacity>
           </View>
+
           <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? 40 : 20 }} keyboardShouldPersistTaps="handled">
             {/* Order Summary */}
-            <View style={{ marginTop: 14, padding: 14, backgroundColor: '#f8f8f8', borderRadius: 12 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#333' }}>
-                Order #{order.order_number || order._id?.slice(-6) || '--'}
-              </Text>
-              <Text style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{order.vendor_name || '--'}</Text>
+            <View style={{ marginTop: 14, padding: 16, backgroundColor: theme.surfaceVariant, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: theme.info }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, marginRight: 8 }}>📋</Text>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>
+                    Order #{order.order_number || order._id?.slice(-6) || '--'}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: theme.textTertiary, marginTop: 2 }}>{order.vendor_name || '--'}</Text>
+                </View>
+              </View>
             </View>
 
             {/* Payment Summary Cards */}
             <View style={{ flexDirection: 'row', marginTop: 14, gap: 8 }}>
-              <View style={{ flex: 1, backgroundColor: '#e3f2fd', borderRadius: 12, padding: 14, alignItems: 'center' }}>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#1565c0' }}>Total Amount</Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: '#1565c0', marginTop: 4 }}>Rs. {grandTotal}</Text>
+              <View style={{ flex: 1, backgroundColor: theme.infoBg, borderRadius: 16, padding: 14, alignItems: 'center', elevation: 1 }}>
+                <Text style={{ fontSize: 20, marginBottom: 4 }}>💰</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: theme.info }}>Rs. {grandTotal}</Text>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: theme.info, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total</Text>
               </View>
-              <View style={{ flex: 1, backgroundColor: '#e8f5e9', borderRadius: 12, padding: 14, alignItems: 'center' }}>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#4caf50' }}>Paid</Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: '#4caf50', marginTop: 4 }}>Rs. {totalPaid}</Text>
+              <View style={{ flex: 1, backgroundColor: theme.successBg, borderRadius: 16, padding: 14, alignItems: 'center', elevation: 1 }}>
+                <Text style={{ fontSize: 20, marginBottom: 4 }}>✅</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: theme.success }}>Rs. {totalPaid}</Text>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: theme.success, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Paid</Text>
               </View>
-              <View style={{ flex: 1, backgroundColor: balance > 0 ? '#ffebee' : '#e8f5e9', borderRadius: 12, padding: 14, alignItems: 'center' }}>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: balance > 0 ? '#e53935' : '#4caf50' }}>Balance</Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: balance > 0 ? '#e53935' : '#4caf50', marginTop: 4 }}>Rs. {balance}</Text>
+              <View style={{ flex: 1, backgroundColor: balance > 0 ? theme.errorBg : theme.successBg, borderRadius: 16, padding: 14, alignItems: 'center', elevation: 1 }}>
+                <Text style={{ fontSize: 20, marginBottom: 4 }}>{balance > 0 ? '⏳' : '🎉'}</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: balance > 0 ? theme.primary : theme.success }}>Rs. {balance}</Text>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: balance > 0 ? theme.primary : theme.success, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Balance</Text>
               </View>
             </View>
 
             {/* Payment History */}
-            <Text style={modalStyles.sectionLabel}>Payment History</Text>
+            <SectionHeader title="Payment History" color={theme.info} theme={theme} />
             {loadingPayments ? (
-              <ActivityIndicator size="small" color="#1565c0" style={{ marginVertical: 10 }} />
+              <ActivityIndicator size="small" color={theme.info} style={{ marginVertical: 10 }} />
             ) : payments.length === 0 ? (
-              <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#f8f8f8', borderRadius: 10 }}>
-                <Text style={{ fontSize: 13, color: '#999' }}>No payments recorded yet</Text>
+              <View style={{ padding: 24, alignItems: 'center', backgroundColor: theme.surfaceVariant, borderRadius: 16 }}>
+                <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={{ fontSize: 22 }}>📭</Text>
+                </View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.textSecondary }}>No payments recorded yet</Text>
+                <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 4 }}>Record a payment below</Text>
               </View>
             ) : (
               payments.map((p, idx) => (
-                <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: '#f8f8f8', borderRadius: 10, marginBottom: 4 }}>
+                <View key={idx} style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: 14,
+                  backgroundColor: theme.surfaceVariant,
+                  borderRadius: 12,
+                  marginBottom: 6,
+                  borderLeftWidth: 4,
+                  borderLeftColor: theme.success,
+                }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#333' }}>Rs. {p.amount || 0}</Text>
-                    <Text style={{ fontSize: 11, color: '#999' }}>{p.payment_mode || 'Cash'} {p.note ? '- ' + p.note : ''}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>Rs. {p.amount || 0}</Text>
+                    <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>{p.payment_mode || 'Cash'} {p.note ? '- ' + p.note : ''}</Text>
                   </View>
-                  <Text style={{ fontSize: 10, color: '#bbb' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : (p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '--')}</Text>
+                  <View style={{ backgroundColor: theme.background, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '600', color: theme.textTertiary }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : (p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '--')}</Text>
+                  </View>
                 </View>
               ))
             )}
@@ -823,65 +950,77 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
             {/* Add Payment Form */}
             {balance > 0 && (
               <>
-                <Text style={modalStyles.sectionLabel}>Record Payment</Text>
+                <SectionHeader title="Record Payment" color={theme.success} theme={theme} />
 
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 6 }}>Payment Mode</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary, marginBottom: 8 }}>Payment Mode</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
                   {paymentModes.map((mode) => (
                     <TouchableOpacity
                       key={mode.value}
                       style={{
                         paddingHorizontal: 16,
-                        paddingVertical: 8,
+                        paddingVertical: 9,
                         borderRadius: 20,
-                        backgroundColor: paymentMode === mode.value ? '#1565c0' : '#f0f0f0',
+                        backgroundColor: paymentMode === mode.value ? theme.primary : theme.surfaceVariant,
                         marginRight: 8,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        borderWidth: 1,
+                        borderColor: paymentMode === mode.value ? theme.primary : theme.divider,
                       }}
                       onPress={() => setPaymentMode(mode.value)}
                       activeOpacity={0.7}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: paymentMode === mode.value ? '#fff' : '#666' }}>{mode.label}</Text>
+                      <Text style={{ fontSize: 14, marginRight: 5 }}>{mode.emoji}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: paymentMode === mode.value ? theme.buttonText : theme.textSecondary }}>{mode.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
 
-                <TextInput
-                  style={modalStyles.input}
-                  placeholder="Payment Amount"
-                  placeholderTextColor="#bbb"
-                  keyboardType="numeric"
-                  value={paymentAmount}
-                  onChangeText={setPaymentAmount}
-                />
-
-                <TextInput
-                  style={[modalStyles.input, { height: 60, textAlignVertical: 'top', marginTop: 8 }]}
+                <ModalInput emoji="💰" placeholder="Payment Amount" value={paymentAmount} onChangeText={setPaymentAmount} theme={theme} keyboardType="numeric" />
+                <ModalInput
+                  emoji="📝"
                   placeholder="Payment Note (optional)"
-                  placeholderTextColor="#bbb"
                   value={paymentNote}
                   onChangeText={setPaymentNote}
+                  theme={theme}
                   multiline
+                  style={{ minHeight: 56, alignItems: 'flex-start', paddingTop: 12 }}
                 />
 
                 <TouchableOpacity
-                  style={[modalStyles.submitBtn, submitting && { opacity: 0.6 }]}
+                  style={[{
+                    backgroundColor: theme.primary,
+                    borderRadius: 14,
+                    padding: 16,
+                    alignItems: 'center',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    marginTop: 4,
+                  }, submitting && { opacity: 0.6 }]}
                   onPress={handleSubmitPayment}
                   disabled={submitting}
                   activeOpacity={0.8}
                 >
                   {submitting ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color={theme.buttonText} />
                   ) : (
-                    <Text style={modalStyles.submitBtnText}>Record Payment</Text>
+                    <>
+                      <Text style={{ fontSize: 16, marginRight: 8 }}>✅</Text>
+                      <Text style={{ color: theme.buttonText, fontSize: 16, fontWeight: '800' }}>Record Payment</Text>
+                    </>
                   )}
                 </TouchableOpacity>
               </>
             )}
 
             {balance <= 0 && payments.length > 0 && (
-              <View style={{ marginTop: 14, padding: 16, backgroundColor: '#e8f5e9', borderRadius: 12, alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, fontWeight: '800', color: '#4caf50' }}>Fully Paid</Text>
-                <Text style={{ fontSize: 12, color: '#66bb6a', marginTop: 4 }}>All payments have been recorded</Text>
+              <View style={{ marginTop: 14, padding: 20, backgroundColor: theme.successBg, borderRadius: 16, alignItems: 'center' }}>
+                <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: theme.success + '20', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={{ fontSize: 26 }}>🎉</Text>
+                </View>
+                <Text style={{ fontSize: 17, fontWeight: '800', color: theme.success }}>Fully Paid</Text>
+                <Text style={{ fontSize: 13, color: theme.success, marginTop: 4 }}>All payments have been recorded</Text>
               </View>
             )}
           </ScrollView>
@@ -893,6 +1032,7 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
 
 // ======================== MAIN ORDER DASHBOARD ========================
 export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToProfile, onGoToInventory }) {
+  const { theme, isDark, toggleTheme } = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -962,23 +1102,23 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
 
   const getStatusColor = (status) => {
     switch ((status || '').toLowerCase()) {
-      case 'pending': return '#ff9800';
-      case 'confirmed': case 'approved': return '#1565c0';
-      case 'dispatched': case 'shipped': return '#7b1fa2';
-      case 'delivered': case 'completed': return '#4caf50';
-      case 'cancelled': case 'rejected': return '#e53935';
-      default: return '#999';
+      case 'pending': return theme.warning;
+      case 'confirmed': case 'approved': return theme.info;
+      case 'dispatched': case 'shipped': return theme.secondary;
+      case 'delivered': case 'completed': return theme.success;
+      case 'cancelled': case 'rejected': return theme.primary;
+      default: return theme.textTertiary;
     }
   };
 
   const getStatusBg = (status) => {
     switch ((status || '').toLowerCase()) {
-      case 'pending': return '#fff3e0';
-      case 'confirmed': case 'approved': return '#e3f2fd';
-      case 'dispatched': case 'shipped': return '#f3e5f5';
-      case 'delivered': case 'completed': return '#e8f5e9';
-      case 'cancelled': case 'rejected': return '#ffebee';
-      default: return '#f5f5f5';
+      case 'pending': return theme.warningBg;
+      case 'confirmed': case 'approved': return theme.infoBg;
+      case 'dispatched': case 'shipped': return isDark ? theme.surfaceVariant : '#f3e5f5';
+      case 'delivered': case 'completed': return theme.successBg;
+      case 'cancelled': case 'rejected': return theme.errorBg;
+      default: return theme.surfaceVariant;
     }
   };
 
@@ -1002,170 +1142,364 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <StatusBar style="light" />
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
+      <View style={{
+        backgroundColor: theme.primary,
+        paddingTop: 50,
+        paddingHorizontal: 20,
+        paddingBottom: 22,
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
+        overflow: 'hidden',
+      }}>
+        {/* Decorative Circles */}
+        <View style={{ position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.08)', top: -40, right: -30 }} />
+        <View style={{ position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.05)', top: 70, left: -50 }} />
+        <View style={{ position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: theme.secondary ? (theme.secondary + '26') : 'rgba(255,255,255,0.15)', bottom: -20, right: 60 }} />
+
+        {/* Nav Row */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {onGoBack ? (
-              <TouchableOpacity style={styles.backBtn} onPress={onGoBack} activeOpacity={0.7}>
-                <Text style={styles.backBtnText}>{'<'}</Text>
+              <TouchableOpacity
+                style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}
+                onPress={onGoBack}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>{'<'}</Text>
               </TouchableOpacity>
             ) : null}
             <View>
-              <Text style={styles.greeting}>Welcome Back,</Text>
-              <Text style={styles.userName}>{user && user.fullName ? user.fullName : 'Sales'}</Text>
+              <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>Welcome Back,</Text>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: '#FFFFFF', marginTop: 2 }}>{user && user.fullName ? user.fullName : 'Sales'}</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 8 }}
+              onPress={toggleTheme}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: '#FFFFFF', fontSize: 16 }}>{isDark ? '☀️' : '🌙'}</Text>
+            </TouchableOpacity>
             {onGoToProfile ? (
-              <TouchableOpacity style={styles.profileBtn} onPress={onGoToProfile} activeOpacity={0.7}>
-                <Text style={styles.profileBtnText}>P</Text>
+              <TouchableOpacity
+                style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 8 }}
+                onPress={onGoToProfile}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>P</Text>
               </TouchableOpacity>
             ) : null}
             {onLogout ? (
-              <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} activeOpacity={0.7}>
-                <Text style={styles.logoutText}>Logout</Text>
+              <TouchableOpacity
+                style={{ backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}
+                onPress={onLogout}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: '#ff8a80', fontSize: 13, fontWeight: '700' }}>Logout</Text>
               </TouchableOpacity>
             ) : null}
           </View>
         </View>
-        <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
-        <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+
+        {/* Date & Time */}
+        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{formatDate(currentTime)}</Text>
+        <Text style={{ fontSize: 28, fontWeight: '900', color: '#FFFFFF', marginTop: 4, letterSpacing: 2 }}>{formatTime(currentTime)}</Text>
       </View>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={styles.dashboardBody}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e53935']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />}
       >
         {/* Stats Overview */}
-        <View style={styles.statsRow}>
-          <View style={styles.statsCard}>
-            <Text style={styles.statsIcon}>📋</Text>
-            <Text style={styles.statsValue}>{loading ? '--' : stats.total}</Text>
-            <Text style={styles.statsLabel}>Total Orders</Text>
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <View style={{
+            flex: 1,
+            backgroundColor: theme.surface,
+            borderRadius: 16,
+            padding: 16,
+            marginHorizontal: 4,
+            alignItems: 'center',
+            elevation: 3,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+          }}>
+            <Text style={{ fontSize: 26, marginBottom: 6 }}>📋</Text>
+            <Text style={{ fontSize: 24, fontWeight: '900', color: theme.text }}>{loading ? '--' : stats.total}</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.textTertiary, marginTop: 4, letterSpacing: 0.5, textTransform: 'uppercase' }}>Total Orders</Text>
           </View>
-          <View style={styles.statsCard}>
-            <Text style={styles.statsIcon}>💰</Text>
-            <Text style={styles.statsValue}>{loading ? '--' : formatCurrency(stats.totalAmount)}</Text>
-            <Text style={styles.statsLabel}>Total Value</Text>
+          <View style={{
+            flex: 1,
+            backgroundColor: theme.surface,
+            borderRadius: 16,
+            padding: 16,
+            marginHorizontal: 4,
+            alignItems: 'center',
+            elevation: 3,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+          }}>
+            <Text style={{ fontSize: 26, marginBottom: 6 }}>💰</Text>
+            <Text style={{ fontSize: 24, fontWeight: '900', color: theme.text }}>{loading ? '--' : formatCurrency(stats.totalAmount)}</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.textTertiary, marginTop: 4, letterSpacing: 0.5, textTransform: 'uppercase' }}>Total Value</Text>
           </View>
         </View>
 
-        <View style={styles.statsRow}>
-          <View style={[styles.statsCard, { borderTopWidth: 3, borderTopColor: '#ff9800' }]}>
-            <Text style={styles.statsIcon}>⏳</Text>
-            <Text style={[styles.statsValue, { color: '#ff9800' }]}>{loading ? '--' : stats.pending}</Text>
-            <Text style={styles.statsLabel}>Pending</Text>
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <View style={{
+            flex: 1,
+            backgroundColor: theme.surface,
+            borderRadius: 16,
+            padding: 16,
+            marginHorizontal: 4,
+            alignItems: 'center',
+            elevation: 3,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            borderLeftWidth: 4,
+            borderLeftColor: theme.warning,
+          }}>
+            <Text style={{ fontSize: 26, marginBottom: 6 }}>⏳</Text>
+            <Text style={{ fontSize: 24, fontWeight: '900', color: theme.warning }}>{loading ? '--' : stats.pending}</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.textTertiary, marginTop: 4, letterSpacing: 0.5, textTransform: 'uppercase' }}>Pending</Text>
           </View>
-          <View style={[styles.statsCard, { borderTopWidth: 3, borderTopColor: '#1565c0' }]}>
-            <Text style={styles.statsIcon}>✅</Text>
-            <Text style={[styles.statsValue, { color: '#1565c0' }]}>{loading ? '--' : stats.confirmed}</Text>
-            <Text style={styles.statsLabel}>Confirmed</Text>
+          <View style={{
+            flex: 1,
+            backgroundColor: theme.surface,
+            borderRadius: 16,
+            padding: 16,
+            marginHorizontal: 4,
+            alignItems: 'center',
+            elevation: 3,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            borderLeftWidth: 4,
+            borderLeftColor: theme.info,
+          }}>
+            <Text style={{ fontSize: 26, marginBottom: 6 }}>✅</Text>
+            <Text style={{ fontSize: 24, fontWeight: '900', color: theme.info }}>{loading ? '--' : stats.confirmed}</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.textTertiary, marginTop: 4, letterSpacing: 0.5, textTransform: 'uppercase' }}>Confirmed</Text>
           </View>
-          <View style={[styles.statsCard, { borderTopWidth: 3, borderTopColor: '#4caf50' }]}>
-            <Text style={styles.statsIcon}>🚚</Text>
-            <Text style={[styles.statsValue, { color: '#4caf50' }]}>{loading ? '--' : stats.delivered}</Text>
-            <Text style={styles.statsLabel}>Delivered</Text>
+          <View style={{
+            flex: 1,
+            backgroundColor: theme.surface,
+            borderRadius: 16,
+            padding: 16,
+            marginHorizontal: 4,
+            alignItems: 'center',
+            elevation: 3,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            borderLeftWidth: 4,
+            borderLeftColor: theme.success,
+          }}>
+            <Text style={{ fontSize: 26, marginBottom: 6 }}>🚚</Text>
+            <Text style={{ fontSize: 24, fontWeight: '900', color: theme.success }}>{loading ? '--' : stats.delivered}</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.textTertiary, marginTop: 4, letterSpacing: 0.5, textTransform: 'uppercase' }}>Delivered</Text>
           </View>
         </View>
 
         {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.menuGrid}>
-          <TouchableOpacity style={styles.menuCard} onPress={() => setShowCreateModal(true)} activeOpacity={0.7}>
-            <View style={[styles.menuIconBox, { backgroundColor: '#ffebee' }]}>
-              <Text style={styles.menuEmoji}>+</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 22, marginBottom: 14 }}>
+          <View style={{ width: 4, height: 20, borderRadius: 2, backgroundColor: theme.primary, marginRight: 10 }} />
+          <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>Quick Actions</Text>
+        </View>
+        <View style={{ marginBottom: 10 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: theme.surface,
+              borderRadius: 16,
+              padding: 18,
+              marginBottom: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+              elevation: 3,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 6,
+            }}
+            onPress={() => setShowCreateModal(true)}
+            activeOpacity={0.7}
+          >
+            <View style={{ width: 46, height: 46, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: theme.primary + '18' }}>
+              <Text style={{ fontSize: 22 }}>📦</Text>
             </View>
-            <View style={styles.menuTextWrap}>
-              <Text style={styles.menuLabel}>New Order</Text>
-              <Text style={styles.menuDesc}>Create a new order</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>New Order</Text>
+              <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>Create a new order</Text>
             </View>
-            <View style={styles.menuArrow}>
-              <Text style={styles.menuArrowText}>→</Text>
+            <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ fontSize: 16, color: theme.textTertiary }}>→</Text>
             </View>
           </TouchableOpacity>
 
           {onGoToInventory ? (
-            <TouchableOpacity style={styles.menuCard} onPress={onGoToInventory} activeOpacity={0.7}>
-              <View style={[styles.menuIconBox, { backgroundColor: '#f3e5f5' }]}>
-                <Text style={styles.menuEmoji}>📦</Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.surface,
+                borderRadius: 16,
+                padding: 18,
+                marginBottom: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+                elevation: 3,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+              }}
+              onPress={onGoToInventory}
+              activeOpacity={0.7}
+            >
+              <View style={{ width: 46, height: 46, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: theme.secondary ? (theme.secondary + '18') : (isDark ? theme.surfaceVariant : '#f3e5f5') }}>
+                <Text style={{ fontSize: 22 }}>🏬</Text>
               </View>
-              <View style={styles.menuTextWrap}>
-                <Text style={styles.menuLabel}>Inventory</Text>
-                <Text style={styles.menuDesc}>View stock</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>Inventory</Text>
+                <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>View stock</Text>
               </View>
-              <View style={styles.menuArrow}>
-                <Text style={styles.menuArrowText}>→</Text>
+              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, color: theme.textTertiary }}>→</Text>
               </View>
             </TouchableOpacity>
           ) : null}
         </View>
 
         {/* Order Filters */}
-        <Text style={styles.sectionTitle}>Orders</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 22, marginBottom: 14 }}>
+          <View style={{ width: 4, height: 20, borderRadius: 2, backgroundColor: theme.secondary || theme.primary, marginRight: 10 }} />
+          <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>Orders</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
           {filterOptions.map((opt) => (
             <TouchableOpacity
               key={opt.key}
-              style={[styles.filterChip, filter === opt.key && styles.filterChipActive]}
+              style={[{
+                paddingHorizontal: 18,
+                paddingVertical: 9,
+                borderRadius: 20,
+                backgroundColor: theme.surface,
+                marginRight: 8,
+                borderWidth: 1,
+                borderColor: theme.divider,
+              },
+              filter === opt.key && { backgroundColor: theme.primary, borderColor: theme.primary }
+              ]}
               onPress={() => setFilter(opt.key)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.filterChipText, filter === opt.key && styles.filterChipTextActive]}>{opt.label}</Text>
+              <Text style={[{
+                fontSize: 13,
+                fontWeight: '600',
+                color: theme.textSecondary,
+              },
+              filter === opt.key && { color: theme.buttonText }
+              ]}>{opt.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
         {/* Orders List */}
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#e53935" />
-            <Text style={styles.loadingText}>Loading orders...</Text>
+          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={{ fontSize: 13, color: theme.textTertiary, marginTop: 10 }}>Loading orders...</Text>
           </View>
         ) : filteredOrders.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyTitle}>No Orders Found</Text>
-            <Text style={styles.emptySubtitle}>Create your first order to get started</Text>
-            <TouchableOpacity style={styles.emptyBtn} onPress={() => setShowCreateModal(true)} activeOpacity={0.7}>
-              <Text style={styles.emptyBtnText}>+ Create Order</Text>
+          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 16, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center', marginBottom: 14 }}>
+              <Text style={{ fontSize: 32 }}>📋</Text>
+            </View>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>No Orders Found</Text>
+            <Text style={{ fontSize: 13, color: theme.textTertiary, marginTop: 6 }}>Create your first order to get started</Text>
+            <TouchableOpacity
+              style={{ backgroundColor: theme.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20, marginTop: 18 }}
+              onPress={() => setShowCreateModal(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: theme.buttonText, fontSize: 14, fontWeight: '700' }}>+ Create Order</Text>
             </TouchableOpacity>
           </View>
         ) : (
           filteredOrders.map((order) => (
             <TouchableOpacity
               key={order._id}
-              style={styles.orderCard}
+              style={{
+                backgroundColor: theme.surface,
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 10,
+                elevation: 2,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.08,
+                shadowRadius: 4,
+                borderLeftWidth: 4,
+                borderLeftColor: getStatusColor(order.order_status),
+                flexDirection: 'row',
+              }}
               onPress={() => setSelectedOrder(order)}
               activeOpacity={0.7}
             >
-              <View style={styles.orderCardHeader}>
-                <Text style={styles.orderNumber}>#{order.order_number || order._id?.slice(-6) || '--'}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusBg(order.order_status) }]}>
-                  <Text style={[styles.statusText, { color: getStatusColor(order.order_status) }]}>{(order.order_status || 'Pending').toUpperCase()}</Text>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: theme.text }}>#{order.order_number || order._id?.slice(-6) || '--'}</Text>
+                  <View style={{ backgroundColor: getStatusBg(order.order_status), paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '800', letterSpacing: 0.5, color: getStatusColor(order.order_status) }}>{(order.order_status || 'Pending').toUpperCase()}</Text>
+                  </View>
                 </View>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: theme.text, marginBottom: 8 }}>{order.vendor_name || '--'}</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 12, color: theme.textTertiary }}>{(order.items || []).length} items</Text>
+                  <Text style={{ fontSize: 17, fontWeight: '900', color: theme.primary }}>Rs. {order.grand_total || 0}</Text>
+                </View>
+                <View style={{ height: 1, backgroundColor: theme.divider, marginVertical: 8 }} />
+                <Text style={{ fontSize: 11, color: theme.textTertiary }}>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '--'}</Text>
               </View>
-              <Text style={styles.orderDistributor}>{order.vendor_name || '--'}</Text>
-              <View style={styles.orderCardFooter}>
-                <Text style={styles.orderItems}>{(order.items || []).length} items</Text>
-                <Text style={styles.orderAmount}>Rs. {order.grand_total || 0}</Text>
-              </View>
-              <Text style={styles.orderDate}>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '--'}</Text>
             </TouchableOpacity>
           ))
         )}
       </ScrollView>
 
       {/* FAB - Create Order */}
-      <TouchableOpacity style={styles.fab} onPress={() => setShowCreateModal(true)} activeOpacity={0.8}>
-        <Text style={styles.fabText}>+</Text>
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          bottom: 30,
+          right: 20,
+          width: 56,
+          height: 56,
+          borderRadius: 16,
+          backgroundColor: theme.primary,
+          justifyContent: 'center',
+          alignItems: 'center',
+          elevation: 6,
+          shadowColor: theme.primary,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        }}
+        onPress={() => setShowCreateModal(true)}
+        activeOpacity={0.8}
+      >
+        <Text style={{ fontSize: 28, color: theme.buttonText, fontWeight: '600', marginTop: -2 }}>+</Text>
       </TouchableOpacity>
 
       {/* Modals */}
@@ -1194,359 +1528,3 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
     </View>
   );
 }
-
-// ======================== STYLES ========================
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f7',
-  },
-  header: {
-    backgroundColor: '#1a1a2e',
-    paddingTop: 50,
-    paddingHorizontal: 25,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: 'hidden',
-  },
-  circle1: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(229, 57, 53, 0.2)',
-    top: -50,
-    right: -40,
-  },
-  circle2: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255, 87, 34, 0.15)',
-    top: 60,
-    left: -50,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  backBtnText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  profileBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  profileBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  logoutBtn: {
-    backgroundColor: 'rgba(229, 57, 53, 0.3)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  logoutText: {
-    color: '#ff8a80',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  greeting: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#fff',
-    marginTop: 2,
-  },
-  dateText: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
-  },
-  timeText: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#fff',
-    marginTop: 4,
-    letterSpacing: 2,
-  },
-  dashboardBody: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-
-  // Stats Cards
-  statsRow: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  statsCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 16,
-    marginHorizontal: 5,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-  },
-  statsIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  statsValue: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#1a1a2e',
-  },
-  statsLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#999',
-    marginTop: 4,
-    letterSpacing: 0.3,
-  },
-
-  // Section Title
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1a1a2e',
-    marginTop: 20,
-    marginBottom: 12,
-  },
-
-  // Menu Grid
-  menuGrid: {
-    marginBottom: 10,
-  },
-  menuCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-  },
-  menuIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  menuEmoji: {
-    fontSize: 22,
-  },
-  menuTextWrap: {
-    flex: 1,
-  },
-  menuLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1a1a2e',
-  },
-  menuDesc: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
-  },
-  menuArrow: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuArrowText: {
-    fontSize: 16,
-    color: '#999',
-  },
-
-  // Filter Chips
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  filterChipActive: {
-    backgroundColor: '#e53935',
-    borderColor: '#e53935',
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666',
-  },
-  filterChipTextActive: {
-    color: '#fff',
-  },
-
-  // Order Card
-  orderCard: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-  },
-  orderCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  orderNumber: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#1a1a2e',
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  orderDistributor: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  orderCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  orderItems: {
-    fontSize: 12,
-    color: '#999',
-  },
-  orderAmount: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#e53935',
-  },
-  orderDate: {
-    fontSize: 11,
-    color: '#bbb',
-    marginTop: 6,
-  },
-
-  // Empty State
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1a1a2e',
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 4,
-  },
-  emptyBtn: {
-    backgroundColor: '#e53935',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 20,
-    marginTop: 16,
-  },
-  emptyBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  // Loading
-  loadingContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 10,
-  },
-
-  // FAB
-  fab: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#e53935',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#e53935',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  fabText: {
-    fontSize: 28,
-    color: '#fff',
-    fontWeight: '600',
-    marginTop: -2,
-  },
-});
