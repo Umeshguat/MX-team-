@@ -65,8 +65,8 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState([]);
-  const [vendorName, setVendorName] = useState('');
-  const [vendorMobile, setVendorMobile] = useState('');
+  const [distributorName, setDistributorName] = useState('');
+  const [distributorMobile, setDistributorMobile] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,8 +91,8 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
     if (visible) {
       fetchProducts();
       setSelectedProducts([]);
-      setVendorName('');
-      setVendorMobile('');
+      setDistributorName('');
+      setDistributorMobile('');
       setNotes('');
       setSearchQuery('');
       setDiscount('');
@@ -141,12 +141,12 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
   };
 
   const handleSubmit = async () => {
-    if (!vendorName.trim()) {
-      Alert.alert('Error', 'Please enter vendor name');
+    if (!distributorName.trim()) {
+      Alert.alert('Error', 'Please enter distributor/supplier name');
       return;
     }
-    if (!vendorMobile.trim()) {
-      Alert.alert('Error', 'Please enter vendor mobile number');
+    if (!distributorMobile.trim()) {
+      Alert.alert('Error', 'Please enter distributor/supplier mobile number');
       return;
     }
     if (selectedProducts.length === 0) {
@@ -170,8 +170,8 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
       }));
 
       const orderPayload = {
-        vendor_name: vendorName.trim(),
-        vendor_mobile: vendorMobile.trim(),
+        vendor_name: distributorName.trim(),
+        vendor_mobile: distributorMobile.trim(),
         vendor_address: null,
         items: orderItems,
         discount: parseFloat(discount) || 0,
@@ -270,10 +270,10 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
           </View>
 
           <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? 40 : 20 }} keyboardShouldPersistTaps="handled">
-            {/* Vendor Details */}
-            <SectionHeader title="Vendor Details" color={theme.info} theme={theme} />
-            <ModalInput emoji="👤" placeholder="Vendor Name *" value={vendorName} onChangeText={setVendorName} theme={theme} />
-            <ModalInput emoji="📞" placeholder="Vendor Mobile *" value={vendorMobile} onChangeText={setVendorMobile} theme={theme} keyboardType="phone-pad" maxLength={10} />
+            {/* Distributor / Supplier Details */}
+            <SectionHeader title="Distributor / Supplier Details" color={theme.info} theme={theme} />
+            <ModalInput emoji="🏢" placeholder="Distributor / Supplier Name *" value={distributorName} onChangeText={setDistributorName} theme={theme} />
+            <ModalInput emoji="📞" placeholder="Mobile Number *" value={distributorMobile} onChangeText={setDistributorMobile} theme={theme} keyboardType="phone-pad" maxLength={10} />
 
             {/* Product Selection */}
             <SectionHeader title="Select Products" color={theme.secondary} theme={theme} />
@@ -627,10 +627,10 @@ function OrderDetailModal({ visible, order, onClose, user }) {
               </View>
             </View>
 
-            {/* Vendor Info */}
+            {/* Distributor / Supplier Info */}
             <View style={{ marginTop: 14, padding: 16, backgroundColor: theme.surfaceVariant, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: theme.info }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                <Text style={{ fontSize: 16, marginRight: 8 }}>👤</Text>
+                <Text style={{ fontSize: 16, marginRight: 8 }}>🏢</Text>
                 <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>{order.vendor_name || '--'}</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -768,7 +768,7 @@ function OrderDetailModal({ visible, order, onClose, user }) {
 }
 
 // ======================== MAIN ORDER DASHBOARD ========================
-export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToProfile, onGoToInventory }) {
+export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToProfile, onGoToInventory, onGoToOrderList }) {
   const { theme, isDark, toggleTheme } = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1151,7 +1151,16 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
           ))}
         </ScrollView>
 
-        {/* Orders List */}
+        {/* Orders List Header */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: theme.text }}>Recent Orders</Text>
+          {orders.length > 0 && (
+            <TouchableOpacity onPress={onGoToOrderList} activeOpacity={0.7}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: theme.primary }}>View All  ›</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {loading ? (
           <View style={{ alignItems: 'center', paddingVertical: 40 }}>
             <ActivityIndicator size="large" color={theme.primary} />
@@ -1257,6 +1266,10 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
           <Text style={{ fontSize: 22, marginBottom: 4, color: theme.primary }}>📋</Text>
           <Text style={{ fontSize: 11, fontWeight: '600', color: theme.primary }}>Orders</Text>
           <View style={{ width: 4, height: 4, borderRadius: 2, marginTop: 3, backgroundColor: theme.primary }} />
+        </TouchableOpacity>
+        <TouchableOpacity style={{ alignItems: 'center', paddingVertical: 4, flex: 1 }} onPress={onGoToOrderList} activeOpacity={0.7}>
+          <Text style={{ fontSize: 22, marginBottom: 4, color: theme.textTertiary }}>📄</Text>
+          <Text style={{ fontSize: 11, fontWeight: '600', color: theme.textTertiary }}>All Orders</Text>
         </TouchableOpacity>
         <TouchableOpacity style={{ alignItems: 'center', paddingVertical: 4, flex: 1 }} onPress={onGoToInventory} activeOpacity={0.7}>
           <Text style={{ fontSize: 22, marginBottom: 4, color: theme.textTertiary }}>📦</Text>
