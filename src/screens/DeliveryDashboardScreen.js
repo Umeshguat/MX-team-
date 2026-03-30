@@ -18,6 +18,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import GPSCameraScreen from '../components/GPSCameraScreen';
 
 var screenWidth = Dimensions.get('window').width;
 
@@ -51,6 +52,7 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
   const [updating, setUpdating] = useState(false);
   const [proofImage, setProofImage] = useState(null);
   const [receivedBy, setReceivedBy] = useState('');
+  const [showGPSCamera, setShowGPSCamera] = useState(false);
 
   const getNextStatuses = (current) => {
     switch (current) {
@@ -62,18 +64,14 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
     }
   };
 
-  const pickProofImage = async () => {
-    try {
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        quality: 0.5,
-        base64: true,
-      });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setProofImage(result.assets[0]);
-      }
-    } catch (e) {
-      Alert.alert('Error', 'Could not open camera');
+  const pickProofImage = () => {
+    setShowGPSCamera(true);
+  };
+
+  const handleGPSCapture = (photoData) => {
+    setShowGPSCamera(false);
+    if (photoData && photoData.uri) {
+      setProofImage({ uri: photoData.uri, base64: photoData.base64 || null });
     }
   };
 
@@ -120,6 +118,17 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
   };
 
   if (!delivery) return null;
+
+  if (showGPSCamera) {
+    return (
+      <Modal visible={visible} animationType="slide">
+        <GPSCameraScreen
+          onCapture={handleGPSCapture}
+          onClose={() => setShowGPSCamera(false)}
+        />
+      </Modal>
+    );
+  }
 
   const nextStatuses = getNextStatuses(delivery.delivery_status);
   const addr = delivery.delivery_address || {};
