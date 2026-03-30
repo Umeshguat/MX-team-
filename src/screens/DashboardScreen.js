@@ -520,7 +520,6 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
     { icon: '\uD83D\uDCC5', title: 'Attendance', subtitle: 'View your attendance history', onPress: onGoToAttendance, bgColor: theme.errorBg || 'rgba(239,68,68,0.12)' },
     { icon: '\uD83D\uDCCD', title: 'Visits', subtitle: 'Track vendor visits', onPress: onGoToVisits, bgColor: theme.successBg || 'rgba(34,197,94,0.12)' },
     { icon: '\uD83D\uDCB0', title: 'Allowance', subtitle: 'Daily allowance claims', onPress: onGoToDailyAllowance, bgColor: theme.warningBg || 'rgba(245,158,11,0.12)' },
-    { icon: '\uD83D\uDC64', title: 'Profile', subtitle: 'Your profile settings', onPress: onGoToProfile, bgColor: theme.infoBg || 'rgba(59,130,246,0.12)' },
     { icon: '\uD83D\uDCE6', title: 'Inventory', subtitle: 'Stock & products', onPress: onGoToInventory, bgColor: theme.surfaceVariant || 'rgba(107,114,128,0.12)' },
     { icon: '\uD83D\uDCCA', title: 'Reports', subtitle: 'View your reports', onPress: null, bgColor: theme.infoBg || 'rgba(59,130,246,0.12)' },
   ];
@@ -529,7 +528,6 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
     { icon: '\uD83C\uDFE0', label: 'Home', key: 'home', onPress: () => setActiveNav('home') },
     { icon: '\uD83D\uDCC5', label: 'Attendance', key: 'attendance', onPress: () => { setActiveNav('attendance'); if (onGoToAttendance) onGoToAttendance(); } },
     { icon: '\uD83D\uDCCD', label: 'Visits', key: 'visits', onPress: () => { setActiveNav('visits'); if (onGoToVisits) onGoToVisits(); } },
-    { icon: '\uD83D\uDC64', label: 'Profile', key: 'profile', onPress: () => { setActiveNav('profile'); if (onGoToProfile) onGoToProfile(); } },
   ];
 
   return (
@@ -566,12 +564,25 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
             >
               <Text style={styles.headerIconText}>{isDark ? '\u2600\uFE0F' : '\uD83C\uDF19'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} activeOpacity={0.7}>
-              <Text style={styles.logoutText}>Logout</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
+
+      {/* Profile Card */}
+      <TouchableOpacity
+        style={[styles.profileCard, { backgroundColor: theme.surface }]}
+        onPress={onGoToProfile}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.profileAvatar, { backgroundColor: theme.primary }]}>
+          <Text style={styles.profileAvatarText}>{(user && user.fullName ? user.fullName : 'E').charAt(0).toUpperCase()}</Text>
+        </View>
+        <View style={styles.profileInfo}>
+          <Text style={[styles.profileName, { color: theme.text }]}>{user && user.fullName ? user.fullName : 'Employee'}</Text>
+          <Text style={[styles.profileRole, { color: theme.textTertiary }]}>{user && user.designation ? user.designation : 'Sales Executive'}</Text>
+        </View>
+        <Text style={[styles.profileArrow, { color: theme.textTertiary }]}>{'\u203A'}</Text>
+      </TouchableOpacity>
 
       <ScrollView
         style={styles.body}
@@ -1585,5 +1596,50 @@ var styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 2,
+  },
+
+  /* ===== PROFILE CARD ===== */
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: -20,
+    padding: 14,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: 'rgba(0,0,0,0.1)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    zIndex: 10,
+    marginBottom: 12,
+  },
+  profileAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  profileAvatarText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  profileRole: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  profileArrow: {
+    fontSize: 24,
+    fontWeight: '300',
   },
 });

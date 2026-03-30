@@ -391,15 +391,28 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
             <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
               <Text style={styles.themeToggleText}>{isDark ? '☀️' : '🌙'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-              <Text style={styles.logoutText}>Logout</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
         <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
         <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
       </LinearGradient>
+
+      {/* Profile Card */}
+      <TouchableOpacity
+        style={[styles.profileCard, { backgroundColor: theme.surface }]}
+        onPress={onGoToProfile}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.profileAvatar, { backgroundColor: theme.primary }]}>
+          <Text style={styles.profileAvatarText}>{(user && user.fullName ? user.fullName : 'D').charAt(0).toUpperCase()}</Text>
+        </View>
+        <View style={styles.profileInfo}>
+          <Text style={[styles.profileName, { color: theme.text }]}>{user && user.fullName ? user.fullName : 'Delivery Agent'}</Text>
+          <Text style={[styles.profileRole, { color: theme.textTertiary }]}>Delivery Agent</Text>
+        </View>
+        <Text style={[styles.profileArrow, { color: theme.textTertiary }]}>›</Text>
+      </TouchableOpacity>
 
       <ScrollView
         style={styles.body}
@@ -476,16 +489,6 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
           <View style={styles.menuTextCol}>
             <Text style={[styles.menuTitle, { color: theme.text }]}>All Deliveries</Text>
             <Text style={[styles.menuSub, { color: theme.textTertiary }]}>View all delivery orders</Text>
-          </View>
-          <Text style={[styles.menuArrow, { color: theme.textTertiary }]}>›</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.menuCard, { backgroundColor: theme.surface }]} onPress={onGoToProfile} activeOpacity={0.7}>
-          <View style={[styles.menuIconBg, { backgroundColor: theme.warningBg }]}>
-            <Text style={styles.menuEmoji}>👤</Text>
-          </View>
-          <View style={styles.menuTextCol}>
-            <Text style={[styles.menuTitle, { color: theme.text }]}>Profile</Text>
-            <Text style={[styles.menuSub, { color: theme.textTertiary }]}>Your profile settings</Text>
           </View>
           <Text style={[styles.menuArrow, { color: theme.textTertiary }]}>›</Text>
         </TouchableOpacity>
@@ -579,10 +582,6 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
         <TouchableOpacity style={styles.navItem} onPress={onGoToDeliveryList} activeOpacity={0.7}>
           <Text style={[styles.navIcon, { color: theme.textTertiary }]}>📦</Text>
           <Text style={[styles.navLabel, { color: theme.textTertiary }]}>Deliveries</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={onGoToProfile} activeOpacity={0.7}>
-          <Text style={[styles.navIcon, { color: theme.textTertiary }]}>👤</Text>
-          <Text style={[styles.navLabel, { color: theme.textTertiary }]}>Profile</Text>
         </TouchableOpacity>
       </View>
 
@@ -995,6 +994,15 @@ var styles = StyleSheet.create({
   navIcon: { fontSize: 22, marginBottom: 4 },
   navLabel: { fontSize: 11, fontWeight: '600' },
   navDot: { width: 4, height: 4, borderRadius: 2, marginTop: 3 },
+
+  // Profile card
+  profileCard: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: -20, padding: 14, borderRadius: 16, elevation: 4, shadowColor: 'rgba(0,0,0,0.1)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, zIndex: 10, marginBottom: 12 },
+  profileAvatar: { width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  profileAvatarText: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  profileInfo: { flex: 1 },
+  profileName: { fontSize: 16, fontWeight: '800' },
+  profileRole: { fontSize: 12, marginTop: 2 },
+  profileArrow: { fontSize: 24, fontWeight: '300' },
 });
 
 // ======================== MODAL STYLES ========================

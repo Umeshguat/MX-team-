@@ -949,15 +949,6 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
                 <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>P</Text>
               </TouchableOpacity>
             ) : null}
-            {onLogout ? (
-              <TouchableOpacity
-                style={{ backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 }}
-                onPress={onLogout}
-                activeOpacity={0.7}
-              >
-                <Text style={{ color: '#ff8a80', fontSize: 13, fontWeight: '700' }}>Logout</Text>
-              </TouchableOpacity>
-            ) : null}
           </View>
         </View>
 
@@ -965,6 +956,22 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
         <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{formatDate(currentTime)}</Text>
         <Text style={{ fontSize: 28, fontWeight: '900', color: '#FFFFFF', marginTop: 4, letterSpacing: 2 }}>{formatTime(currentTime)}</Text>
       </LinearGradient>
+
+      {/* Profile Card */}
+      <TouchableOpacity
+        style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: -20, padding: 14, borderRadius: 16, elevation: 4, shadowColor: 'rgba(0,0,0,0.1)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, backgroundColor: theme.surface, zIndex: 10, marginBottom: 12 }}
+        onPress={onGoToProfile}
+        activeOpacity={0.7}
+      >
+        <View style={{ width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center', marginRight: 12, backgroundColor: theme.primary }}>
+          <Text style={{ color: '#fff', fontSize: 20, fontWeight: '800' }}>{(user && user.fullName ? user.fullName : 'S').charAt(0).toUpperCase()}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: theme.text }}>{user && user.fullName ? user.fullName : 'Sales Executive'}</Text>
+          <Text style={{ fontSize: 12, marginTop: 2, color: theme.textTertiary }}>{user && user.designation ? user.designation : 'Sales'}</Text>
+        </View>
+        <Text style={{ fontSize: 24, fontWeight: '300', color: theme.textTertiary }}>›</Text>
+      </TouchableOpacity>
 
       <ScrollView
         style={{ flex: 1 }}
@@ -1294,10 +1301,6 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
         <TouchableOpacity style={{ alignItems: 'center', paddingVertical: 4, flex: 1 }} onPress={onGoToInventory} activeOpacity={0.7}>
           <Text style={{ fontSize: 22, marginBottom: 4, color: theme.textTertiary }}>📦</Text>
           <Text style={{ fontSize: 11, fontWeight: '600', color: theme.textTertiary }}>Inventory</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={{ alignItems: 'center', paddingVertical: 4, flex: 1 }} onPress={onGoToProfile} activeOpacity={0.7}>
-          <Text style={{ fontSize: 22, marginBottom: 4, color: theme.textTertiary }}>👤</Text>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: theme.textTertiary }}>Profile</Text>
         </TouchableOpacity>
       </View>
     </View>

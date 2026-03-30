@@ -1379,16 +1379,22 @@ export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
             <TouchableOpacity style={styles.navBtn} onPress={toggleTheme} activeOpacity={0.7}>
               <Text style={{ color: '#fff', fontSize: 16 }}>{isDark ? '☀️' : '🌙'}</Text>
             </TouchableOpacity>
-            {onLogout ? (
-              <TouchableOpacity style={[styles.navBtn, { marginLeft: 8, backgroundColor: 'rgba(229, 57, 53, 0.25)' }]} onPress={onLogout} activeOpacity={0.7}>
-                <Text style={{ color: '#ff8a80', fontSize: 14, fontWeight: '700' }}>⏻</Text>
-              </TouchableOpacity>
-            ) : null}
           </View>
         </View>
         <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
         <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
       </LinearGradient>
+
+      {/* Profile Card */}
+      <View style={[styles.profileCard, { backgroundColor: theme.surface }]}>
+        <View style={[styles.profileAvatar, { backgroundColor: theme.primary }]}>
+          <Text style={styles.profileAvatarText}>{(user && user.fullName ? user.fullName : 'W').charAt(0).toUpperCase()}</Text>
+        </View>
+        <View style={styles.profileInfo}>
+          <Text style={[styles.profileName, { color: theme.text }]}>{user && user.fullName ? user.fullName : 'Warehouse'}</Text>
+          <Text style={[styles.profileRole, { color: theme.textTertiary }]}>Warehouse Manager</Text>
+        </View>
+      </View>
 
       <ScrollView
         style={{ flex: 1 }}
@@ -1528,6 +1534,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  profileCard: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: -20, padding: 14, borderRadius: 16, elevation: 4, shadowColor: 'rgba(0,0,0,0.1)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, zIndex: 10, marginBottom: 12 },
+  profileAvatar: { width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  profileAvatarText: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  profileInfo: { flex: 1 },
+  profileName: { fontSize: 16, fontWeight: '800' },
+  profileRole: { fontSize: 12, marginTop: 2 },
   header: {
     paddingTop: 50,
     paddingHorizontal: 20,

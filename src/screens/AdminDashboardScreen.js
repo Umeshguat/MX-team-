@@ -770,9 +770,6 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
           <TouchableOpacity onPress={toggleTheme} style={s.navBtn}>
             <Text style={s.navBtnText}>{isDark ? '☀️' : '🌙'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={s.navBtn} onPress={onLogout}>
-            <Text style={s.logoutLabel}>Logout</Text>
-          </TouchableOpacity>
         </View>
 
         {/* User Info */}
@@ -789,6 +786,22 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
         <Text style={s.dateText}>{dateStr}</Text>
         <Text style={s.timeText}>{formatTime(currentTime)}</Text>
       </LinearGradient>
+
+      {/* Profile Card */}
+      <TouchableOpacity
+        style={[s.profileCard, { backgroundColor: theme.surface }]}
+        onPress={onGoToProfile}
+        activeOpacity={0.7}
+      >
+        <View style={[s.profileAvatar, { backgroundColor: theme.primary }]}>
+          <Text style={s.profileAvatarText}>{fullName.charAt(0).toUpperCase()}</Text>
+        </View>
+        <View style={s.profileInfo}>
+          <Text style={[s.profileName, { color: theme.text }]}>{fullName}</Text>
+          <Text style={[s.profileRole, { color: theme.textTertiary }]}>Admin / Distributor</Text>
+        </View>
+        <Text style={[s.profileArrow, { color: theme.textTertiary }]}>›</Text>
+      </TouchableOpacity>
 
       {/* ===== MANAGER CHECK-IN CARD ===== */}
       <View style={[s.checkCard, { backgroundColor: theme.surface }]}>
@@ -846,7 +859,6 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
           { emoji: '📅', label: 'Attendance', sub: 'View attendance history', bg: theme.errorBg, color: theme.error, onPress: onGoToAttendance },
           { emoji: '📍', label: 'Visits', sub: 'Track vendor visits', bg: theme.successBg, color: theme.success, onPress: onGoToVisits },
           { emoji: '💰', label: 'Allowance', sub: 'Daily allowance claims', bg: theme.warningBg, color: theme.warning, onPress: onGoToDailyAllowance },
-          { emoji: '👤', label: 'Profile', sub: 'Your profile settings', bg: theme.infoBg, color: theme.info, onPress: onGoToProfile },
           { emoji: '📦', label: 'Inventory', sub: 'Stock & products', bg: theme.surfaceVariant, color: theme.secondary, onPress: onGoToInventory },
           { emoji: '📋', label: 'Employees', sub: 'Manage team members', bg: theme.successBg, color: theme.success, onPress: onGoToEmployeeList },
           { emoji: '📊', label: 'Reports', sub: 'Attendance reports', bg: theme.errorBg, color: theme.error, onPress: onGoToAttendanceList },
@@ -1106,7 +1118,6 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
           { emoji: '🏠', label: 'Home', active: true },
           { emoji: '📋', label: 'Employees', onPress: onGoToEmployeeList },
           { emoji: '📊', label: 'Reports', onPress: onGoToAttendanceList },
-          { emoji: '👤', label: 'Profile', onPress: onGoToProfile },
         ].map(function(nav, idx) {
           return (
             <TouchableOpacity key={idx} style={s.navItem} onPress={nav.onPress} activeOpacity={0.7}>
@@ -2624,4 +2635,11 @@ var s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  profileCard: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: -20, padding: 14, borderRadius: 16, elevation: 4, shadowColor: 'rgba(0,0,0,0.1)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, zIndex: 10, marginBottom: 12 },
+  profileAvatar: { width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  profileAvatarText: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  profileInfo: { flex: 1 },
+  profileName: { fontSize: 16, fontWeight: '800' },
+  profileRole: { fontSize: 12, marginTop: 2 },
+  profileArrow: { fontSize: 24, fontWeight: '300' },
 });
