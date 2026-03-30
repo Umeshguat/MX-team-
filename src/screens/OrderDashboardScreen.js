@@ -130,14 +130,26 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
     if (exists) {
       setSelectedProducts(selectedProducts.filter(p => p._id !== product._id));
     } else {
+      const stock = product.total_quantity || 0;
+      if (stock <= 0) {
+        Alert.alert('Out of Stock', `"${product.product_name}" is currently out of stock.`);
+        return;
+      }
       setSelectedProducts([...selectedProducts, { ...product, orderQty: '1' }]);
     }
   };
 
   const updateQty = (productId, qty) => {
-    setSelectedProducts(selectedProducts.map(p =>
-      p._id === productId ? { ...p, orderQty: qty } : p
-    ));
+    setSelectedProducts(selectedProducts.map(p => {
+      if (p._id !== productId) return p;
+      const stock = p.total_quantity || 0;
+      const numQty = parseInt(qty) || 0;
+      if (numQty > stock && stock > 0) {
+        Alert.alert('Insufficient Stock', `Only ${stock} units available for "${p.product_name}".`);
+        return { ...p, orderQty: String(stock) };
+      }
+      return { ...p, orderQty: qty };
+    }));
   };
 
   const handleSubmit = async () => {
@@ -285,6 +297,8 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
               <View style={{ maxHeight: 250 }}>
                 {filteredProducts.map((product) => {
                   const isSelected = selectedProducts.find(p => p._id === product._id);
+                  const stock = product.total_quantity || 0;
+                  const isOutOfStock = stock <= 0;
                   return (
                     <TouchableOpacity
                       key={product._id}
@@ -298,18 +312,24 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
                         borderWidth: 1.5,
                         borderColor: theme.divider,
                       },
-                      isSelected && { borderColor: theme.primary, backgroundColor: theme.primary + '10' }
+                      isSelected && { borderColor: theme.primary, backgroundColor: theme.primary + '10' },
+                      isOutOfStock && { opacity: 0.5 }
                       ]}
                       onPress={() => toggleProduct(product)}
                       activeOpacity={0.7}
                     >
                       <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: isSelected ? theme.primary + '20' : theme.background, justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
-                        <Text style={{ fontSize: 18 }}>🏷️</Text>
+                        <Text style={{ fontSize: 18 }}>{isOutOfStock ? '⚠️' : '🏷️'}</Text>
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>{product.product_name}</Text>
                         <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}>{product.product_code || ''} {product.brand ? '| ' + product.brand : ''}</Text>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.primary, marginTop: 3 }}>Rs. {product.selling_price || 0}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3, gap: 8 }}>
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: theme.primary }}>Rs. {product.selling_price || 0}</Text>
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: isOutOfStock ? theme.error : theme.success }}>
+                            {isOutOfStock ? 'Out of Stock' : 'Stock: ' + stock}
+                          </Text>
+                        </View>
                       </View>
                       <View style={[{
                         width: 28,
