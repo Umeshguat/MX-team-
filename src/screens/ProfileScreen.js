@@ -5,6 +5,7 @@ import {
   View,
   TouchableOpacity,
   ScrollView,
+  Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +19,7 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
   const designation = user && user.designation ? user.designation : '--';
   const phone = user && user.phone ? user.phone : '--';
   const headquarter = user && user.headquarter ? user.headquarter : '--';
+  const profileImage = user && user.profile_image ? user.profile_image : '';
 
   const firstLetter = fullName.charAt(0).toUpperCase();
 
@@ -57,11 +59,14 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
       >
         {/* ── Profile Card (overlaps header) ── */}
         <View style={[styles.profileCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
-          <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
-            <Text style={styles.avatarLetter}>{firstLetter}</Text>
-          </View>
+          {profileImage ? (
+            <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
+              <Text style={styles.avatarLetter}>{firstLetter}</Text>
+            </View>
+          )}
           <Text style={[styles.profileName, { color: theme.text }]}>{fullName}</Text>
-          <Text style={[styles.profileRole, { color: theme.textSecondary }]}>{designation}</Text>
         </View>
 
         {/* ── Personal Information ── */}
@@ -251,16 +256,22 @@ var styles = StyleSheet.create({
     marginBottom: 24,
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 22,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 14,
   },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 14,
+  },
   avatarLetter: {
     color: '#FFFFFF',
-    fontSize: 28,
+    fontSize: 40,
     fontWeight: '900',
   },
   profileName: {

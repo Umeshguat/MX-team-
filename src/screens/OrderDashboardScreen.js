@@ -554,8 +554,142 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
 }
 
 // ======================== ORDER DETAIL MODAL ========================
-function OrderDetailModal({ visible, order, onClose, onOpenPayment }) {
+function OrderDetailModal({ visible, order, onClose, user, onPaymentSuccess }) {
   const { theme, isDark } = useTheme();
+  const [paymentData, setPaymentData] = useState(null);
+  const [paymentCreditId, setPaymentCreditId] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMode, setPaymentMode] = useState('cash');
+  const [paymentNote, setPaymentNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  const paymentModes = [
+    { label: 'Cash', value: 'cash', emoji: '💵' },
+    { label: 'UPI', value: 'upi', emoji: '📱' },
+    { label: 'Bank Transfer', value: 'bank_transfer', emoji: '🏦' },
+    { label: 'Cheque', value: 'cheque', emoji: '📝' },
+  ];
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardHeight(0)
+    );
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
+  useEffect(() => {
+    if (visible && order) {
+      setShowPaymentForm(false);
+      setPaymentAmount('');
+      setPaymentMode('cash');
+      setPaymentNote('');
+      fetchPaymentData();
+    }
+  }, [visible, order]);
+
+  const fetchPaymentData = async () => {
+    try {
+      const token = user && user.token ? user.token : '';
+      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+      const response = await fetch(`${BASE_URL}/api/orders/${order._id}`, { headers });
+      const result = await response.json();
+      if (response.ok || result.status === 200) {
+        const credit = result.paymentCredit || null;
+        if (credit) {
+          setPaymentCreditId(credit._id);
+          setPaymentData({
+            grandTotal: credit.total_amount || 0,
+            totalPaid: credit.paid_amount || 0,
+            balance: credit.remaining_amount || 0,
+            payments: credit.payment_history || [],
+          });
+        } else {
+          setPaymentCreditId(null);
+          setPaymentData({
+            grandTotal: order.grand_total || 0,
+            totalPaid: 0,
+            balance: order.grand_total || 0,
+            payments: [],
+          });
+        }
+      }
+    } catch (e) {
+      console.log('Fetch payment data error:', e);
+    }
+  };
+
+  const handleSubmitPayment = async () => {
+    const amount = parseFloat(paymentAmount);
+    if (!amount || amount <= 0) {
+      Alert.alert('Error', 'Please enter a valid payment amount');
+      return;
+    }
+    const balance = paymentData ? paymentData.balance : (order.grand_total || 0);
+    if (amount > balance) {
+      Alert.alert('Error', 'Payment amount cannot exceed the balance of Rs. ' + balance);
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const token = user && user.token ? user.token : '';
+      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+      let creditId = paymentCreditId;
+      if (!creditId) {
+        const createRes = await fetch(`${BASE_URL}/api/payment-credits`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            vendor_name: order.vendor_name || '--',
+            vendor_mobile: order.vendor_mobile || '',
+            order_id: order._id,
+            total_amount: order.grand_total || 0,
+            paid_amount: 0,
+            payment_mode: 'cash',
+            note: `Auto-created credit for order ${order.order_number || order._id}`,
+          }),
+        });
+        const createResult = await createRes.json();
+        if (createRes.ok || createResult.status === 201 || createResult.status === 200) {
+          creditId = createResult.paymentCredit?._id || createResult.data?._id || createResult._id;
+          setPaymentCreditId(creditId);
+        } else {
+          Alert.alert('Error', createResult.message || 'Failed to create payment credit');
+          return;
+        }
+      }
+
+      const response = await fetch(`${BASE_URL}/api/payment-credits/${creditId}/pay`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ amount, payment_mode: paymentMode, note: paymentNote.trim() }),
+      });
+      const result = await response.json();
+      if (response.ok || result.status === 200 || result.status === 201) {
+        Alert.alert('Success', result.message || 'Payment recorded successfully');
+        setPaymentAmount('');
+        setPaymentNote('');
+        setShowPaymentForm(false);
+        fetchPaymentData();
+        if (onPaymentSuccess) onPaymentSuccess();
+      } else {
+        Alert.alert('Error', result.message || 'Failed to record payment');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (!order) return null;
 
   const getStatusColor = (status) => {
@@ -583,7 +717,7 @@ function OrderDetailModal({ visible, order, onClose, onOpenPayment }) {
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '92%', paddingHorizontal: 20, paddingBottom: 20 }}>
+        <View style={[{ backgroundColor: theme.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '92%', paddingHorizontal: 20, paddingBottom: 20 }, keyboardHeight > 0 && { maxHeight: '95%', paddingBottom: keyboardHeight }]}>
 
           <HandleBar theme={theme} />
 
@@ -600,7 +734,7 @@ function OrderDetailModal({ visible, order, onClose, onOpenPayment }) {
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? 40 : 20 }} keyboardShouldPersistTaps="handled">
             {/* Order Number + Status */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
               <Text style={{ fontSize: 16, fontWeight: '800', color: theme.text }}>#{order.order_number || order._id?.slice(-6) || '--'}</Text>
@@ -680,276 +814,89 @@ function OrderDetailModal({ visible, order, onClose, onOpenPayment }) {
               Created: {order.createdAt ? new Date(order.createdAt).toLocaleString() : '--'}
             </Text>
 
-            {/* Payment / Credit Button */}
-            <TouchableOpacity
-              style={{
-                marginTop: 16,
-                backgroundColor: theme.info,
-                paddingVertical: 15,
-                borderRadius: 14,
-                alignItems: 'center',
-                flexDirection: 'row',
-                justifyContent: 'center',
-              }}
-              onPress={() => { if (onOpenPayment) onOpenPayment(order); }}
-              activeOpacity={0.8}
-            >
-              <Text style={{ fontSize: 16, marginRight: 8 }}>💳</Text>
-              <Text style={{ color: theme.buttonText, fontSize: 15, fontWeight: '700' }}>Payment / Credit</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-// ======================== PAYMENT CREDIT MODAL ========================
-function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user }) {
-  const { theme, isDark } = useTheme();
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentMode, setPaymentMode] = useState('cash');
-  const [paymentNote, setPaymentNote] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [payments, setPayments] = useState([]);
-  const [loadingPayments, setLoadingPayments] = useState(false);
-  const [paymentCreditId, setPaymentCreditId] = useState(null);
-  const [creditData, setCreditData] = useState(null);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const scrollViewRef = useRef(null);
-
-  useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => setKeyboardHeight(e.endCoordinates.height)
-    );
-    const hideSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setKeyboardHeight(0)
-    );
-    return () => { showSub.remove(); hideSub.remove(); };
-  }, []);
-
-  const paymentModes = [
-    { label: 'Cash', value: 'cash', emoji: '💵' },
-    { label: 'UPI', value: 'upi', emoji: '📱' },
-    { label: 'Bank Transfer', value: 'bank_transfer', emoji: '🏦' },
-    { label: 'Cheque', value: 'cheque', emoji: '📝' },
-  ];
-
-  useEffect(() => {
-    if (visible && order) {
-      setPaymentAmount('');
-      setPaymentMode('cash');
-      setPaymentNote('');
-      fetchPaymentCredit();
-    }
-  }, [visible, order]);
-
-  const fetchPaymentCredit = async () => {
-    try {
-      setLoadingPayments(true);
-      const token = user && user.token ? user.token : '';
-      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-
-      const response = await fetch(`${BASE_URL}/api/orders/${order._id}`, { headers });
-      const result = await response.json();
-
-      if (response.ok || result.status === 200) {
-        const credit = result.paymentCredit || null;
-        if (credit) {
-          setPaymentCreditId(credit._id);
-          setCreditData(credit);
-          setPayments(credit.payment_history || []);
-        } else {
-          setPaymentCreditId(null);
-          setCreditData(null);
-          setPayments([]);
-        }
-      } else {
-        setPayments([]);
-      }
-    } catch (e) {
-      console.log('Fetch payment credit error:', e);
-      setPayments([]);
-    } finally {
-      setLoadingPayments(false);
-    }
-  };
-
-  const totalPaid = creditData ? (creditData.paid_amount || 0) : payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const grandTotal = creditData ? (creditData.total_amount || 0) : (order ? (order.grand_total || 0) : 0);
-  const balance = creditData ? (creditData.remaining_amount || 0) : (grandTotal - totalPaid);
-
-  const handleSubmitPayment = async () => {
-    const amount = parseFloat(paymentAmount);
-    if (!amount || amount <= 0) {
-      Alert.alert('Error', 'Please enter a valid payment amount');
-      return;
-    }
-    if (amount > balance) {
-      Alert.alert('Error', 'Payment amount cannot exceed the balance of Rs. ' + balance);
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const token = user && user.token ? user.token : '';
-      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-
-      let creditId = paymentCreditId;
-      if (!creditId) {
-        const createRes = await fetch(`${BASE_URL}/api/payment-credits`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            vendor_name: order.vendor_name || '--',
-            vendor_mobile: order.vendor_mobile || '',
-            order_id: order._id,
-            total_amount: order.grand_total || 0,
-            paid_amount: 0,
-            payment_mode: 'cash',
-            note: `Auto-created credit for order ${order.order_number || order._id}`,
-          }),
-        });
-        const createResult = await createRes.json();
-        if (createRes.ok || createResult.status === 201 || createResult.status === 200) {
-          creditId = createResult.paymentCredit?._id || createResult.data?._id || createResult._id;
-          setPaymentCreditId(creditId);
-        } else {
-          Alert.alert('Error', createResult.message || 'Failed to create payment credit for this order');
-          return;
-        }
-      }
-
-      const body = JSON.stringify({
-        amount,
-        payment_mode: paymentMode,
-        note: paymentNote.trim(),
-      });
-      const response = await fetch(`${BASE_URL}/api/payment-credits/${creditId}/pay`, {
-        method: 'POST',
-        headers,
-        body,
-      });
-      const result = await response.json();
-      if (response.ok || result.status === 200 || result.status === 201) {
-        Alert.alert('Success', result.message || 'Payment recorded successfully');
-        setPaymentAmount('');
-        setPaymentNote('');
-        fetchPaymentCredit();
-        if (onPaymentSuccess) onPaymentSuccess();
-      } else {
-        Alert.alert('Error', result.message || 'Failed to record payment');
-      }
-    } catch (e) {
-      console.log('Payment submit error:', e);
-      Alert.alert('Error', 'Network error. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (!order) return null;
-
-  return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: 'flex-end' }}>
-        <View style={[{
-          backgroundColor: theme.surface,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          maxHeight: '92%',
-          paddingHorizontal: 20,
-          paddingBottom: 20,
-        }, keyboardHeight > 0 && { maxHeight: '95%', paddingBottom: keyboardHeight }]}>
-
-          <HandleBar theme={theme} />
-
-          {/* Modal Header */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.divider }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: theme.success + '18', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
-                <Text style={{ fontSize: 18 }}>💳</Text>
-              </View>
-              <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>Payment / Credit</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textSecondary }}>X</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? 40 : 20 }} keyboardShouldPersistTaps="handled">
-            {/* Order Summary */}
-            <View style={{ marginTop: 14, padding: 16, backgroundColor: theme.surfaceVariant, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: theme.info }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, marginRight: 8 }}>📋</Text>
-                <View>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>
-                    Order #{order.order_number || order._id?.slice(-6) || '--'}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: theme.textTertiary, marginTop: 2 }}>{order.vendor_name || '--'}</Text>
-                </View>
-              </View>
-            </View>
-
             {/* Payment Summary Cards */}
-            <View style={{ flexDirection: 'row', marginTop: 14, gap: 8 }}>
-              <View style={{ flex: 1, backgroundColor: theme.infoBg, borderRadius: 16, padding: 14, alignItems: 'center', elevation: 1 }}>
-                <Text style={{ fontSize: 20, marginBottom: 4 }}>💰</Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: theme.info }}>Rs. {grandTotal}</Text>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: theme.info, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total</Text>
-              </View>
-              <View style={{ flex: 1, backgroundColor: theme.successBg, borderRadius: 16, padding: 14, alignItems: 'center', elevation: 1 }}>
-                <Text style={{ fontSize: 20, marginBottom: 4 }}>✅</Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: theme.success }}>Rs. {totalPaid}</Text>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: theme.success, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Paid</Text>
-              </View>
-              <View style={{ flex: 1, backgroundColor: balance > 0 ? theme.errorBg : theme.successBg, borderRadius: 16, padding: 14, alignItems: 'center', elevation: 1 }}>
-                <Text style={{ fontSize: 20, marginBottom: 4 }}>{balance > 0 ? '⏳' : '🎉'}</Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: balance > 0 ? theme.primary : theme.success }}>Rs. {balance}</Text>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: balance > 0 ? theme.primary : theme.success, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Balance</Text>
-              </View>
-            </View>
+            {paymentData ? (
+              <>
+                <SectionHeader title="Payment Summary" color={theme.info} theme={theme} />
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ flex: 1, backgroundColor: theme.infoBg, borderRadius: 16, padding: 14, alignItems: 'center', elevation: 1 }}>
+                    <Text style={{ fontSize: 20, marginBottom: 4 }}>💰</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: theme.info }}>Rs. {paymentData.grandTotal}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: theme.info, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total</Text>
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: theme.successBg, borderRadius: 16, padding: 14, alignItems: 'center', elevation: 1 }}>
+                    <Text style={{ fontSize: 20, marginBottom: 4 }}>✅</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: theme.success }}>Rs. {paymentData.totalPaid}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: theme.success, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Paid</Text>
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: paymentData.balance > 0 ? theme.errorBg : theme.successBg, borderRadius: 16, padding: 14, alignItems: 'center', elevation: 1 }}>
+                    <Text style={{ fontSize: 20, marginBottom: 4 }}>{paymentData.balance > 0 ? '⏳' : '🎉'}</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: paymentData.balance > 0 ? theme.primary : theme.success }}>Rs. {paymentData.balance}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: paymentData.balance > 0 ? theme.primary : theme.success, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Balance</Text>
+                  </View>
+                </View>
 
-            {/* Payment History */}
-            <SectionHeader title="Payment History" color={theme.info} theme={theme} />
-            {loadingPayments ? (
-              <ActivityIndicator size="small" color={theme.info} style={{ marginVertical: 10 }} />
-            ) : payments.length === 0 ? (
-              <View style={{ padding: 24, alignItems: 'center', backgroundColor: theme.surfaceVariant, borderRadius: 16 }}>
-                <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
-                  <Text style={{ fontSize: 22 }}>📭</Text>
-                </View>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.textSecondary }}>No payments recorded yet</Text>
-                <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 4 }}>Record a payment below</Text>
-              </View>
-            ) : (
-              payments.map((p, idx) => (
-                <View key={idx} style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
+                {/* Payment History */}
+                {paymentData.payments && paymentData.payments.length > 0 && (
+                  <>
+                    <SectionHeader title="Payment History" color={theme.info} theme={theme} />
+                    {paymentData.payments.map((p, idx) => (
+                      <View key={idx} style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: 14,
+                        backgroundColor: theme.surfaceVariant,
+                        borderRadius: 12,
+                        marginBottom: 6,
+                        borderLeftWidth: 4,
+                        borderLeftColor: theme.success,
+                      }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>Rs. {p.amount || 0}</Text>
+                          <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>{p.payment_mode || 'Cash'} {p.note ? '- ' + p.note : ''}</Text>
+                        </View>
+                        <View style={{ backgroundColor: theme.background, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                          <Text style={{ fontSize: 10, fontWeight: '600', color: theme.textTertiary }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : (p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '--')}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </>
+                )}
+
+                {paymentData.balance <= 0 && paymentData.payments.length > 0 && (
+                  <View style={{ marginTop: 14, padding: 20, backgroundColor: theme.successBg, borderRadius: 16, alignItems: 'center' }}>
+                    <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: theme.success + '20', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                      <Text style={{ fontSize: 26 }}>🎉</Text>
+                    </View>
+                    <Text style={{ fontSize: 17, fontWeight: '800', color: theme.success }}>Fully Paid</Text>
+                    <Text style={{ fontSize: 13, color: theme.success, marginTop: 4 }}>All payments have been recorded</Text>
+                  </View>
+                )}
+              </>
+            ) : null}
+
+            {/* Record Payment Section */}
+            {paymentData && paymentData.balance > 0 && !showPaymentForm && (
+              <TouchableOpacity
+                style={{
+                  marginTop: 16,
+                  backgroundColor: theme.info,
+                  paddingVertical: 15,
+                  borderRadius: 14,
                   alignItems: 'center',
-                  padding: 14,
-                  backgroundColor: theme.surfaceVariant,
-                  borderRadius: 12,
-                  marginBottom: 6,
-                  borderLeftWidth: 4,
-                  borderLeftColor: theme.success,
-                }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>Rs. {p.amount || 0}</Text>
-                    <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>{p.payment_mode || 'Cash'} {p.note ? '- ' + p.note : ''}</Text>
-                  </View>
-                  <View style={{ backgroundColor: theme.background, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '600', color: theme.textTertiary }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : (p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '--')}</Text>
-                  </View>
-                </View>
-              ))
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setShowPaymentForm(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontSize: 16, marginRight: 8 }}>💳</Text>
+                <Text style={{ color: theme.buttonText, fontSize: 15, fontWeight: '700' }}>Record Payment</Text>
+              </TouchableOpacity>
             )}
 
-            {/* Add Payment Form */}
-            {balance > 0 && (
+            {showPaymentForm && paymentData && paymentData.balance > 0 && (
               <>
                 <SectionHeader title="Record Payment" color={theme.success} theme={theme} />
 
@@ -989,40 +936,31 @@ function PaymentCreditModal({ visible, order, onClose, onPaymentSuccess, user })
                   style={{ minHeight: 56, alignItems: 'flex-start', paddingTop: 12 }}
                 />
 
-                <TouchableOpacity
-                  style={[{
-                    backgroundColor: theme.primary,
-                    borderRadius: 14,
-                    padding: 16,
-                    alignItems: 'center',
-                    flexDirection: 'row',
-                    justifyContent: 'center',
-                    marginTop: 4,
-                  }, submitting && { opacity: 0.6 }]}
-                  onPress={handleSubmitPayment}
-                  disabled={submitting}
-                  activeOpacity={0.8}
-                >
-                  {submitting ? (
-                    <ActivityIndicator color={theme.buttonText} />
-                  ) : (
-                    <>
-                      <Text style={{ fontSize: 16, marginRight: 8 }}>✅</Text>
-                      <Text style={{ color: theme.buttonText, fontSize: 16, fontWeight: '800' }}>Record Payment</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </>
-            )}
-
-            {balance <= 0 && payments.length > 0 && (
-              <View style={{ marginTop: 14, padding: 20, backgroundColor: theme.successBg, borderRadius: 16, alignItems: 'center' }}>
-                <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: theme.success + '20', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
-                  <Text style={{ fontSize: 26 }}>🎉</Text>
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: theme.surfaceVariant, borderRadius: 14, padding: 14, alignItems: 'center' }}
+                    onPress={() => setShowPaymentForm(false)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{ color: theme.textSecondary, fontSize: 15, fontWeight: '700' }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[{ flex: 2, backgroundColor: theme.primary, borderRadius: 14, padding: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }, submitting && { opacity: 0.6 }]}
+                    onPress={handleSubmitPayment}
+                    disabled={submitting}
+                    activeOpacity={0.8}
+                  >
+                    {submitting ? (
+                      <ActivityIndicator color={theme.buttonText} />
+                    ) : (
+                      <>
+                        <Text style={{ fontSize: 15, marginRight: 6 }}>✅</Text>
+                        <Text style={{ color: theme.buttonText, fontSize: 15, fontWeight: '800' }}>Submit Payment</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
                 </View>
-                <Text style={{ fontSize: 17, fontWeight: '800', color: theme.success }}>Fully Paid</Text>
-                <Text style={{ fontSize: 13, color: theme.success, marginTop: 4 }}>All payments have been recorded</Text>
-              </View>
+              </>
             )}
           </ScrollView>
         </View>
@@ -1040,7 +978,6 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [paymentOrder, setPaymentOrder] = useState(null);
   const [filter, setFilter] = useState('all');
   const [stats, setStats] = useState({ total: 0, pending: 0, confirmed: 0, delivered: 0, totalAmount: 0 });
 
@@ -1513,17 +1450,8 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
         visible={!!selectedOrder}
         order={selectedOrder}
         onClose={() => setSelectedOrder(null)}
-        onOpenPayment={(order) => {
-          setSelectedOrder(null);
-          setPaymentOrder(order);
-        }}
-      />
-      <PaymentCreditModal
-        visible={!!paymentOrder}
-        order={paymentOrder}
-        onClose={() => setPaymentOrder(null)}
-        onPaymentSuccess={fetchOrders}
         user={user}
+        onPaymentSuccess={fetchOrders}
       />
     </View>
   );

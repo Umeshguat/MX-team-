@@ -66,6 +66,7 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
           designation: data.designation_name || '',
           headquarter: data.headquarter_name || '',
           phone: data.phone_number || '',
+          profile_image: data.profile_image || '',
           token: data.token,
         });
       } else {
