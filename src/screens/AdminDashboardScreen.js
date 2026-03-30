@@ -840,23 +840,27 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
         </View>
       </View>
 
-      {/* ===== QUICK ACTIONS GRID ===== */}
-      <View style={s.quickGrid}>
+      {/* ===== INTERACTIVE MENU ===== */}
+      <View style={s.menuSection}>
         {[
-          { emoji: '📅', label: 'Attendance', bg: theme.errorBg, onPress: onGoToAttendance },
-          { emoji: '📍', label: 'Visits', bg: theme.successBg, onPress: onGoToVisits },
-          { emoji: '💰', label: 'Allowance', bg: theme.warningBg, onPress: onGoToDailyAllowance },
-          { emoji: '👤', label: 'Profile', bg: theme.infoBg, onPress: onGoToProfile },
-          { emoji: '📦', label: 'Inventory', bg: theme.surfaceVariant, onPress: onGoToInventory },
-          { emoji: '📋', label: 'Employees', bg: theme.successBg, onPress: onGoToEmployeeList },
-          { emoji: '📊', label: 'Reports', bg: theme.errorBg, onPress: onGoToAttendanceList },
+          { emoji: '📅', label: 'Attendance', sub: 'View attendance history', bg: theme.errorBg, color: theme.error, onPress: onGoToAttendance },
+          { emoji: '📍', label: 'Visits', sub: 'Track vendor visits', bg: theme.successBg, color: theme.success, onPress: onGoToVisits },
+          { emoji: '💰', label: 'Allowance', sub: 'Daily allowance claims', bg: theme.warningBg, color: theme.warning, onPress: onGoToDailyAllowance },
+          { emoji: '👤', label: 'Profile', sub: 'Your profile settings', bg: theme.infoBg, color: theme.info, onPress: onGoToProfile },
+          { emoji: '📦', label: 'Inventory', sub: 'Stock & products', bg: theme.surfaceVariant, color: theme.secondary, onPress: onGoToInventory },
+          { emoji: '📋', label: 'Employees', sub: 'Manage team members', bg: theme.successBg, color: theme.success, onPress: onGoToEmployeeList },
+          { emoji: '📊', label: 'Reports', sub: 'Attendance reports', bg: theme.errorBg, color: theme.error, onPress: onGoToAttendanceList },
         ].map(function(item, idx) {
           return (
-            <TouchableOpacity key={idx} style={s.quickItem} onPress={item.onPress} activeOpacity={0.7}>
-              <View style={[s.quickIconBox, { backgroundColor: item.bg }]}>
-                <Text style={s.quickEmoji}>{item.emoji}</Text>
+            <TouchableOpacity key={idx} style={[s.menuCard, { backgroundColor: theme.surface }]} onPress={item.onPress} activeOpacity={0.7}>
+              <View style={[s.menuIconBg, { backgroundColor: item.bg }]}>
+                <Text style={s.menuEmoji}>{item.emoji}</Text>
               </View>
-              <Text style={[s.quickLabel, { color: theme.textSecondary }]}>{item.label}</Text>
+              <View style={s.menuTextCol}>
+                <Text style={[s.menuTitle, { color: theme.text }]}>{item.label}</Text>
+                <Text style={[s.menuSub, { color: theme.textTertiary }]}>{item.sub}</Text>
+              </View>
+              <Text style={[s.menuArrow, { color: theme.textTertiary }]}>{'\u203A'}</Text>
             </TouchableOpacity>
           );
         })}
@@ -1095,6 +1099,24 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
           </View>
         ) : null}
       </ScrollView>
+
+      {/* ===== BOTTOM NAVIGATION ===== */}
+      <View style={[s.bottomNav, { backgroundColor: theme.surface, borderTopColor: theme.divider }]}>
+        {[
+          { emoji: '🏠', label: 'Home', active: true },
+          { emoji: '📋', label: 'Employees', onPress: onGoToEmployeeList },
+          { emoji: '📊', label: 'Reports', onPress: onGoToAttendanceList },
+          { emoji: '👤', label: 'Profile', onPress: onGoToProfile },
+        ].map(function(nav, idx) {
+          return (
+            <TouchableOpacity key={idx} style={s.navItem} onPress={nav.onPress} activeOpacity={0.7}>
+              <Text style={[s.navIcon, { color: nav.active ? theme.primary : theme.textTertiary }]}>{nav.emoji}</Text>
+              <Text style={[s.navLabel, { color: nav.active ? theme.primary : theme.textTertiary }]}>{nav.label}</Text>
+              {nav.active ? <View style={[s.navDot, { backgroundColor: theme.primary }]} /> : null}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       {/* ===== EMPLOYEE DETAIL MODAL ===== */}
       <Modal
@@ -1752,6 +1774,79 @@ var s = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',
+  },
+
+  /* ----- Interactive Menu ----- */
+  menuSection: {
+    paddingHorizontal: 16,
+    marginTop: 6,
+  },
+  menuCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+    elevation: 2,
+    shadowColor: 'rgba(0,0,0,0.08)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  menuIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  menuEmoji: {
+    fontSize: 22,
+  },
+  menuTextCol: {
+    flex: 1,
+  },
+  menuTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  menuSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  menuArrow: {
+    fontSize: 24,
+    fontWeight: '300',
+  },
+
+  /* ----- Bottom Navigation ----- */
+  bottomNav: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    paddingBottom: 8,
+    borderTopWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  navItem: {
+    alignItems: 'center',
+    paddingVertical: 4,
+    flex: 1,
+  },
+  navIcon: {
+    fontSize: 22,
+    marginBottom: 4,
+  },
+  navLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  navDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 3,
   },
 
   /* ----- Vendor Map Card ----- */

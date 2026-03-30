@@ -1212,6 +1212,19 @@ function ProductsTab({ user, refreshing, onRefresh, theme }) {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Bottom Navigation */}
+      <View style={[styles.bottomNav, { backgroundColor: theme.surface, borderTopColor: theme.divider }]}>
+        <TouchableOpacity style={styles.navItem} activeOpacity={0.7}>
+          <Text style={[styles.navIcon, { color: theme.primary }]}>📦</Text>
+          <Text style={[styles.navLabel, { color: theme.primary }]}>Inventory</Text>
+          <View style={[styles.navDot, { backgroundColor: theme.primary }]} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={onGoBack} activeOpacity={0.7}>
+          <Text style={[styles.navIcon, { color: theme.textTertiary }]}>🏠</Text>
+          <Text style={[styles.navLabel, { color: theme.textTertiary }]}>Dashboard</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -2484,4 +2497,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1,
   },
+  bottomNav: { flexDirection: 'row', paddingVertical: 8, paddingBottom: 8, borderTopWidth: 1, alignItems: 'center', justifyContent: 'space-around' },
+  navItem: { alignItems: 'center', paddingVertical: 4, flex: 1 },
+  navIcon: { fontSize: 22, marginBottom: 4 },
+  navLabel: { fontSize: 11, fontWeight: '600' },
+  navDot: { width: 4, height: 4, borderRadius: 2, marginTop: 3 },
 });

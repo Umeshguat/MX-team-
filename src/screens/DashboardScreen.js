@@ -62,6 +62,8 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   const [isOnboarded, setIsOnboarded] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [activeNav, setActiveNav] = useState('home');
+
   const fetchDashboard = async () => {
     try {
       const token = user && user.token ? user.token : '';
@@ -123,6 +125,23 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+    });
+  };
+
+  const formatClockTime = (date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const formatClockDate = (date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
     });
   };
 
@@ -497,6 +516,22 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   const userName = user && user.fullName ? user.fullName : 'Employee';
   const userInitial = userName.charAt(0).toUpperCase();
 
+  const menuItems = [
+    { icon: '\uD83D\uDCC5', title: 'Attendance', subtitle: 'View your attendance history', onPress: onGoToAttendance, bgColor: theme.errorBg || 'rgba(239,68,68,0.12)' },
+    { icon: '\uD83D\uDCCD', title: 'Visits', subtitle: 'Track vendor visits', onPress: onGoToVisits, bgColor: theme.successBg || 'rgba(34,197,94,0.12)' },
+    { icon: '\uD83D\uDCB0', title: 'Allowance', subtitle: 'Daily allowance claims', onPress: onGoToDailyAllowance, bgColor: theme.warningBg || 'rgba(245,158,11,0.12)' },
+    { icon: '\uD83D\uDC64', title: 'Profile', subtitle: 'Your profile settings', onPress: onGoToProfile, bgColor: theme.infoBg || 'rgba(59,130,246,0.12)' },
+    { icon: '\uD83D\uDCE6', title: 'Inventory', subtitle: 'Stock & products', onPress: onGoToInventory, bgColor: theme.surfaceVariant || 'rgba(107,114,128,0.12)' },
+    { icon: '\uD83D\uDCCA', title: 'Reports', subtitle: 'View your reports', onPress: null, bgColor: theme.infoBg || 'rgba(59,130,246,0.12)' },
+  ];
+
+  const navItems = [
+    { icon: '\uD83C\uDFE0', label: 'Home', key: 'home', onPress: () => setActiveNav('home') },
+    { icon: '\uD83D\uDCC5', label: 'Attendance', key: 'attendance', onPress: () => { setActiveNav('attendance'); if (onGoToAttendance) onGoToAttendance(); } },
+    { icon: '\uD83D\uDCCD', label: 'Visits', key: 'visits', onPress: () => { setActiveNav('visits'); if (onGoToVisits) onGoToVisits(); } },
+    { icon: '\uD83D\uDC64', label: 'Profile', key: 'profile', onPress: () => { setActiveNav('profile'); if (onGoToProfile) onGoToProfile(); } },
+  ];
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar style="light" />
@@ -513,7 +548,6 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         <View style={[styles.circle3, { backgroundColor: theme.secondary }]} />
 
         <View style={styles.headerTopRow}>
-          {/* Avatar */}
           <View style={styles.headerLeftGroup}>
             <View style={[styles.avatar, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
               <Text style={styles.avatarText}>{userInitial}</Text>
@@ -525,7 +559,6 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
           </View>
 
           <View style={styles.headerRightGroup}>
-            {/* Theme toggle */}
             <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={toggleTheme}
@@ -533,15 +566,11 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
             >
               <Text style={styles.headerIconText}>{isDark ? '\u2600\uFE0F' : '\uD83C\uDF19'}</Text>
             </TouchableOpacity>
-            {/* Logout */}
             <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} activeOpacity={0.7}>
               <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
           </View>
         </View>
-
-        <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
-        <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
       </LinearGradient>
 
       <ScrollView
@@ -549,12 +578,18 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ===== STATUS CHIP ===== */}
-        <View style={[styles.statusChip, { backgroundColor: theme.surface }]}>
-          <View style={[styles.statusDot, checkedIn ? { backgroundColor: theme.success } : { backgroundColor: theme.textTertiary }]} />
-          <Text style={[styles.statusText, { color: theme.text }]}>
-            {checkedIn ? 'You are Checked In' : 'You are Checked Out'}
-          </Text>
+        {/* ===== FLOATING STATUS + CLOCK CARD ===== */}
+        <View style={[styles.floatingClockCard, { backgroundColor: theme.surface }]}>
+          <View style={styles.floatingClockTop}>
+            <View style={styles.statusChipInline}>
+              <View style={[styles.statusDot, checkedIn ? { backgroundColor: theme.success } : { backgroundColor: theme.textTertiary }]} />
+              <Text style={[styles.statusText, { color: checkedIn ? theme.success : theme.textTertiary }]}>
+                {checkedIn ? 'Checked In' : 'Checked Out'}
+              </Text>
+            </View>
+          </View>
+          <Text style={[styles.clockTimeLarge, { color: theme.text }]}>{formatClockTime(currentTime)}</Text>
+          <Text style={[styles.clockDateSmall, { color: theme.textTertiary }]}>{formatClockDate(currentTime)}</Text>
         </View>
 
         {/* ===== ACTION BUTTONS ROW ===== */}
@@ -594,7 +629,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
           </TouchableOpacity>
         </View>
 
-        {/* ===== STATS CARDS ===== */}
+        {/* ===== STATS CARDS (3 in a row) ===== */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
             <View style={[styles.statIconCircle, { backgroundColor: theme.successBg || 'rgba(34,197,94,0.12)' }]}>
@@ -604,7 +639,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
             <Text style={[styles.statValue, { color: theme.text }]}>{formatTime(checkInTime)}</Text>
           </View>
 
-          <View style={{ width: 12 }} />
+          <View style={{ width: 8 }} />
 
           <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
             <View style={[styles.statIconCircle, { backgroundColor: theme.errorBg || 'rgba(239,68,68,0.12)' }]}>
@@ -613,71 +648,64 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
             <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECK OUT</Text>
             <Text style={[styles.statValue, { color: theme.text }]}>{formatTime(checkOutTime)}</Text>
           </View>
-        </View>
 
-        {/* Working Hours Card */}
-        <View style={[styles.workingHoursCard, { backgroundColor: theme.surface }]}>
-          <View style={styles.workingHoursLeft}>
+          <View style={{ width: 8 }} />
+
+          <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
             <View style={[styles.statIconCircle, { backgroundColor: theme.infoBg || 'rgba(59,130,246,0.12)' }]}>
               <Text style={styles.statIconEmoji}>{'\u23F1'}</Text>
             </View>
-            <View style={{ marginLeft: 14 }}>
-              <Text style={[styles.statLabel, { color: theme.textTertiary }]}>WORKING HOURS</Text>
-              <Text style={[styles.workingHoursValue, { color: theme.primary }]}>{getWorkingHours()}</Text>
-            </View>
+            <Text style={[styles.statLabel, { color: theme.textTertiary }]}>HOURS</Text>
+            <Text style={[styles.statValue, { color: theme.primary }]}>{getWorkingHours()}</Text>
           </View>
         </View>
 
-        {/* ===== QUICK ACTIONS SECTION ===== */}
+        {/* ===== INTERACTIVE MENU GRID ===== */}
         <View style={styles.sectionHeaderRow}>
           <View style={[styles.sectionIndicator, { backgroundColor: theme.primary }]} />
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Menu</Text>
         </View>
 
-        <View style={styles.quickActionsGrid}>
-          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} activeOpacity={0.7}>
-            <View style={[styles.quickActionIconBg, { backgroundColor: theme.infoBg || 'rgba(59,130,246,0.12)' }]}>
-              <Text style={styles.quickActionEmoji}>{'\uD83D\uDCCA'}</Text>
-            </View>
-            <Text style={[styles.quickActionText, { color: theme.text }]}>My Reports</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} onPress={onGoToAttendance} activeOpacity={0.7}>
-            <View style={[styles.quickActionIconBg, { backgroundColor: theme.errorBg || 'rgba(239,68,68,0.12)' }]}>
-              <Text style={styles.quickActionEmoji}>{'\uD83D\uDCC5'}</Text>
-            </View>
-            <Text style={[styles.quickActionText, { color: theme.text }]}>Attendance</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} onPress={onGoToVisits} activeOpacity={0.7}>
-            <View style={[styles.quickActionIconBg, { backgroundColor: theme.successBg || 'rgba(34,197,94,0.12)' }]}>
-              <Text style={styles.quickActionEmoji}>{'\uD83D\uDCCD'}</Text>
-            </View>
-            <Text style={[styles.quickActionText, { color: theme.text }]}>Visits</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} onPress={onGoToProfile} activeOpacity={0.7}>
-            <View style={[styles.quickActionIconBg, { backgroundColor: theme.warningBg || 'rgba(245,158,11,0.12)' }]}>
-              <Text style={styles.quickActionEmoji}>{'\uD83D\uDC64'}</Text>
-            </View>
-            <Text style={[styles.quickActionText, { color: theme.text }]}>Profile</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} onPress={onGoToInventory} activeOpacity={0.7}>
-            <View style={[styles.quickActionIconBg, { backgroundColor: theme.surfaceVariant || 'rgba(107,114,128,0.12)' }]}>
-              <Text style={styles.quickActionEmoji}>{'\uD83D\uDCE6'}</Text>
-            </View>
-            <Text style={[styles.quickActionText, { color: theme.text }]}>Inventory</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: theme.surface }]} onPress={onGoToDailyAllowance} activeOpacity={0.7}>
-            <View style={[styles.quickActionIconBg, { backgroundColor: theme.infoBg || 'rgba(59,130,246,0.12)' }]}>
-              <Text style={styles.quickActionEmoji}>{'\uD83D\uDCB0'}</Text>
-            </View>
-            <Text style={[styles.quickActionText, { color: theme.text }]}>Allowance</Text>
-          </TouchableOpacity>
+        <View style={styles.menuGrid}>
+          {menuItems.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[styles.menuCard, { backgroundColor: theme.surface }]}
+              onPress={item.onPress ? item.onPress : () => {}}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.menuIconBg, { backgroundColor: item.bgColor }]}>
+                <Text style={styles.menuIconEmoji}>{item.icon}</Text>
+              </View>
+              <View style={styles.menuTextBlock}>
+                <Text style={[styles.menuTitle, { color: theme.text }]}>{item.title}</Text>
+                <Text style={[styles.menuSub, { color: theme.textTertiary }]}>{item.subtitle}</Text>
+              </View>
+              <Text style={[styles.menuArrow, { color: theme.textTertiary }]}>{'\u203A'}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
+
+      {/* ===== BOTTOM NAVIGATION BAR ===== */}
+      <View style={[styles.bottomNav, { backgroundColor: theme.surface, borderTopColor: theme.divider }]}>
+        {navItems.map((navItem) => (
+          <TouchableOpacity
+            key={navItem.key}
+            style={styles.navItem}
+            onPress={navItem.onPress}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.navIcon, activeNav === navItem.key && { opacity: 1 }, activeNav !== navItem.key && { opacity: 0.5 }]}>{navItem.icon}</Text>
+            <Text style={[styles.navLabel, { color: activeNav === navItem.key ? theme.primary : theme.textTertiary }]}>{navItem.label}</Text>
+            {activeNav === navItem.key ? (
+              <View style={[styles.navDot, { backgroundColor: theme.primary }]} />
+            ) : (
+              <View style={[styles.navDot, { backgroundColor: 'transparent' }]} />
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* ===== CHECK-IN / CHECK-OUT MODAL ===== */}
       <Modal
@@ -1054,7 +1082,7 @@ var styles = StyleSheet.create({
   /* ===== HEADER ===== */
   header: {
     paddingTop: 52,
-    paddingBottom: 28,
+    paddingBottom: 18,
     paddingHorizontal: 22,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
@@ -1091,7 +1119,6 @@ var styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
   headerLeftGroup: {
     flexDirection: 'row',
@@ -1153,18 +1180,6 @@ var styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  dateText: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
-    letterSpacing: 0.3,
-  },
-  timeText: {
-    fontSize: 30,
-    fontWeight: '900',
-    color: '#fff',
-    marginTop: 4,
-    letterSpacing: 2,
-  },
 
   /* ===== BODY ===== */
   body: {
@@ -1172,32 +1187,50 @@ var styles = StyleSheet.create({
   },
   bodyContent: {
     padding: 20,
-    paddingBottom: 80,
+    paddingBottom: 100,
   },
 
-  /* ===== STATUS CHIP ===== */
-  statusChip: {
+  /* ===== FLOATING CLOCK CARD ===== */
+  floatingClockCard: {
+    marginTop: -25,
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: 'rgba(0,0,0,0.12)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+  },
+  floatingClockTop: {
+    marginBottom: 8,
+  },
+  statusChipInline: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
   },
   statusDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    marginRight: 10,
+    marginRight: 8,
   },
   statusText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  clockTimeLarge: {
+    fontSize: 36,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  clockDateSmall: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 4,
+    letterSpacing: 0.3,
   },
 
   /* ===== ACTION BUTTONS ===== */
@@ -1228,15 +1261,15 @@ var styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  /* ===== STATS CARDS ===== */
+  /* ===== STATS CARDS (3 in a row) ===== */
   statsRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 20,
   },
   statCard: {
     flex: 1,
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 16,
+    padding: 14,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1244,47 +1277,26 @@ var styles = StyleSheet.create({
     shadowRadius: 6,
   },
   statIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   statIconEmoji: {
-    fontSize: 18,
+    fontSize: 16,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '800',
-  },
-
-  /* Working Hours */
-  workingHoursCard: {
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-  },
-  workingHoursLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  workingHoursValue: {
-    fontSize: 26,
-    fontWeight: '900',
-    marginTop: 2,
   },
 
   /* ===== SECTION HEADER ===== */
@@ -1304,39 +1316,81 @@ var styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  /* ===== QUICK ACTIONS GRID ===== */
-  quickActionsGrid: {
+  /* ===== INTERACTIVE MENU GRID ===== */
+  menuGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  quickActionCard: {
+  menuCard: {
     width: (screenWidth - 52) / 2,
+    flexDirection: 'column',
+    backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 12,
-    elevation: 3,
-    shadowColor: '#000',
+    padding: 16,
+    marginBottom: 10,
+    elevation: 2,
+    shadowColor: 'rgba(0,0,0,0.08)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 6,
   },
-  quickActionIconBg: {
-    width: 50,
-    height: 50,
+  menuIconBg: {
+    width: 48,
+    height: 48,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  quickActionEmoji: {
-    fontSize: 24,
+  menuIconEmoji: {
+    fontSize: 22,
   },
-  quickActionText: {
-    fontSize: 13,
+  menuTextBlock: {
+    flex: 1,
+    marginBottom: 8,
+  },
+  menuTitle: {
+    fontSize: 15,
     fontWeight: '700',
-    letterSpacing: 0.3,
+  },
+  menuSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  menuArrow: {
+    fontSize: 20,
+    fontWeight: '600',
+    alignSelf: 'flex-end',
+  },
+
+  /* ===== BOTTOM NAV ===== */
+  bottomNav: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+    borderTopWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  navItem: {
+    alignItems: 'center',
+    paddingVertical: 4,
+    flex: 1,
+  },
+  navIcon: {
+    fontSize: 22,
+    marginBottom: 4,
+  },
+  navLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  navDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 3,
   },
 
   /* ===== MODALS ===== */

@@ -948,7 +948,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />}
       >
@@ -1217,7 +1217,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
       <TouchableOpacity
         style={{
           position: 'absolute',
-          bottom: 30,
+          bottom: 80,
           right: 20,
           width: 56,
           height: 56,
@@ -1250,6 +1250,23 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
         onClose={() => setSelectedOrder(null)}
         user={user}
       />
+
+      {/* Bottom Navigation */}
+      <View style={{ flexDirection: 'row', paddingVertical: 8, paddingBottom: 8, borderTopWidth: 1, alignItems: 'center', justifyContent: 'space-around', backgroundColor: theme.surface, borderTopColor: theme.divider }}>
+        <TouchableOpacity style={{ alignItems: 'center', paddingVertical: 4, flex: 1 }} activeOpacity={0.7}>
+          <Text style={{ fontSize: 22, marginBottom: 4, color: theme.primary }}>📋</Text>
+          <Text style={{ fontSize: 11, fontWeight: '600', color: theme.primary }}>Orders</Text>
+          <View style={{ width: 4, height: 4, borderRadius: 2, marginTop: 3, backgroundColor: theme.primary }} />
+        </TouchableOpacity>
+        <TouchableOpacity style={{ alignItems: 'center', paddingVertical: 4, flex: 1 }} onPress={onGoToInventory} activeOpacity={0.7}>
+          <Text style={{ fontSize: 22, marginBottom: 4, color: theme.textTertiary }}>📦</Text>
+          <Text style={{ fontSize: 11, fontWeight: '600', color: theme.textTertiary }}>Inventory</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={{ alignItems: 'center', paddingVertical: 4, flex: 1 }} onPress={onGoToProfile} activeOpacity={0.7}>
+          <Text style={{ fontSize: 22, marginBottom: 4, color: theme.textTertiary }}>👤</Text>
+          <Text style={{ fontSize: 11, fontWeight: '600', color: theme.textTertiary }}>Profile</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

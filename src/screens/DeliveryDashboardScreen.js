@@ -464,26 +464,31 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
           </View>
         </View>
 
-        {/* Quick Actions */}
+        {/* Menu Cards */}
         <View style={styles.sectionHeader}>
           <View style={[styles.sectionBar, { backgroundColor: theme.primary }]} />
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Actions</Text>
         </View>
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: theme.surface }]} onPress={onGoToDeliveryList}>
-            <View style={[styles.actionIcon, { backgroundColor: theme.infoBg }]}>
-              <Text style={styles.actionEmoji}>📋</Text>
-            </View>
-            <Text style={[styles.actionText, { color: theme.text }]}>All Deliveries</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: theme.surface }]} onPress={onGoToProfile}>
-            <View style={[styles.actionIcon, { backgroundColor: theme.warningBg }]}>
-              <Text style={styles.actionEmoji}>👤</Text>
-            </View>
-            <Text style={[styles.actionText, { color: theme.text }]}>Profile</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={[styles.menuCard, { backgroundColor: theme.surface }]} onPress={onGoToDeliveryList} activeOpacity={0.7}>
+          <View style={[styles.menuIconBg, { backgroundColor: theme.infoBg }]}>
+            <Text style={styles.menuEmoji}>📦</Text>
+          </View>
+          <View style={styles.menuTextCol}>
+            <Text style={[styles.menuTitle, { color: theme.text }]}>All Deliveries</Text>
+            <Text style={[styles.menuSub, { color: theme.textTertiary }]}>View all delivery orders</Text>
+          </View>
+          <Text style={[styles.menuArrow, { color: theme.textTertiary }]}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.menuCard, { backgroundColor: theme.surface }]} onPress={onGoToProfile} activeOpacity={0.7}>
+          <View style={[styles.menuIconBg, { backgroundColor: theme.warningBg }]}>
+            <Text style={styles.menuEmoji}>👤</Text>
+          </View>
+          <View style={styles.menuTextCol}>
+            <Text style={[styles.menuTitle, { color: theme.text }]}>Profile</Text>
+            <Text style={[styles.menuSub, { color: theme.textTertiary }]}>Your profile settings</Text>
+          </View>
+          <Text style={[styles.menuArrow, { color: theme.textTertiary }]}>›</Text>
+        </TouchableOpacity>
 
         {/* Recent Deliveries */}
         <View style={styles.recentHeader}>
@@ -563,6 +568,23 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
           })
         )}
       </ScrollView>
+
+      {/* Bottom Navigation */}
+      <View style={[styles.bottomNav, { backgroundColor: theme.surface, borderTopColor: theme.divider }]}>
+        <TouchableOpacity style={styles.navItem} activeOpacity={0.7}>
+          <Text style={[styles.navIcon, { color: theme.primary }]}>🏠</Text>
+          <Text style={[styles.navLabel, { color: theme.primary }]}>Home</Text>
+          <View style={[styles.navDot, { backgroundColor: theme.primary }]} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={onGoToDeliveryList} activeOpacity={0.7}>
+          <Text style={[styles.navIcon, { color: theme.textTertiary }]}>📦</Text>
+          <Text style={[styles.navLabel, { color: theme.textTertiary }]}>Deliveries</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={onGoToProfile} activeOpacity={0.7}>
+          <Text style={[styles.navIcon, { color: theme.textTertiary }]}>👤</Text>
+          <Text style={[styles.navLabel, { color: theme.textTertiary }]}>Profile</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Detail Modal */}
       <DeliveryDetailModal
@@ -957,6 +979,22 @@ var styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+
+  // Menu cards
+  menuCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 16, marginBottom: 10, marginHorizontal: 16, elevation: 2, shadowColor: 'rgba(0,0,0,0.08)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6 },
+  menuIconBg: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  menuEmoji: { fontSize: 22 },
+  menuTextCol: { flex: 1 },
+  menuTitle: { fontSize: 15, fontWeight: '700' },
+  menuSub: { fontSize: 12, marginTop: 2 },
+  menuArrow: { fontSize: 24, fontWeight: '300' },
+
+  // Bottom navigation
+  bottomNav: { flexDirection: 'row', paddingVertical: 8, paddingBottom: 8, borderTopWidth: 1, alignItems: 'center', justifyContent: 'space-around' },
+  navItem: { alignItems: 'center', paddingVertical: 4, flex: 1 },
+  navIcon: { fontSize: 22, marginBottom: 4 },
+  navLabel: { fontSize: 11, fontWeight: '600' },
+  navDot: { width: 4, height: 4, borderRadius: 2, marginTop: 3 },
 });
 
 // ======================== MODAL STYLES ========================
