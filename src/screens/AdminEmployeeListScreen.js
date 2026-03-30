@@ -14,6 +14,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
 import { BASE_URL } from '../config';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 
 function getStatusLabel(status) {
@@ -362,7 +363,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
       <StatusBar style="light" />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+      <LinearGradient colors={[theme.gradient1, theme.gradient2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
         <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
@@ -399,7 +400,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
             <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECKED OUT</Text>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Employee List */}
       {loading ? (
@@ -537,7 +538,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
       <Modal visible={showEmpVendorMap} animationType="slide" onRequestClose={function() { setShowEmpVendorMap(false); }}>
         <View style={[styles.container, { backgroundColor: theme.background }]}>
           {/* Map Modal Header */}
-          <View style={[styles.header, { backgroundColor: theme.primary }]}>
+          <LinearGradient colors={[theme.gradient1, theme.gradient2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
             <View style={styles.decorCircle1} />
             <View style={styles.decorCircle2} />
             <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
@@ -579,7 +580,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
                 <Text style={[styles.statLabel, { color: theme.textTertiary }]}>PENDING</Text>
               </View>
             </View>
-          </View>
+          </LinearGradient>
 
           {/* Map Container */}
           <View style={[styles.mapContainer, { backgroundColor: theme.surface }]}>

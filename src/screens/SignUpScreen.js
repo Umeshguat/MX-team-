@@ -10,7 +10,9 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -67,197 +69,179 @@ export default function SignUpScreen({ onGoToLogin }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar style={theme.statusBarStyle} />
+      <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Brand Section */}
-        <View style={[styles.brandSection, { backgroundColor: theme.primary }]}>
-          <View style={styles.circle1} />
-          <View style={styles.circle2} />
-          <View style={[styles.circle3, { backgroundColor: `rgba(${isDark ? '167,139,250' : '139,92,246'},0.15)` }]} />
+        {/* Top Gradient Header */}
+        <LinearGradient
+          colors={[theme.gradient1, theme.gradient2]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          {/* Decorative circles */}
+          <View style={[styles.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+          <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
 
-          {/* Theme Toggle */}
-          <TouchableOpacity
-            style={styles.themeToggle}
-            onPress={toggleTheme}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.themeToggleIcon}>{isDark ? '\u2600\uFE0F' : '\uD83C\uDF19'}</Text>
-          </TouchableOpacity>
-
-          {/* Logo */}
-          <View style={styles.logoBox}>
-            <Text style={styles.logoText}>MX</Text>
+          {/* Top bar */}
+          <View style={styles.topBar}>
+            <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme} activeOpacity={0.7}>
+              <Text style={styles.themeIcon}>{isDark ? '\u2600\uFE0F' : '\uD83C\uDF19'}</Text>
+            </TouchableOpacity>
+            <View style={styles.topRight}>
+              <Text style={styles.noAccountText}>Already have an account?</Text>
+              <TouchableOpacity style={styles.getStartedBtn} onPress={onGoToLogin} activeOpacity={0.7}>
+                <Text style={styles.getStartedText}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
           </View>
+
           <Text style={styles.brandName}>MXTEAM</Text>
-          <Text style={styles.tagline}>Distribution Management System</Text>
-        </View>
+          <Text style={styles.brandTag}>Distribution Management System</Text>
+        </LinearGradient>
 
         {/* Form Card */}
-        <View style={[styles.card, { backgroundColor: theme.surface }]}>
+        <View style={[styles.formCard, {
+          backgroundColor: theme.surface,
+          shadowColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(74,103,255,0.1)',
+        }]}>
           <Text style={[styles.cardTitle, { color: theme.text }]}>Create Account</Text>
           <Text style={[styles.cardSubtitle, { color: theme.textTertiary }]}>Fill in your details to get started</Text>
 
           {/* Full Name */}
-          <View style={styles.inputWrapper}>
-            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>FULL NAME</Text>
-            <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-              <Text style={styles.inputIcon}>{'\uD83D\uDC64'}</Text>
-              <TextInput
-                style={[styles.input, { color: theme.text }]}
-                placeholder="Enter your full name"
-                placeholderTextColor={theme.textTertiary}
-                value={fullName}
-                onChangeText={setFullName}
-              />
-            </View>
+          <View style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
+            <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>Full Name</Text>
+            <TextInput
+              style={[styles.input, { color: theme.inputText }]}
+              placeholder="Enter your full name"
+              placeholderTextColor={theme.placeholder}
+              value={fullName}
+              onChangeText={setFullName}
+            />
           </View>
 
           {/* Email */}
-          <View style={styles.inputWrapper}>
-            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>EMAIL</Text>
-            <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-              <Text style={styles.inputIcon}>{'\u2709\uFE0F'}</Text>
-              <TextInput
-                style={[styles.input, { color: theme.text }]}
-                placeholder="Enter your email"
-                placeholderTextColor={theme.textTertiary}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
+          <View style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
+            <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>Email Address</Text>
+            <TextInput
+              style={[styles.input, { color: theme.inputText }]}
+              placeholder="name@company.com"
+              placeholderTextColor={theme.placeholder}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
           </View>
 
           {/* Designation Dropdown */}
-          <View style={styles.inputWrapper}>
-            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>DESIGNATION</Text>
-            <TouchableOpacity
-              style={[styles.dropdownContainer, { backgroundColor: theme.surfaceVariant, borderColor: theme.inputBorder }]}
-              onPress={() => setShowDesignationDropdown(true)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.inputIcon}>{'\uD83D\uDCBC'}</Text>
-              <Text style={designation ? [styles.dropdownText, { color: theme.text }] : [styles.dropdownPlaceholder, { color: theme.textTertiary }]}>
+          <TouchableOpacity
+            style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, paddingBottom: 12 }]}
+            onPress={() => setShowDesignationDropdown(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>Designation</Text>
+            <View style={styles.dropdownRow}>
+              <Text style={designation ? [styles.dropdownText, { color: theme.inputText }] : [styles.dropdownText, { color: theme.placeholder }]}>
                 {designation || 'Select your designation'}
               </Text>
               <Text style={[styles.dropdownArrow, { color: theme.textTertiary }]}>{'\u25BC'}</Text>
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
 
           {/* Headquarter Name */}
-          <View style={styles.inputWrapper}>
-            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>HEADQUARTER NAME</Text>
-            <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-              <Text style={styles.inputIcon}>{'\uD83C\uDFE2'}</Text>
-              <TextInput
-                style={[styles.input, { color: theme.text }]}
-                placeholder="Enter your headquarter name"
-                placeholderTextColor={theme.textTertiary}
-                value={headquarter}
-                onChangeText={setHeadquarter}
-              />
-            </View>
+          <View style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
+            <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>Headquarter Name</Text>
+            <TextInput
+              style={[styles.input, { color: theme.inputText }]}
+              placeholder="Enter your headquarter name"
+              placeholderTextColor={theme.placeholder}
+              value={headquarter}
+              onChangeText={setHeadquarter}
+            />
           </View>
 
           {/* Phone */}
-          <View style={styles.inputWrapper}>
-            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>PHONE NUMBER</Text>
-            <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-              <Text style={styles.inputIcon}>{'\uD83D\uDCF1'}</Text>
-              <TextInput
-                style={[styles.input, { color: theme.text }]}
-                placeholder="Enter your phone number"
-                placeholderTextColor={theme.textTertiary}
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-              />
-            </View>
+          <View style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
+            <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>Phone Number</Text>
+            <TextInput
+              style={[styles.input, { color: theme.inputText }]}
+              placeholder="Enter your phone number"
+              placeholderTextColor={theme.placeholder}
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+            />
           </View>
 
           {/* Password */}
-          <View style={styles.inputWrapper}>
-            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>PASSWORD</Text>
-            <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-              <Text style={styles.inputIcon}>{'\uD83D\uDD12'}</Text>
+          <View style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
+            <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>Password</Text>
+            <View style={styles.passwordRow}>
               <TextInput
-                style={[styles.input, styles.passwordInput, { color: theme.text }]}
+                style={[styles.input, styles.passwordInput, { color: theme.inputText }]}
                 placeholder="Create a password"
-                placeholderTextColor={theme.textTertiary}
+                placeholderTextColor={theme.placeholder}
                 secureTextEntry={secureText}
                 value={password}
                 onChangeText={setPassword}
               />
-              <TouchableOpacity
-                style={styles.eyeBtn}
-                onPress={() => setSecureText(!secureText)}
-              >
-                <Text style={styles.eyeText}>{secureText ? '\uD83D\uDC41' : '\uD83D\uDE48'}</Text>
+              <TouchableOpacity style={styles.eyeBtn} onPress={() => setSecureText(!secureText)}>
+                <Text style={[styles.eyeIcon, { color: theme.textTertiary }]}>{secureText ? '\uD83D\uDC41' : '\uD83D\uDE48'}</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Confirm Password */}
-          <View style={styles.inputWrapper}>
-            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>CONFIRM PASSWORD</Text>
-            <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-              <Text style={styles.inputIcon}>{'\uD83D\uDD10'}</Text>
+          <View style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
+            <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>Confirm Password</Text>
+            <View style={styles.passwordRow}>
               <TextInput
-                style={[styles.input, styles.passwordInput, { color: theme.text }]}
+                style={[styles.input, styles.passwordInput, { color: theme.inputText }]}
                 placeholder="Confirm your password"
-                placeholderTextColor={theme.textTertiary}
+                placeholderTextColor={theme.placeholder}
                 secureTextEntry={secureConfirm}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
               />
-              <TouchableOpacity
-                style={styles.eyeBtn}
-                onPress={() => setSecureConfirm(!secureConfirm)}
-              >
-                <Text style={styles.eyeText}>{secureConfirm ? '\uD83D\uDC41' : '\uD83D\uDE48'}</Text>
+              <TouchableOpacity style={styles.eyeBtn} onPress={() => setSecureConfirm(!secureConfirm)}>
+                <Text style={[styles.eyeIcon, { color: theme.textTertiary }]}>{secureConfirm ? '\uD83D\uDC41' : '\uD83D\uDE48'}</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Sign Up Button */}
-          <TouchableOpacity
-            style={[
-              styles.signupBtn,
-              { backgroundColor: theme.buttonPrimary, shadowColor: theme.buttonPrimary },
-              loading && styles.signupBtnDisabled,
-            ]}
-            onPress={handleSignUp}
-            activeOpacity={0.8}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={theme.buttonText} />
-            ) : (
-              <Text style={[styles.signupBtnText, { color: theme.buttonText }]}>SIGN UP</Text>
-            )}
+          <TouchableOpacity onPress={handleSignUp} activeOpacity={0.8} disabled={loading} style={loading ? styles.btnDisabled : undefined}>
+            <LinearGradient
+              colors={[theme.gradient1, theme.gradient2]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gradientBtn}
+            >
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.gradientBtnText}>Sign Up</Text>}
+            </LinearGradient>
           </TouchableOpacity>
 
           {/* Divider */}
           <View style={styles.dividerRow}>
             <View style={[styles.dividerLine, { backgroundColor: theme.divider }]} />
-            <Text style={[styles.dividerText, { color: theme.textTertiary }]}>OR</Text>
+            <Text style={[styles.dividerText, { color: theme.textTertiary }]}>or</Text>
             <View style={[styles.dividerLine, { backgroundColor: theme.divider }]} />
           </View>
 
           {/* Go to Login */}
           <TouchableOpacity
-            style={[styles.outlineBtn, { borderColor: theme.divider }]}
+            style={[styles.registerBtn, { borderColor: theme.divider }]}
             onPress={onGoToLogin}
             activeOpacity={0.7}
           >
-            <Text style={[styles.outlineBtnText, { color: theme.text }]}>Already have an account? </Text>
-            <Text style={[styles.outlineBtnLink, { color: theme.primary }]}>Sign In</Text>
+            <Text style={[styles.registerBtnText, { color: theme.text }]}>Already have an account? Sign In</Text>
           </TouchableOpacity>
+
+          <View style={{ height: 20 }} />
         </View>
       </ScrollView>
 
@@ -322,222 +306,215 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
-  // Brand Section
-  brandSection: {
-    paddingTop: 54,
-    paddingBottom: 48,
-    alignItems: 'center',
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+  /* ===== HEADER GRADIENT ===== */
+  headerGradient: {
+    paddingTop: 55,
+    paddingBottom: 60,
+    paddingHorizontal: 24,
     overflow: 'hidden',
   },
-  circle1: {
+  decorCircle1: {
     position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    top: -40,
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    top: -80,
     right: -60,
   },
-  circle2: {
+  decorCircle2: {
     position: 'absolute',
     width: 180,
     height: 180,
     borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    top: 60,
-    left: -50,
+    bottom: -50,
+    left: -40,
   },
-  circle3: {
-    position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    bottom: -30,
-    right: 40,
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 36,
   },
   themeToggle: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
     width: 40,
     height: 40,
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
   },
-  themeToggleIcon: {
+  themeIcon: {
     fontSize: 18,
   },
-  logoBox: {
-    width: 70,
-    height: 70,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
+  topRight: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
   },
-  logoText: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#4A67FF',
-    letterSpacing: 2,
+  noAccountText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  getStartedBtn: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+  },
+  getStartedText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   brandName: {
-    fontSize: 26,
+    fontSize: 34,
     fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 5,
+    color: '#fff',
+    textAlign: 'center',
+    letterSpacing: 3,
+    marginBottom: 4,
   },
-  tagline: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
-    letterSpacing: 1.5,
+  brandTag: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
 
-  // Form Card
-  card: {
-    marginTop: -24,
-    borderRadius: 24,
-    marginHorizontal: 16,
+  /* ===== FORM CARD ===== */
+  formCard: {
+    marginTop: -30,
+    marginHorizontal: 20,
+    borderRadius: 28,
     paddingHorizontal: 24,
-    paddingTop: 28,
+    paddingTop: 32,
     paddingBottom: 32,
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    elevation: 8,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
     marginBottom: 24,
   },
   cardTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800',
-    marginBottom: 4,
+    textAlign: 'center',
+    marginBottom: 6,
   },
   cardSubtitle: {
-    fontSize: 13,
-    marginBottom: 22,
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 30,
   },
 
-  // Inputs
+  /* ===== INPUTS ===== */
   inputWrapper: {
-    marginBottom: 14,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 6,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    paddingHorizontal: 14,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 4,
+    marginBottom: 16,
   },
-  inputIcon: {
-    fontSize: 18,
-    marginRight: 10,
+  floatingLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    marginBottom: 2,
   },
   input: {
-    flex: 1,
-    paddingVertical: 13,
     fontSize: 15,
+    fontWeight: '500',
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   passwordInput: {
-    paddingRight: 40,
+    flex: 1,
+    paddingRight: 36,
   },
   eyeBtn: {
     position: 'absolute',
-    right: 14,
-    padding: 4,
+    right: 0,
+    padding: 6,
   },
-  eyeText: {
+  eyeIcon: {
     fontSize: 20,
   },
 
-  // Dropdown
-  dropdownContainer: {
+  /* ===== DROPDOWN ===== */
+  dropdownRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
   },
   dropdownText: {
     flex: 1,
     fontSize: 15,
-  },
-  dropdownPlaceholder: {
-    flex: 1,
-    fontSize: 15,
+    fontWeight: '500',
   },
   dropdownArrow: {
     fontSize: 11,
     marginLeft: 8,
   },
 
-  // Buttons
-  signupBtn: {
-    borderRadius: 14,
-    paddingVertical: 16,
+  /* ===== GRADIENT BUTTON ===== */
+  gradientBtn: {
+    borderRadius: 16,
+    paddingVertical: 17,
     alignItems: 'center',
     marginTop: 8,
+    elevation: 6,
+    shadowColor: 'rgba(74,103,255,0.4)',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
   },
-  signupBtnDisabled: {
+  btnDisabled: {
     opacity: 0.7,
   },
-  signupBtnText: {
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 2,
-  },
-  outlineBtn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    paddingVertical: 14,
-  },
-  outlineBtnText: {
-    fontSize: 14,
-  },
-  outlineBtnLink: {
-    fontSize: 14,
+  gradientBtnText: {
+    color: '#fff',
+    fontSize: 17,
     fontWeight: '700',
+    letterSpacing: 0.5,
   },
 
-  // Divider
+  /* ===== DIVIDER ===== */
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 18,
+    marginVertical: 22,
   },
   dividerLine: {
     flex: 1,
     height: 1,
   },
   dividerText: {
-    marginHorizontal: 12,
+    marginHorizontal: 14,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 
-  // Modal
+  /* ===== REGISTER BUTTON ===== */
+  registerBtn: {
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    borderWidth: 1.5,
+  },
+  registerBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  /* ===== MODAL ===== */
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',

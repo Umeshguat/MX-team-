@@ -16,6 +16,7 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 
 var DISTRICT_OPTIONS = [
@@ -169,7 +170,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
       <StatusBar style="light" />
 
       {/* ===== HEADER ===== */}
-      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+      <LinearGradient colors={[theme.gradient1, theme.gradient2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
         <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
@@ -197,7 +198,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
             <Text style={styles.headerSummaryLabel}>PENDING</Text>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* ===== BODY ===== */}
       <ScrollView

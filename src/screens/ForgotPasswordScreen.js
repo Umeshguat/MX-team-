@@ -8,7 +8,9 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { BASE_URL as SERVER_URL } from '../config';
 import { useTheme } from '../theme/ThemeContext';
@@ -252,37 +254,37 @@ export default function ForgotPasswordScreen({ onGoToLogin }) {
         Enter the email address associated with your account and we'll send you an OTP to reset your password.
       </Text>
 
-      <View style={styles.inputWrapper}>
-        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>EMAIL</Text>
-        <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-          <Text style={styles.inputIcon}>{'\u2709\uFE0F'}</Text>
-          <TextInput
-            style={[styles.input, { color: theme.text }]}
-            placeholder="Enter your email"
-            placeholderTextColor={theme.textTertiary}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
+      <View style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
+        <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>Email Address</Text>
+        <TextInput
+          style={[styles.input, { color: theme.inputText }]}
+          placeholder="name@company.com"
+          placeholderTextColor={theme.placeholder}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+        />
       </View>
 
       <TouchableOpacity
-        style={[
-          styles.submitBtn,
-          { backgroundColor: theme.buttonPrimary, shadowColor: theme.buttonPrimary },
-          loading && styles.submitBtnDisabled,
-        ]}
         onPress={handleSendOtp}
         activeOpacity={0.8}
         disabled={loading}
+        style={loading ? styles.btnDisabled : undefined}
       >
-        {loading ? (
-          <ActivityIndicator color={theme.buttonText} />
-        ) : (
-          <Text style={[styles.submitBtnText, { color: theme.buttonText }]}>SEND OTP</Text>
-        )}
+        <LinearGradient
+          colors={[theme.gradient1, theme.gradient2]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradientBtn}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.gradientBtnText}>SEND OTP</Text>
+          )}
+        </LinearGradient>
       </TouchableOpacity>
     </>
   );
@@ -316,20 +318,23 @@ export default function ForgotPasswordScreen({ onGoToLogin }) {
       </View>
 
       <TouchableOpacity
-        style={[
-          styles.submitBtn,
-          { backgroundColor: theme.buttonPrimary, shadowColor: theme.buttonPrimary },
-          loading && styles.submitBtnDisabled,
-        ]}
         onPress={handleVerifyOtp}
         activeOpacity={0.8}
         disabled={loading}
+        style={loading ? styles.btnDisabled : undefined}
       >
-        {loading ? (
-          <ActivityIndicator color={theme.buttonText} />
-        ) : (
-          <Text style={[styles.submitBtnText, { color: theme.buttonText }]}>VERIFY OTP</Text>
-        )}
+        <LinearGradient
+          colors={[theme.gradient1, theme.gradient2]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradientBtn}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.gradientBtnText}>VERIFY OTP</Text>
+          )}
+        </LinearGradient>
       </TouchableOpacity>
 
       <View style={styles.resendRow}>
@@ -356,63 +361,58 @@ export default function ForgotPasswordScreen({ onGoToLogin }) {
         Your new password must be at least 6 characters long.
       </Text>
 
-      <View style={styles.inputWrapper}>
-        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>NEW PASSWORD</Text>
-        <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-          <Text style={styles.inputIcon}>{'\uD83D\uDD12'}</Text>
+      <View style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
+        <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>New Password</Text>
+        <View style={styles.passwordRow}>
           <TextInput
-            style={[styles.input, styles.passwordInput, { color: theme.text }]}
+            style={[styles.input, styles.passwordInput, { color: theme.inputText }]}
             placeholder="Enter new password"
-            placeholderTextColor={theme.textTertiary}
+            placeholderTextColor={theme.placeholder}
             secureTextEntry={secureNew}
             value={newPassword}
             onChangeText={setNewPassword}
           />
-          <TouchableOpacity
-            style={styles.eyeBtn}
-            onPress={() => setSecureNew(!secureNew)}
-          >
-            <Text style={styles.eyeText}>{secureNew ? '\uD83D\uDC41' : '\uD83D\uDE48'}</Text>
+          <TouchableOpacity style={styles.eyeBtn} onPress={() => setSecureNew(!secureNew)}>
+            <Text style={[styles.eyeIcon, { color: theme.textTertiary }]}>{secureNew ? '\uD83D\uDC41' : '\uD83D\uDE48'}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <View style={styles.inputWrapper}>
-        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>CONFIRM PASSWORD</Text>
-        <View style={[styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-          <Text style={styles.inputIcon}>{'\uD83D\uDD10'}</Text>
+      <View style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
+        <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>Confirm Password</Text>
+        <View style={styles.passwordRow}>
           <TextInput
-            style={[styles.input, styles.passwordInput, { color: theme.text }]}
+            style={[styles.input, styles.passwordInput, { color: theme.inputText }]}
             placeholder="Confirm new password"
-            placeholderTextColor={theme.textTertiary}
+            placeholderTextColor={theme.placeholder}
             secureTextEntry={secureConfirm}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
           />
-          <TouchableOpacity
-            style={styles.eyeBtn}
-            onPress={() => setSecureConfirm(!secureConfirm)}
-          >
-            <Text style={styles.eyeText}>{secureConfirm ? '\uD83D\uDC41' : '\uD83D\uDE48'}</Text>
+          <TouchableOpacity style={styles.eyeBtn} onPress={() => setSecureConfirm(!secureConfirm)}>
+            <Text style={[styles.eyeIcon, { color: theme.textTertiary }]}>{secureConfirm ? '\uD83D\uDC41' : '\uD83D\uDE48'}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <TouchableOpacity
-        style={[
-          styles.submitBtn,
-          { backgroundColor: theme.buttonPrimary, shadowColor: theme.buttonPrimary },
-          loading && styles.submitBtnDisabled,
-        ]}
         onPress={handleResetPassword}
         activeOpacity={0.8}
         disabled={loading}
+        style={loading ? styles.btnDisabled : undefined}
       >
-        {loading ? (
-          <ActivityIndicator color={theme.buttonText} />
-        ) : (
-          <Text style={[styles.submitBtnText, { color: theme.buttonText }]}>RESET PASSWORD</Text>
-        )}
+        <LinearGradient
+          colors={[theme.gradient1, theme.gradient2]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradientBtn}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.gradientBtnText}>RESET PASSWORD</Text>
+          )}
+        </LinearGradient>
       </TouchableOpacity>
     </>
   );
@@ -428,50 +428,58 @@ export default function ForgotPasswordScreen({ onGoToLogin }) {
       </Text>
 
       <TouchableOpacity
-        style={[styles.submitBtn, { backgroundColor: theme.buttonPrimary, shadowColor: theme.buttonPrimary, width: '100%' }]}
         onPress={onGoToLogin}
         activeOpacity={0.8}
+        style={{ width: '100%' }}
       >
-        <Text style={[styles.submitBtnText, { color: theme.buttonText }]}>GO TO LOGIN</Text>
+        <LinearGradient
+          colors={[theme.gradient1, theme.gradient2]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradientBtn}
+        >
+          <Text style={styles.gradientBtnText}>GO TO LOGIN</Text>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar style={theme.statusBarStyle} />
+      <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         bounces={false}
         showsVerticalScrollIndicator={false}
       >
-        {/* Brand Section */}
-        <View style={[styles.brandSection, { backgroundColor: theme.primary }]}>
-          <View style={styles.circle1} />
-          <View style={styles.circle2} />
-          <View style={[styles.circle3, { backgroundColor: `rgba(${isDark ? '167,139,250' : '139,92,246'},0.15)` }]} />
+        {/* Header Gradient */}
+        <LinearGradient
+          colors={[theme.gradient1, theme.gradient2]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={[styles.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+          <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
 
-          {/* Theme Toggle */}
-          <TouchableOpacity
-            style={styles.themeToggle}
-            onPress={toggleTheme}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.themeToggleIcon}>{isDark ? '\u2600\uFE0F' : '\uD83C\uDF19'}</Text>
-          </TouchableOpacity>
-
-          {/* Logo */}
-          <View style={styles.logoBox}>
-            <Text style={styles.logoText}>MX</Text>
+          <View style={styles.topBar}>
+            <TouchableOpacity style={styles.backBtn} onPress={onGoToLogin} activeOpacity={0.7}>
+              <Text style={styles.backBtnText}>{'\u2039'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.topBarTitle}>{getSubtitle()}</Text>
+            <View style={{ width: 40 }} />
           </View>
+
           <Text style={styles.brandName}>MXTEAM</Text>
-          <Text style={styles.tagline}>Distribution Management System</Text>
-          <Text style={styles.subtitleText}>{getSubtitle()}</Text>
-        </View>
+          <Text style={styles.brandTag}>Distribution Management System</Text>
+        </LinearGradient>
 
         {/* Form Card */}
-        <View style={[styles.card, { backgroundColor: theme.surface }]}>
+        <View style={[styles.formCard, {
+          backgroundColor: theme.surface,
+          shadowColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(74,103,255,0.1)',
+        }]}>
           {renderStepIndicator()}
 
           {step === 1 && renderStep1()}
@@ -509,108 +517,87 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
-  // Brand Section
-  brandSection: {
-    paddingTop: 54,
-    paddingBottom: 52,
-    alignItems: 'center',
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+  /* ===== HEADER GRADIENT ===== */
+  headerGradient: {
+    paddingTop: 55,
+    paddingBottom: 60,
+    paddingHorizontal: 24,
     overflow: 'hidden',
   },
-  circle1: {
+  decorCircle1: {
     position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    top: -40,
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    top: -80,
     right: -60,
   },
-  circle2: {
+  decorCircle2: {
     position: 'absolute',
     width: 180,
     height: 180,
     borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    top: 60,
-    left: -50,
+    bottom: -50,
+    left: -40,
   },
-  circle3: {
-    position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    bottom: -30,
-    right: 40,
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 36,
   },
-  themeToggle: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
+  backBtn: {
     width: 40,
     height: 40,
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
   },
-  themeToggleIcon: {
-    fontSize: 18,
-  },
-  logoBox: {
-    width: 70,
-    height: 70,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  logoText: {
+  backBtnText: {
+    color: '#fff',
     fontSize: 28,
-    fontWeight: '900',
-    color: '#4A67FF',
-    letterSpacing: 2,
+    fontWeight: '300',
+    marginTop: -2,
+  },
+  topBarTitle: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
   brandName: {
-    fontSize: 26,
+    fontSize: 34,
     fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 5,
+    color: '#fff',
+    textAlign: 'center',
+    letterSpacing: 3,
+    marginBottom: 4,
   },
-  tagline: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
-    letterSpacing: 1.5,
-  },
-  subtitleText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 10,
-    letterSpacing: 2,
-    fontWeight: '600',
+  brandTag: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
 
-  // Form Card
-  card: {
-    marginTop: -24,
-    borderRadius: 24,
-    marginHorizontal: 16,
+  /* ===== FORM CARD ===== */
+  formCard: {
+    marginTop: -30,
+    marginHorizontal: 20,
+    borderRadius: 28,
     paddingHorizontal: 24,
-    paddingTop: 28,
+    paddingTop: 32,
     paddingBottom: 32,
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    elevation: 8,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
     marginBottom: 24,
   },
 
-  // Step Indicator
+  /* ===== STEP INDICATOR ===== */
   stepRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -646,7 +633,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
 
-  // Card Content
+  /* ===== CARD CONTENT ===== */
   cardTitle: {
     fontSize: 24,
     fontWeight: '800',
@@ -661,46 +648,44 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Inputs
+  /* ===== INPUTS ===== */
   inputWrapper: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 4,
     marginBottom: 16,
   },
-  inputLabel: {
-    fontSize: 12,
+  floatingLabel: {
+    fontSize: 11,
     fontWeight: '600',
-    marginBottom: 6,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-  },
-  inputIcon: {
-    fontSize: 18,
-    marginRight: 10,
+    letterSpacing: 0.3,
+    marginBottom: 2,
   },
   input: {
-    flex: 1,
-    paddingVertical: 14,
     fontSize: 15,
+    fontWeight: '500',
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   passwordInput: {
-    paddingRight: 40,
+    flex: 1,
+    paddingRight: 36,
   },
   eyeBtn: {
     position: 'absolute',
-    right: 14,
-    padding: 4,
+    right: 0,
+    padding: 6,
   },
-  eyeText: {
+  eyeIcon: {
     fontSize: 20,
   },
 
-  // OTP
+  /* ===== OTP ===== */
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -742,24 +727,28 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 
-  // Buttons
-  submitBtn: {
-    borderRadius: 14,
-    paddingVertical: 16,
+  /* ===== GRADIENT BUTTON ===== */
+  gradientBtn: {
+    borderRadius: 16,
+    paddingVertical: 17,
     alignItems: 'center',
+    elevation: 6,
+    shadowColor: 'rgba(74,103,255,0.4)',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
   },
-  submitBtnDisabled: {
+  gradientBtnText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  btnDisabled: {
     opacity: 0.7,
   },
-  submitBtnText: {
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 2,
-  },
+
+  /* ===== OUTLINE BUTTON ===== */
   outlineBtn: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -778,7 +767,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Success
+  /* ===== SUCCESS ===== */
   successBox: {
     alignItems: 'center',
     paddingVertical: 20,
@@ -807,7 +796,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
 
-  // Divider
+  /* ===== DIVIDER ===== */
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',

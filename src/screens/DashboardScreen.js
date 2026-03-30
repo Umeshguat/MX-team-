@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import GPSCameraScreen from '../components/GPSCameraScreen';
 import { extractKmFromImage } from '../utils/ocrHelper';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function DashboardScreen({ user, onLogout, vendors, onVendorsChange, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits, onGoToInventory }) {
@@ -501,7 +502,12 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
       <StatusBar style="light" />
 
       {/* ===== HEADER ===== */}
-      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+      <LinearGradient
+        colors={[theme.gradient1, theme.gradient2]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <View style={styles.circle1} />
         <View style={styles.circle2} />
         <View style={[styles.circle3, { backgroundColor: theme.secondary }]} />
@@ -536,7 +542,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
 
         <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
         <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.body}
@@ -554,7 +560,6 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         {/* ===== ACTION BUTTONS ROW ===== */}
         <View style={styles.actionBtnRow}>
           <TouchableOpacity
-            style={[styles.primaryActionBtn, checkedIn ? { backgroundColor: theme.error, shadowColor: theme.error } : { backgroundColor: theme.success, shadowColor: theme.success }]}
             onPress={() => {
               if (checkedIn) {
                 setModalType('checkout');
@@ -564,9 +569,17 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               setShowModal(true);
             }}
             activeOpacity={0.7}
+            style={{ flex: 1 }}
           >
-            <Text style={styles.actionBtnIcon}>{checkedIn ? '\u2197' : '\u2199'}</Text>
-            <Text style={styles.actionBtnLabel}>{checkedIn ? 'CHECK OUT' : 'CHECK IN'}</Text>
+            <LinearGradient
+              colors={checkedIn ? [theme.error, theme.error] : [theme.gradient1, theme.gradient2]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.primaryActionBtn, { shadowColor: checkedIn ? theme.error : theme.gradient1 }]}
+            >
+              <Text style={styles.actionBtnIcon}>{checkedIn ? '\u2197' : '\u2199'}</Text>
+              <Text style={styles.actionBtnLabel}>{checkedIn ? 'CHECK OUT' : 'CHECK IN'}</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           <View style={{ width: 12 }} />
@@ -866,18 +879,24 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
 
               {/* Submit Button */}
               <TouchableOpacity
-                style={[styles.submitBtn, { backgroundColor: modalType === 'checkout' ? theme.error : theme.success }, submitting && { opacity: 0.7 }]}
                 onPress={submitModal}
                 activeOpacity={0.8}
                 disabled={submitting}
               >
-                {submitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitBtnText}>
-                    {modalType === 'checkin' ? 'CHECK IN' : 'CHECK OUT'}
-                  </Text>
-                )}
+                <LinearGradient
+                  colors={modalType === 'checkout' ? [theme.error, theme.error] : [theme.gradient1, theme.gradient2]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.submitBtnText}>
+                      {modalType === 'checkin' ? 'CHECK IN' : 'CHECK OUT'}
+                    </Text>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </ScrollView>
           </View>

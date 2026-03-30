@@ -21,6 +21,7 @@ import * as Location from 'expo-location';
 import { WebView } from 'react-native-webview';
 import GPSCameraScreen from '../components/GPSCameraScreen';
 import { extractKmFromImage } from '../utils/ocrHelper';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 
 var SAMPLE_EMPLOYEES = [
@@ -754,7 +755,12 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
       <StatusBar style="light" />
 
       {/* ===== HEADER ===== */}
-      <View style={[s.header, { backgroundColor: theme.primary }]}>
+      <LinearGradient
+        colors={[theme.gradient1, theme.gradient2]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={s.header}
+      >
         <View style={[s.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
         <View style={[s.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
         <View style={[s.decorCircle3, { backgroundColor: theme.secondary ? (theme.secondary + '26') : 'rgba(255,200,0,0.15)' }]} />
@@ -782,7 +788,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
 
         <Text style={s.dateText}>{dateStr}</Text>
         <Text style={s.timeText}>{formatTime(currentTime)}</Text>
-      </View>
+      </LinearGradient>
 
       {/* ===== MANAGER CHECK-IN CARD ===== */}
       <View style={[s.checkCard, { backgroundColor: theme.surface }]}>

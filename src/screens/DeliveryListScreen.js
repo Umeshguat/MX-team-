@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 
 var STATUS_COLORS = {
@@ -551,7 +552,7 @@ export default function DeliveryListScreen({ user, onGoBack }) {
       <StatusBar style="light" />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+      <LinearGradient colors={[theme.gradient1, theme.gradient2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
         {/* Decorative circles */}
         <View style={styles.circle1} />
         <View style={styles.circle2} />
@@ -574,7 +575,7 @@ export default function DeliveryListScreen({ user, onGoBack }) {
             {totalCount} deliver{totalCount !== 1 ? 'ies' : 'y'} total
           </Text>
         </View>
-      </View>
+      </LinearGradient>
 
       {loading ? (
         <View style={styles.loadingContainer}>

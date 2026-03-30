@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function ProfileScreen({ user, onGoBack, onLogout }) {
@@ -25,10 +26,14 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
       <StatusBar style="light" />
 
       {/* ── Header ── */}
-      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+      <LinearGradient
+        colors={[theme.gradient1, theme.gradient2]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <View style={[styles.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
-        <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
-        <View style={[styles.decorCircle3, { backgroundColor: theme.secondary, opacity: 0.15 }]} />
+        <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
 
         <View style={styles.headerNav}>
           <TouchableOpacity
@@ -43,7 +48,7 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
 
           <View style={styles.navBtnPlaceholder} />
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
@@ -145,12 +150,15 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
         </View>
 
         {/* ── Logout ── */}
-        <TouchableOpacity
-          style={[styles.logoutBtn, { backgroundColor: theme.error }]}
-          onPress={onLogout}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.logoutBtnText}>Logout</Text>
+        <TouchableOpacity onPress={onLogout} activeOpacity={0.8}>
+          <LinearGradient
+            colors={[theme.error, '#FF6B6B']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.logoutBtn}
+          >
+            <Text style={styles.logoutBtnText}>Logout</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
         <View style={styles.bottomSpacer} />
@@ -189,14 +197,6 @@ var styles = StyleSheet.create({
     borderRadius: 60,
     bottom: -20,
     left: -30,
-  },
-  decorCircle3: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    top: 30,
-    left: '50%',
   },
   headerNav: {
     flexDirection: 'row',

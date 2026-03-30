@@ -12,6 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 
 var { width } = Dimensions.get('window');
@@ -238,7 +239,12 @@ export default function AttendanceScreen({ user, onGoBack }) {
       <StatusBar style="light" />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+      <LinearGradient
+        colors={[theme.gradient1, theme.gradient2]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         {/* Decorative elements */}
         <View style={[styles.headerDecor1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
         <View style={[styles.headerDecor2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
@@ -265,7 +271,7 @@ export default function AttendanceScreen({ user, onGoBack }) {
             {designation ? <Text style={styles.userRole}>{designation}</Text> : null}
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {loading ? (
         <View style={styles.loadingContainer}>

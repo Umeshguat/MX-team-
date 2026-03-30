@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { BASE_URL } from '../config';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 
 var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -242,7 +243,7 @@ export default function AdminAttendanceListScreen({ user, onGoBack }) {
       <StatusBar style="light" />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+      <LinearGradient colors={[theme.gradient1, theme.gradient2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
         <View style={[styles.circle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
         <View style={[styles.circle2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
         <View style={[styles.circle3, { backgroundColor: theme.secondary + '26' }]} />
@@ -255,7 +256,7 @@ export default function AdminAttendanceListScreen({ user, onGoBack }) {
           <Text style={styles.headerTitle}>Attendance</Text>
           <View style={{ width: 38 }} />
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Stats Cards */}
       <View style={styles.statsContainer}>

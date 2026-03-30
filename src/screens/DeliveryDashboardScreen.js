@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 
 var screenWidth = Dimensions.get('window').width;
@@ -369,7 +370,7 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
       <StatusBar style="light" />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+      <LinearGradient colors={[theme.gradient1, theme.gradient2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
         {/* Decorative circles */}
         <View style={styles.circle1} />
         <View style={styles.circle2} />
@@ -398,7 +399,7 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
 
         <Text style={styles.dateText}>{formatDate(currentTime)}</Text>
         <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.body}

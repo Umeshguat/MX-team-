@@ -13,6 +13,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function VisitsScreen({ user, vendors, onGoBack }) {
@@ -98,7 +99,7 @@ export default function VisitsScreen({ user, vendors, onGoBack }) {
       <StatusBar style="light" />
 
       {/* ===== HEADER ===== */}
-      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+      <LinearGradient colors={[theme.gradient1, theme.gradient2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
         <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
@@ -121,7 +122,7 @@ export default function VisitsScreen({ user, vendors, onGoBack }) {
             {apiVendors.length} visit{apiVendors.length !== 1 ? 's' : ''} total
           </Text>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* ===== BODY ===== */}
       {loading ? (

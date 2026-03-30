@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '../theme/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -1146,8 +1147,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
       <StatusBar style="light" />
 
       {/* Header */}
-      <View style={{
-        backgroundColor: theme.primary,
+      <LinearGradient colors={[theme.gradient1, theme.gradient2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{
         paddingTop: 50,
         paddingHorizontal: 20,
         paddingBottom: 22,
@@ -1209,7 +1209,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
         {/* Date & Time */}
         <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{formatDate(currentTime)}</Text>
         <Text style={{ fontSize: 28, fontWeight: '900', color: '#FFFFFF', marginTop: 4, letterSpacing: 2 }}>{formatTime(currentTime)}</Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={{ flex: 1 }}
