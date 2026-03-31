@@ -603,7 +603,19 @@ function ProductsTab({ user, refreshing, onRefresh, theme, onGoBack }) {
   const [productName, setProductName] = useState('');
   const [productSKU, setProductSKU] = useState('');
   const [productCategory, setProductCategory] = useState('');
+  const [productCategoryId, setProductCategoryId] = useState('');
   const [productBrand, setProductBrand] = useState('');
+  const [productBrandId, setProductBrandId] = useState('');
+  const [brandsList, setBrandsList] = useState([]);
+  const [showBrandDropdown, setShowBrandDropdown] = useState(false);
+  const [showAddBrandModal, setShowAddBrandModal] = useState(false);
+  const [newBrandName, setNewBrandName] = useState('');
+  const [addingBrand, setAddingBrand] = useState(false);
+  const [categoriesList, setCategoriesList] = useState([]);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [addingCategory, setAddingCategory] = useState(false);
   const [productPrice, setProductPrice] = useState('');
   const [productMinStock, setProductMinStock] = useState('');
   const [productUnit, setProductUnit] = useState('');
@@ -613,6 +625,8 @@ function ProductsTab({ user, refreshing, onRefresh, theme, onGoBack }) {
 
   useEffect(() => {
     fetchProducts();
+    fetchBrands();
+    fetchCategories();
   }, []);
 
   const fetchProducts = async () => {
@@ -634,8 +648,10 @@ function ProductsTab({ user, refreshing, onRefresh, theme, onGoBack }) {
             id: p._id || String(Math.random()),
             name: p.product_name || '',
             sku: p.product_code || '',
-            brand: p.brand || '',
-            category: p.category || '',
+            brand: p.brand && typeof p.brand === 'object' ? p.brand.brand_name : (p.brand || ''),
+            brandId: p.brand && typeof p.brand === 'object' ? p.brand._id : '',
+            category: p.category && typeof p.category === 'object' ? p.category.category_name : (p.category || ''),
+            categoryId: p.category && typeof p.category === 'object' ? p.category._id : '',
             price: p.selling_price || 0,
             stock: p.total_quantity || 0,
             minStock: p.reorder_level || 0,
@@ -655,6 +671,114 @@ function ProductsTab({ user, refreshing, onRefresh, theme, onGoBack }) {
       setProducts([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBrands = async () => {
+    try {
+      const token = user && user.token ? user.token : '';
+      const response = await fetch(`${BASE_URL}/api/admin/brands`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      });
+      const result = await response.json();
+      console.log('Brands API response:', JSON.stringify(result).substring(0, 500));
+      if (result.brands) {
+        setBrandsList(result.brands);
+      } else if (result.data) {
+        setBrandsList(result.data);
+      } else if (Array.isArray(result)) {
+        setBrandsList(result);
+      }
+    } catch (e) {
+      console.log('Brands fetch error:', e);
+    }
+  };
+
+  const addBrand = async () => {
+    if (!newBrandName.trim()) {
+      Alert.alert('Error', 'Brand name is required');
+      return;
+    }
+    try {
+      setAddingBrand(true);
+      const token = user && user.token ? user.token : '';
+      const response = await fetch(`${BASE_URL}/api/admin/brands`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand_name: newBrandName.trim() }),
+      });
+      const result = await response.json();
+      if (response.ok) {
+        Alert.alert('Success', 'Brand added successfully');
+        const addedName = newBrandName.trim();
+        const addedId = result._id || '';
+        setNewBrandName('');
+        setShowAddBrandModal(false);
+        await fetchBrands();
+        setProductBrand(addedName);
+        setProductBrandId(addedId);
+      } else {
+        Alert.alert('Error', result.message || 'Failed to add brand');
+      }
+    } catch (e) {
+      console.log('Add brand error:', e);
+      Alert.alert('Error', 'Failed to add brand');
+    } finally {
+      setAddingBrand(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const token = user && user.token ? user.token : '';
+      const response = await fetch(`${BASE_URL}/api/admin/categories`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      });
+      const result = await response.json();
+      console.log('Categories API response:', JSON.stringify(result).substring(0, 500));
+      if (result.categories) {
+        setCategoriesList(result.categories);
+      } else if (result.data) {
+        setCategoriesList(result.data);
+      } else if (Array.isArray(result)) {
+        setCategoriesList(result);
+      }
+    } catch (e) {
+      console.log('Categories fetch error:', e);
+    }
+  };
+
+  const addCategory = async () => {
+    if (!newCategoryName.trim()) {
+      Alert.alert('Error', 'Category name is required');
+      return;
+    }
+    try {
+      setAddingCategory(true);
+      const token = user && user.token ? user.token : '';
+      const response = await fetch(`${BASE_URL}/api/admin/categories`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category_name: newCategoryName.trim() }),
+      });
+      const result = await response.json();
+      if (response.ok) {
+        Alert.alert('Success', 'Category added successfully');
+        const addedName = newCategoryName.trim();
+        const addedId = result._id || '';
+        setNewCategoryName('');
+        setShowAddCategoryModal(false);
+        await fetchCategories();
+        setProductCategory(addedName);
+        setProductCategoryId(addedId);
+      } else {
+        Alert.alert('Error', result.message || 'Failed to add category');
+      }
+    } catch (e) {
+      console.log('Add category error:', e);
+      Alert.alert('Error', 'Failed to add category');
+    } finally {
+      setAddingCategory(false);
     }
   };
 
@@ -714,7 +838,9 @@ function ProductsTab({ user, refreshing, onRefresh, theme, onGoBack }) {
     setProductName('');
     setProductSKU('');
     setProductCategory('');
+    setProductCategoryId('');
     setProductBrand('');
+    setProductBrandId('');
     setProductPrice('');
     setProductMinStock('');
     setProductUnit('');
@@ -738,8 +864,8 @@ function ProductsTab({ user, refreshing, onRefresh, theme, onGoBack }) {
   const submitProduct = async () => {
     if (!productName.trim()) { Alert.alert('Error', 'Product name is required'); return; }
     if (!productSKU.trim()) { Alert.alert('Error', 'Product code is required'); return; }
-    if (!productBrand.trim()) { Alert.alert('Error', 'Brand is required'); return; }
-    if (!productCategory.trim()) { Alert.alert('Error', 'Category is required'); return; }
+    if (!productBrandId) { Alert.alert('Error', 'Brand is required'); return; }
+    if (!productCategoryId) { Alert.alert('Error', 'Category is required'); return; }
     if (!productPrice.trim()) { Alert.alert('Error', 'Selling price is required'); return; }
     if (!productUnit.trim()) { Alert.alert('Error', 'Unit is required'); return; }
     if (!productMinStock.trim()) { Alert.alert('Error', 'Reorder level is required'); return; }
@@ -748,23 +874,25 @@ function ProductsTab({ user, refreshing, onRefresh, theme, onGoBack }) {
     try {
       setSubmitting(true);
       const token = user && user.token ? user.token : '';
+      const payload = {
+        product_name: productName.trim(),
+        product_code: productSKU.trim(),
+        brand: productBrandId,
+        category: productCategoryId,
+        description: productDescription.trim(),
+        unit: productUnit.trim(),
+        selling_price: parseFloat(productPrice),
+        reorder_level: parseInt(productMinStock),
+        shelf_life_days: parseInt(productShelfLife),
+        image: productImage || '',
+      };
       const response = await fetch(`${BASE_URL}/api/inventory/products`, {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer ' + token,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          product_name: productName.trim(),
-          product_code: productSKU.trim(),
-          brand: productBrand.trim(),
-          category: productCategory.trim(),
-          description: productDescription.trim(),
-          unit: productUnit.trim(),
-          selling_price: parseFloat(productPrice),
-          reorder_level: parseInt(productMinStock),
-          shelf_life_days: parseInt(productShelfLife),
-        }),
+        body: JSON.stringify(payload),
       });
       const result = await response.json();
       console.log('Add product API:', JSON.stringify(result));
@@ -1026,18 +1154,94 @@ function ProductsTab({ user, refreshing, onRefresh, theme, onGoBack }) {
 
                 <View style={styles.modalInputGroup}>
                   <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Brand *</Text>
-                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                    <Text style={styles.modalInputIcon}>🏢</Text>
-                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="Enter brand name" placeholderTextColor={theme.textTertiary} value={productBrand} onChangeText={setProductBrand} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider, flex: 1 }]}>
+                      <Text style={styles.modalInputIcon}>🏢</Text>
+                      <TouchableOpacity
+                        style={{ flex: 1, justifyContent: 'center', height: '100%' }}
+                        onPress={() => { fetchBrands(); setShowBrandDropdown(!showBrandDropdown); }}
+                      >
+                        <Text style={[styles.modalInput, { color: productBrand ? theme.text : theme.textTertiary, paddingTop: 12 }]}>
+                          {productBrand || 'Select brand'}
+                        </Text>
+                      </TouchableOpacity>
+                      <Text style={{ fontSize: 12, marginRight: 10, color: theme.textTertiary }}>{showBrandDropdown ? '▲' : '▼'}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => { setNewBrandName(''); setShowAddBrandModal(true); }}
+                      style={{ width: 44, height: 50, borderRadius: 14, backgroundColor: theme.primary, justifyContent: 'center', alignItems: 'center', marginLeft: 8 }}
+                    >
+                      <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', marginTop: -2 }}>+</Text>
+                    </TouchableOpacity>
                   </View>
+                  {showBrandDropdown && (
+                    <View style={{ backgroundColor: theme.card, borderColor: theme.divider, borderWidth: 1, borderRadius: 10, marginTop: 4, maxHeight: 180 }}>
+                      <ScrollView nestedScrollEnabled>
+                        {brandsList.length === 0 && (
+                          <Text style={{ padding: 14, color: theme.textTertiary, textAlign: 'center' }}>No brands found</Text>
+                        )}
+                        {brandsList.map((b, idx) => {
+                          const name = b.brand_name || b.name || b;
+                          const id = b._id || '';
+                          return (
+                            <TouchableOpacity
+                              key={id || idx}
+                              onPress={() => { setProductBrand(name); setProductBrandId(id); setShowBrandDropdown(false); }}
+                              style={{ paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: idx < brandsList.length - 1 ? 1 : 0, borderBottomColor: theme.divider, backgroundColor: productBrand === name ? (theme.primary + '15') : 'transparent' }}
+                            >
+                              <Text style={{ color: theme.text, fontSize: 15 }}>{name}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.modalInputGroup}>
                   <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Category *</Text>
-                  <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                    <Text style={styles.modalInputIcon}>📂</Text>
-                    <TextInput style={[styles.modalInput, { color: theme.text }]} placeholder="e.g. Tablets, Syrups, Capsules" placeholderTextColor={theme.textTertiary} value={productCategory} onChangeText={setProductCategory} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider, flex: 1 }]}>
+                      <Text style={styles.modalInputIcon}>📂</Text>
+                      <TouchableOpacity
+                        style={{ flex: 1, justifyContent: 'center', height: '100%' }}
+                        onPress={() => { fetchCategories(); setShowCategoryDropdown(!showCategoryDropdown); }}
+                      >
+                        <Text style={[styles.modalInput, { color: productCategory ? theme.text : theme.textTertiary, paddingTop: 12 }]}>
+                          {productCategory || 'Select category'}
+                        </Text>
+                      </TouchableOpacity>
+                      <Text style={{ fontSize: 12, marginRight: 10, color: theme.textTertiary }}>{showCategoryDropdown ? '▲' : '▼'}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => { setNewCategoryName(''); setShowAddCategoryModal(true); }}
+                      style={{ width: 44, height: 50, borderRadius: 14, backgroundColor: theme.primary, justifyContent: 'center', alignItems: 'center', marginLeft: 8 }}
+                    >
+                      <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', marginTop: -2 }}>+</Text>
+                    </TouchableOpacity>
                   </View>
+                  {showCategoryDropdown && (
+                    <View style={{ backgroundColor: theme.card, borderColor: theme.divider, borderWidth: 1, borderRadius: 10, marginTop: 4, maxHeight: 180 }}>
+                      <ScrollView nestedScrollEnabled>
+                        {categoriesList.length === 0 && (
+                          <Text style={{ padding: 14, color: theme.textTertiary, textAlign: 'center' }}>No categories found</Text>
+                        )}
+                        {categoriesList.map((c, idx) => {
+                          const name = c.category_name || c.name || c;
+                          const id = c._id || '';
+                          return (
+                            <TouchableOpacity
+                              key={id || idx}
+                              onPress={() => { setProductCategory(name); setProductCategoryId(id); setShowCategoryDropdown(false); }}
+                              style={{ paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: idx < categoriesList.length - 1 ? 1 : 0, borderBottomColor: theme.divider, backgroundColor: productCategory === name ? (theme.primary + '15') : 'transparent' }}
+                            >
+                              <Text style={{ color: theme.text, fontSize: 15 }}>{name}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.modalInputGroup}>
@@ -1104,6 +1308,84 @@ function ProductsTab({ user, refreshing, onRefresh, theme, onGoBack }) {
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Add Brand Modal */}
+      <Modal visible={showAddBrandModal} transparent={true} animationType="fade" onRequestClose={() => setShowAddBrandModal(false)}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay, justifyContent: 'center', alignItems: 'center' }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, width: '85%', maxWidth: 400, borderRadius: 16, padding: 24, maxHeight: undefined }]}>
+            <Text style={[styles.modalTitle, { color: theme.text, marginBottom: 20 }]}>Add New Brand</Text>
+            <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+              <Text style={styles.modalInputIcon}>🏢</Text>
+              <TextInput
+                style={[styles.modalInput, { color: theme.text }]}
+                placeholder="Enter brand name"
+                placeholderTextColor={theme.textTertiary}
+                value={newBrandName}
+                onChangeText={setNewBrandName}
+                autoFocus
+              />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20, gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => setShowAddBrandModal(false)}
+                style={{ paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, borderWidth: 1, borderColor: theme.divider }}
+              >
+                <Text style={{ color: theme.textSecondary, fontSize: 15, fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={addBrand}
+                disabled={addingBrand}
+                style={{ paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, backgroundColor: theme.primary }}
+              >
+                {addingBrand ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>Add Brand</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Category Modal */}
+      <Modal visible={showAddCategoryModal} transparent={true} animationType="fade" onRequestClose={() => setShowAddCategoryModal(false)}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.overlay, justifyContent: 'center', alignItems: 'center' }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, width: '85%', maxWidth: 400, borderRadius: 16, padding: 24, maxHeight: undefined }]}>
+            <Text style={[styles.modalTitle, { color: theme.text, marginBottom: 20 }]}>Add New Category</Text>
+            <View style={[styles.modalInputWrap, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+              <Text style={styles.modalInputIcon}>📂</Text>
+              <TextInput
+                style={[styles.modalInput, { color: theme.text }]}
+                placeholder="Enter category name"
+                placeholderTextColor={theme.textTertiary}
+                value={newCategoryName}
+                onChangeText={setNewCategoryName}
+                autoFocus
+              />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20, gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => setShowAddCategoryModal(false)}
+                style={{ paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, borderWidth: 1, borderColor: theme.divider }}
+              >
+                <Text style={{ color: theme.textSecondary, fontSize: 15, fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={addCategory}
+                disabled={addingCategory}
+                style={{ paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, backgroundColor: theme.primary }}
+              >
+                {addingCategory ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>Add Category</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* Product Detail Modal */}
