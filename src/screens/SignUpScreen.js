@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,13 +15,15 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '../theme/ThemeContext';
+import { BASE_URL } from '../config';
 
 export default function SignUpScreen({ onGoToLogin }) {
   const { theme, isDark, toggleTheme } = useTheme();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [designation, setDesignation] = useState('');
+  const [designation, setDesignation] = useState(null);
+  const [designations, setDesignations] = useState([]);
   const [showDesignationDropdown, setShowDesignationDropdown] = useState(false);
   const [headquarter, setHeadquarter] = useState('');
   const [phone, setPhone] = useState('');
@@ -30,23 +32,47 @@ export default function SignUpScreen({ onGoToLogin }) {
   const [secureText, setSecureText] = useState(true);
   const [secureConfirm, setSecureConfirm] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [roles, setRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
 
-  const designations = [
-    'Sales Executive',
-    'Senior Sales Executive',
-    'Area Sales Manager',
-    'Regional Sales Manager',
-    'Zonal Manager',
-    'Territory Manager',
-    'Business Development Executive',
-    'Key Account Manager',
-    'Sales Coordinator',
-    'Team Leader',
-  ];
+  useEffect(() => {
+    fetchRoles();
+    fetchDesignations();
+  }, []);
 
-  const handleSignUp = () => {
+  const fetchRoles = async () => {
+    setRolesLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/api/admin/roles`);
+      const result = await response.json();
+      if (response.ok && result.data) {
+        setRoles(result.data);
+      }
+    } catch (error) {
+      console.log('Failed to fetch roles:', error.message);
+    } finally {
+      setRolesLoading(false);
+    }
+  };
+
+  const fetchDesignations = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/api/admin/designations`);
+      const result = await response.json();
+      if (response.ok && result.data) {
+        setDesignations(result.data);
+      }
+    } catch (error) {
+      console.log('Failed to fetch designations:', error.message);
+    }
+  };
+
+
+  const handleSignUp = async () => {
     if (loading) return;
-    if (!fullName.trim() || !email.trim() || !designation || !headquarter.trim() || !phone.trim() || !password || !confirmPassword) {
+    if (!fullName.trim() || !email.trim() || !selectedRole || !designation || !headquarter.trim() || !phone.trim() || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -62,9 +88,35 @@ export default function SignUpScreen({ onGoToLogin }) {
     }
 
     setLoading(true);
-    Alert.alert('Success', 'Account created successfully!', [
-      { text: 'OK', onPress: () => { setLoading(false); onGoToLogin(); } },
-    ]);
+    try {
+      const response = await fetch(`${BASE_URL}/api/users/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: fullName.trim(),
+          email: email.trim(),
+          role_id: selectedRole._id,
+          designation_id: designation._id,
+          headquarter_name: headquarter.trim(),
+          phone_number: phone.trim(),
+          password,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        Alert.alert('Success', 'Account created successfully!', [
+          { text: 'OK', onPress: () => onGoToLogin() },
+        ]);
+      } else {
+        Alert.alert('Error', result.message || 'Registration failed');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -137,6 +189,27 @@ export default function SignUpScreen({ onGoToLogin }) {
             />
           </View>
 
+          {/* Role Dropdown */}
+          <TouchableOpacity
+            style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, paddingBottom: 12 }]}
+            onPress={() => setShowRoleDropdown(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>Role</Text>
+            <View style={styles.dropdownRow}>
+              {rolesLoading ? (
+                <ActivityIndicator size="small" color={theme.primary} style={{ paddingVertical: Platform.OS === 'ios' ? 10 : 6 }} />
+              ) : (
+                <>
+                  <Text style={selectedRole ? [styles.dropdownText, { color: theme.inputText }] : [styles.dropdownText, { color: theme.placeholder }]}>
+                    {selectedRole ? selectedRole.role_name : 'Select your role'}
+                  </Text>
+                  <Text style={[styles.dropdownArrow, { color: theme.textTertiary }]}>{'\u25BC'}</Text>
+                </>
+              )}
+            </View>
+          </TouchableOpacity>
+
           {/* Designation Dropdown */}
           <TouchableOpacity
             style={[styles.inputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, paddingBottom: 12 }]}
@@ -146,7 +219,7 @@ export default function SignUpScreen({ onGoToLogin }) {
             <Text style={[styles.floatingLabel, { color: theme.textTertiary }]}>Designation</Text>
             <View style={styles.dropdownRow}>
               <Text style={designation ? [styles.dropdownText, { color: theme.inputText }] : [styles.dropdownText, { color: theme.placeholder }]}>
-                {designation || 'Select your designation'}
+                {designation ? designation.designation_name : 'Select your designation'}
               </Text>
               <Text style={[styles.dropdownArrow, { color: theme.textTertiary }]}>{'\u25BC'}</Text>
             </View>
@@ -245,6 +318,62 @@ export default function SignUpScreen({ onGoToLogin }) {
         </View>
       </ScrollView>
 
+      {/* Role Dropdown Modal */}
+      <Modal
+        visible={showRoleDropdown}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowRoleDropdown(false)}
+      >
+        <TouchableOpacity
+          style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}
+          activeOpacity={1}
+          onPress={() => setShowRoleDropdown(false)}
+        >
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Select Role</Text>
+            <View style={[styles.modalDivider, { backgroundColor: theme.divider }]} />
+            {rolesLoading ? (
+              <ActivityIndicator size="large" color={theme.primary} style={{ paddingVertical: 30 }} />
+            ) : roles.length === 0 ? (
+              <Text style={[styles.modalEmptyText, { color: theme.textTertiary }]}>No roles available</Text>
+            ) : (
+              <FlatList
+                data={roles}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.modalItem,
+                      { borderBottomColor: theme.divider },
+                      selectedRole?._id === item._id && { backgroundColor: isDark ? 'rgba(107, 133, 255, 0.15)' : 'rgba(74, 103, 255, 0.08)' },
+                    ]}
+                    onPress={() => {
+                      setSelectedRole(item);
+                      setShowRoleDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.modalItemIcon}>{'\uD83D\uDC64'}</Text>
+                    <Text
+                      style={[
+                        styles.modalItemText,
+                        { color: theme.text },
+                        selectedRole?._id === item._id && { color: theme.primary, fontWeight: '700' },
+                      ]}
+                    >
+                      {item.role_name}
+                    </Text>
+                    {selectedRole?._id === item._id && (
+                      <Text style={[styles.modalCheckmark, { color: theme.primary }]}>{'\u2713'}</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Designation Dropdown Modal */}
       <Modal
         visible={showDesignationDropdown}
@@ -260,37 +389,41 @@ export default function SignUpScreen({ onGoToLogin }) {
           <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>Select Designation</Text>
             <View style={[styles.modalDivider, { backgroundColor: theme.divider }]} />
-            <FlatList
-              data={designations}
-              keyExtractor={(item) => item}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.modalItem,
-                    { borderBottomColor: theme.divider },
-                    designation === item && { backgroundColor: isDark ? 'rgba(107, 133, 255, 0.15)' : 'rgba(74, 103, 255, 0.08)' },
-                  ]}
-                  onPress={() => {
-                    setDesignation(item);
-                    setShowDesignationDropdown(false);
-                  }}
-                >
-                  <Text style={styles.modalItemIcon}>{'\uD83D\uDCBC'}</Text>
-                  <Text
+            {designations.length === 0 ? (
+              <Text style={[styles.modalEmptyText, { color: theme.textTertiary }]}>No designations available</Text>
+            ) : (
+              <FlatList
+                data={designations}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
                     style={[
-                      styles.modalItemText,
-                      { color: theme.text },
-                      designation === item && { color: theme.primary, fontWeight: '700' },
+                      styles.modalItem,
+                      { borderBottomColor: theme.divider },
+                      designation?._id === item._id && { backgroundColor: isDark ? 'rgba(107, 133, 255, 0.15)' : 'rgba(74, 103, 255, 0.08)' },
                     ]}
+                    onPress={() => {
+                      setDesignation(item);
+                      setShowDesignationDropdown(false);
+                    }}
                   >
-                    {item}
-                  </Text>
-                  {designation === item && (
-                    <Text style={[styles.modalCheckmark, { color: theme.primary }]}>{'\u2713'}</Text>
-                  )}
-                </TouchableOpacity>
-              )}
-            />
+                    <Text style={styles.modalItemIcon}>{'\uD83D\uDCBC'}</Text>
+                    <Text
+                      style={[
+                        styles.modalItemText,
+                        { color: theme.text },
+                        designation?._id === item._id && { color: theme.primary, fontWeight: '700' },
+                      ]}
+                    >
+                      {item.designation_name}
+                    </Text>
+                    {designation?._id === item._id && (
+                      <Text style={[styles.modalCheckmark, { color: theme.primary }]}>{'\u2713'}</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              />
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -561,5 +694,10 @@ const styles = StyleSheet.create({
   modalCheckmark: {
     fontSize: 16,
     fontWeight: '700',
+  },
+  modalEmptyText: {
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 30,
   },
 });

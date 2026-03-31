@@ -338,10 +338,10 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
         const d = result.data;
         setStats({
           assigned: d.pendingDeliveries || 0,
-          picked_up: 0,
+          picked_up: d.pickedUpDeliveries || 0,
           in_transit: d.inTransitDeliveries || 0,
           delivered: d.deliveredDeliveries || 0,
-          failed: 0,
+          failed: d.failedDeliveries || 0,
           total: d.totalDeliveries || 0,
           deliveredToday: d.deliveredToday || 0,
         });

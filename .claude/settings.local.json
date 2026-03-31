@@ -21,7 +21,9 @@
       "Read(//e/project_after_1_/ dec_2025/Salesmensapi/**)",
       "Bash(./gradlew assembleRelease)",
       "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\salesmens' -type f -name *vendor* -o -name *visit* -o -name *VendorVisit*)",
-      "Bash(grep -r vendor 'e:\\\\project_after_1_ dec_2025\\\\salesmens/src' --include=*.js -l)"
+      "Bash(grep -r vendor 'e:\\\\project_after_1_ dec_2025\\\\salesmens/src' --include=*.js -l)",
+      "Bash(npx react-native-community/cli bundle --platform android --entry-file index.js --bundle-output /dev/null --dev false)",
+      "Bash(node -e \":*)"
     ]
   }
 }

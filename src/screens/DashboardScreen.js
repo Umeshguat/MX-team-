@@ -476,7 +476,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         throw new Error('Server error: ' + response.status + ' - ' + responseText);
       }
 
-      onVendorsChange([...(vendors || []), {
+      if (onVendorsChange) onVendorsChange([...(vendors || []), {
         name: vendorName.trim(),
         mobile: vendorMobile.trim(),
         selfie: vendorSelfie,

@@ -30,7 +30,8 @@
       "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\Salesmensapi' -type f \\\\\\(-name *order* -o -name *Order* \\\\\\))",
       "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\Salesmensapi\\\\src\\\\controllers' -type f -name *.js -o -name *.ts)",
       "Bash(grep \".js$\")",
-      "Bash(node -e \"try { require.resolve\\(''expo-linear-gradient''\\); console.log\\(''installed''\\); } catch\\(e\\) { console.log\\(''not installed''\\); }\")"
+      "Bash(node -e \"try { require.resolve\\(''expo-linear-gradient''\\); console.log\\(''installed''\\); } catch\\(e\\) { console.log\\(''not installed''\\); }\")",
+      "Bash(grep -E \"\\\\.\\(js|jsx|ts|tsx\\)$\")"
     ],
     "additionalDirectories": [
       "e:\\project_after_1_ dec_2025\\Salesmensapi\\src\\controllers",

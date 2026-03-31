@@ -20,6 +20,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import * as ImagePicker from 'expo-image-picker';
 
 // ======================== CALENDAR DATE PICKER ========================
 function CalendarPicker({ value, onSelect, onClose, theme }) {
@@ -155,6 +156,7 @@ function AlertsTab({ user, refreshing, onRefresh, theme }) {
             severity: p.total_quantity === 0 ? 'critical' : (p.deficit > 20 ? 'high' : 'medium'),
             brand: p.brand,
             category: p.category,
+            date: p.updatedAt ? p.updatedAt.split('T')[0] : '',
           });
         });
       }
@@ -174,6 +176,7 @@ function AlertsTab({ user, refreshing, onRefresh, theme }) {
               batchNumber: b.batch_number,
               severity: b.days_to_expiry <= 0 ? 'critical' : (b.days_to_expiry <= 15 ? 'high' : (b.days_to_expiry <= 30 ? 'medium' : 'low')),
               brand: a.brand,
+              date: b.expiry_date ? b.expiry_date.split('T')[0] : '',
             });
           });
         });
@@ -574,6 +577,7 @@ function ProductsTab({ user, refreshing, onRefresh, theme }) {
   const [productUnit, setProductUnit] = useState('');
   const [productShelfLife, setProductShelfLife] = useState('');
   const [productDescription, setProductDescription] = useState('');
+  const [productImage, setProductImage] = useState(null);
 
   useEffect(() => {
     fetchProducts();
@@ -595,20 +599,20 @@ function ProductsTab({ user, refreshing, onRefresh, theme }) {
           if (p.total_quantity === 0) status = 'out_of_stock';
           else if (p.total_quantity <= p.reorder_level) status = 'low_stock';
           return {
-            id: p._id,
-            name: p.product_name,
-            sku: p.product_code,
-            brand: p.brand,
-            category: p.category,
-            price: p.selling_price,
-            stock: p.total_quantity,
-            minStock: p.reorder_level,
-            unit: p.unit,
+            id: p._id || String(Math.random()),
+            name: p.product_name || '',
+            sku: p.product_code || '',
+            brand: p.brand || '',
+            category: p.category || '',
+            price: p.selling_price || 0,
+            stock: p.total_quantity || 0,
+            minStock: p.reorder_level || 0,
+            unit: p.unit || '',
             status: status,
-            description: p.description,
-            shelfLife: p.shelf_life_days,
-            batches: p.batches,
-            image: p.image,
+            description: p.description || '',
+            shelfLife: p.shelf_life_days || 0,
+            batches: p.batches || [],
+            image: p.image || null,
             is_active: p.is_active,
           };
         });
@@ -659,7 +663,7 @@ function ProductsTab({ user, refreshing, onRefresh, theme }) {
 
   const pickProductImage = async () => {
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.7,
     });
@@ -678,6 +682,7 @@ function ProductsTab({ user, refreshing, onRefresh, theme }) {
     setProductUnit('');
     setProductShelfLife('');
     setProductDescription('');
+    setProductImage(null);
   };
 
   const resetStockForm = () => {

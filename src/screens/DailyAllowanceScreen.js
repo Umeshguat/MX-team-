@@ -153,11 +153,42 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
     }
 
     setSubmitting(true);
-    Alert.alert('Success', 'Daily allowance submitted for approval!');
-    setShowAddModal(false);
-    resetForm();
-    fetchDailyAllowance();
-    setSubmitting(false);
+    var token = user && user.token ? user.token : '';
+    fetch(BASE_URL + '/api/users/daily-allowance', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      },
+      body: JSON.stringify({
+        km_start: Number(kmStart),
+        km_end: Number(kmEnd),
+        total_km: kmDistance,
+        total_km_price: kmAllowance,
+        food: foodAmount ? Number(foodAmount) : 0,
+        stay: isOtherDistrict && stayAmount ? Number(stayAmount) : 0,
+        other: isOtherDistrict && fareAmount ? Number(fareAmount) : 0,
+        district_type: selectedDistrict,
+        remarks: remarks.trim(),
+      }),
+    })
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        if (data.status === 201 || data.status === 200) {
+          Alert.alert('Success', 'Daily allowance submitted for approval!');
+          setShowAddModal(false);
+          resetForm();
+          fetchDailyAllowance();
+        } else {
+          Alert.alert('Error', data.message || 'Failed to submit allowance');
+        }
+        setSubmitting(false);
+      })
+      .catch(function(error) {
+        console.error('Error submitting allowance:', error);
+        Alert.alert('Error', 'Failed to submit allowance. Please try again.');
+        setSubmitting(false);
+      });
   };
 
   var fullName = user && user.fullName ? user.fullName : 'Employee';
@@ -290,6 +321,15 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
           );
         })}
       </ScrollView>
+
+      {/* ===== FAB Button ===== */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: theme.primary }]}
+        onPress={function() { setShowAddModal(true); }}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
 
       {/* ===== ADD ALLOWANCE MODAL ===== */}
       <Modal
@@ -524,6 +564,28 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
 var styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    zIndex: 10,
+  },
+  fabText: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 30,
   },
 
   /* ---- Header ---- */

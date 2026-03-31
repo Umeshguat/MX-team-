@@ -252,7 +252,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
 
   var openEmpVendorMap = function() {
     if (!selectedEmployee) return;
-    var userId = selectedEmployee.user_id || selectedEmployee._id || '';
+    var userId = (selectedEmployee.user_id && typeof selectedEmployee.user_id === 'object' ? selectedEmployee.user_id._id : selectedEmployee.user_id) || selectedEmployee._id || '';
     var empName = selectedEmployee.full_name || 'Employee';
     setEmpVendorMapName(empName);
     setEmpVendorMapLoading(true);
