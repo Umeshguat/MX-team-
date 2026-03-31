@@ -116,6 +116,37 @@ const calStyles = StyleSheet.create({
 
 const screenWidth = Dimensions.get('window').width;
 
+// ======================== ERROR BOUNDARY ========================
+class ScreenErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.log('Screen crash:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#e53935', marginBottom: 8 }}>Something went wrong</Text>
+          <Text style={{ fontSize: 13, color: '#666', textAlign: 'center', marginBottom: 16 }}>{this.state.error?.message || 'Unknown error'}</Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#4A67FF', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
+            onPress={() => this.setState({ hasError: false, error: null })}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700' }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ======================== ALERTS TAB ========================
 function AlertsTab({ user, refreshing, onRefresh, theme }) {
   const [alerts, setAlerts] = useState([]);
@@ -544,11 +575,12 @@ function ReportsTab({ user, refreshing, onRefresh, theme }) {
 }
 
 // ======================== PRODUCTS TAB ========================
-function ProductsTab({ user, refreshing, onRefresh, theme }) {
+function ProductsTab({ user, refreshing, onRefresh, theme, onGoBack }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [brandFilter, setBrandFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -654,11 +686,17 @@ function ProductsTab({ user, refreshing, onRefresh, theme }) {
   };
 
   const categories = ['all', ...new Set(products.map(p => p.category).filter(Boolean))];
+  const brands = ['all', ...new Set(products.map(p => p.brand).filter(Boolean))];
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = searchQuery === '' || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!p) return false;
+    const name = (p.name || '').toLowerCase();
+    const sku = (p.sku || '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = searchQuery === '' || name.includes(query) || sku.includes(query);
     const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesBrand = brandFilter === 'all' || p.brand === brandFilter;
+    return matchesSearch && matchesCategory && matchesBrand;
   });
 
   const pickProductImage = async () => {
@@ -885,6 +923,30 @@ function ProductsTab({ user, refreshing, onRefresh, theme }) {
         ))}
       </ScrollView>
 
+      {/* Brand Filter */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={{ paddingHorizontal: 4 }}>
+        {brands.map((br) => (
+          <TouchableOpacity
+            key={br}
+            style={[
+              styles.filterChip,
+              { backgroundColor: theme.surfaceVariant },
+              brandFilter === br && { backgroundColor: theme.primary },
+            ]}
+            onPress={() => setBrandFilter(br)}
+            activeOpacity={0.7}
+          >
+            <Text style={[
+              styles.filterChipText,
+              { color: theme.textSecondary },
+              brandFilter === br && { color: '#fff' },
+            ]}>
+              {br === 'all' ? 'All Brands' : br}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       <Text style={[styles.resultCount, { color: theme.textTertiary }]}>{filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found</Text>
 
       {/* Product List */}
@@ -903,7 +965,7 @@ function ProductsTab({ user, refreshing, onRefresh, theme }) {
             <View style={[styles.productAccentBar, { backgroundColor: getStockStatusColor(item.status) }]} />
             <View style={styles.productLeft}>
               <View style={[styles.productThumb, { backgroundColor: getStockStatusBg(item.status) }]}>
-                <Text style={[styles.productThumbText, { color: theme.text }]}>{item.name.charAt(0)}</Text>
+                <Text style={[styles.productThumbText, { color: theme.text }]}>{(item.name || '?').charAt(0)}</Text>
               </View>
             </View>
             <View style={styles.productInfo}>
@@ -1347,7 +1409,9 @@ export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
   if (currentScreen === 'products') {
     return (
       <SubScreenWrapper title="Products" onGoBack={() => setCurrentScreen('home')} user={user} theme={theme}>
-        <ProductsTab user={user} refreshing={refreshing} onRefresh={onRefresh} theme={theme} />
+        <ScreenErrorBoundary>
+          <ProductsTab user={user} refreshing={refreshing} onRefresh={onRefresh} theme={theme} onGoBack={() => setCurrentScreen('home')} />
+        </ScreenErrorBoundary>
       </SubScreenWrapper>
     );
   }
