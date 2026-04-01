@@ -31,6 +31,7 @@ import OrderDashboardScreen from './src/screens/OrderDashboardScreen';
 import DeliveryDashboardScreen from './src/screens/DeliveryDashboardScreen';
 import DeliveryListScreen from './src/screens/DeliveryListScreen';
 import OrderListScreen from './src/screens/OrderListScreen';
+import ShopListScreen from './src/screens/ShopListScreen';
 
 const SESSION_KEY = 'user_session';
 
@@ -199,6 +200,7 @@ function AppContent() {
         onGoToProfile={() => setScreen('profile')}
         onGoToInventory={() => setScreen('inventory')}
         onGoToOrderList={() => setScreen('orderList')}
+        onGoToShopList={() => setScreen('shopList')}
       />
     );
   }
@@ -206,6 +208,15 @@ function AppContent() {
   if (screen === 'orderList') {
     return (
       <OrderListScreen
+        user={user}
+        onGoBack={() => setScreen('orderDashboard')}
+      />
+    );
+  }
+
+  if (screen === 'shopList') {
+    return (
+      <ShopListScreen
         user={user}
         onGoBack={() => setScreen('orderDashboard')}
       />

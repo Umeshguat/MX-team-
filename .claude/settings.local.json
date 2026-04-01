@@ -29,7 +29,8 @@
       "Bash(curl -sL -o Poppins-Medium.ttf \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Medium.ttf\")",
       "Bash(curl -sL -o Poppins-SemiBold.ttf \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-SemiBold.ttf\")",
       "Bash(curl -sL -o Poppins-Bold.ttf \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Bold.ttf\")",
-      "Bash(curl -sL -o Poppins-ExtraBold.ttf \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-ExtraBold.ttf\")"
+      "Bash(curl -sL -o Poppins-ExtraBold.ttf \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-ExtraBold.ttf\")",
+      "Read(//e/project_after_1_/ dec_2025/salesmens/**)"
     ]
   }
 }
