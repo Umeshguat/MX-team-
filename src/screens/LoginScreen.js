@@ -48,10 +48,11 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
       clearTimeout(timeoutId);
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.status === 200) {
+        const userData = data.data;
         var role = 'employee';
-        if (data.role_name) {
-          var rn = data.role_name.toLowerCase();
+        if (userData.role_name) {
+          var rn = userData.role_name.toLowerCase();
           if (rn === 'admin') role = 'admin';
           else if (rn === 'warehouse') role = 'Warehouse';
           else if (rn === 'sales') role = 'Sales';
@@ -59,16 +60,21 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
           else role = 'employee';
         }
         onLoginSuccess({
-          _id: data._id,
-          email: data.email || email.trim(),
-          fullName: data.full_name || email.trim().split('@')[0],
+          _id: userData._id,
+          email: userData.email || email.trim(),
+          fullName: userData.full_name || email.trim().split('@')[0],
           role: role,
-          role_name: data.role_name || '',
-          designation: data.designation_name || '',
-          headquarter: data.headquarter_name || '',
-          phone: data.phone_number || '',
-          profile_image: data.profile_image || '',
-          token: data.token,
+          role_id: userData.role_id || '',
+          role_name: userData.role_name || '',
+          designation: userData.designation_name || '',
+          designation_id: userData.designation_id || '',
+          headquarter: userData.headquarter_name || '',
+          phone: userData.phone_number || '',
+          profile_image: userData.profile_image || '',
+          distributor_id: userData.distributor_id || '',
+          distributor_name: userData.distributor_name || '',
+          distributor_mobile: userData.distributor_mobile || '',
+          token: userData.token,
         });
       } else {
         Alert.alert('Login Failed', data.message || 'Invalid email or password');

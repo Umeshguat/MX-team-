@@ -65,39 +65,28 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState([]);
-  const [distributorName, setDistributorName] = useState('');
-  const [distributorMobile, setDistributorMobile] = useState('');
+  const [distributorName, setDistributorName] = useState(user?.distributor_name || '');
+  const [distributorMobile, setDistributorMobile] = useState(user?.distributor_mobile || '');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [discount, setDiscount] = useState('');
-  const [paymentMode, setPaymentMode] = useState('cash');
-  const [dueDate, setDueDate] = useState('');
+  const [shopName, setShopName] = useState('');
+  const [shopMobile, setShopMobile] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryCity, setDeliveryCity] = useState('');
   const [deliveryState, setDeliveryState] = useState('');
   const [deliveryPincode, setDeliveryPincode] = useState('');
 
-  const paymentModes = [
-    { label: 'Cash', value: 'cash', emoji: '💵' },
-    { label: 'UPI', value: 'upi', emoji: '📱' },
-    { label: 'Bank Transfer', value: 'bank_transfer', emoji: '🏦' },
-    { label: 'Cheque', value: 'cheque', emoji: '📝' },
-    { label: 'Credit', value: 'credit', emoji: '💳' },
-    { label: 'MarginX Bharat', value: 'marginx_bharat', emoji: '🇮🇳' },
-  ];
-
   useEffect(() => {
     if (visible) {
       fetchProducts();
       setSelectedProducts([]);
-      setDistributorName('');
-      setDistributorMobile('');
+      setDistributorName(user?.distributor_name || '');
+      setDistributorMobile(user?.distributor_mobile || '');
       setNotes('');
       setSearchQuery('');
-      setDiscount('');
-      setPaymentMode('cash');
-      setDueDate('');
+      setShopName('');
+      setShopMobile('');
       setDeliveryAddress('');
       setDeliveryCity('');
       setDeliveryState('');
@@ -161,6 +150,14 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
       Alert.alert('Error', 'Please enter distributor/supplier mobile number');
       return;
     }
+    if (!shopName.trim()) {
+      Alert.alert('Error', 'Please enter shop name');
+      return;
+    }
+    if (!shopMobile.trim()) {
+      Alert.alert('Error', 'Please enter shop mobile number');
+      return;
+    }
     if (selectedProducts.length === 0) {
       Alert.alert('Error', 'Please select at least one product');
       return;
@@ -186,14 +183,10 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
         vendor_mobile: distributorMobile.trim(),
         vendor_address: null,
         items: orderItems,
-        discount: parseFloat(discount) || 0,
-        payment_mode: paymentMode,
+        shop_name: shopName.trim(),
+        shop_mobile: shopMobile.trim(),
         note: notes.trim(),
       };
-
-      if (paymentMode === 'credit' && dueDate.trim()) {
-        orderPayload.due_date = dueDate.trim();
-      }
 
       if (deliveryAddress.trim() || deliveryCity.trim() || deliveryState.trim() || deliveryPincode.trim()) {
         orderPayload.delivery_address = {
@@ -237,8 +230,7 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
     : products;
 
   const subtotal = selectedProducts.reduce((sum, p) => sum + ((p.selling_price || 0) * parseInt(p.orderQty || 0)), 0);
-  const discountVal = parseFloat(discount) || 0;
-  const grandTotal = subtotal - discountVal;
+  const grandTotal = subtotal;
   const scrollViewRef = useRef(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -284,8 +276,8 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
           <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? 40 : 20 }} keyboardShouldPersistTaps="handled">
             {/* Distributor / Supplier Details */}
             <SectionHeader title="Distributor / Supplier Details" color={theme.info} theme={theme} />
-            <ModalInput emoji="🏢" placeholder="Distributor / Supplier Name *" value={distributorName} onChangeText={setDistributorName} theme={theme} />
-            <ModalInput emoji="📞" placeholder="Mobile Number *" value={distributorMobile} onChangeText={setDistributorMobile} theme={theme} keyboardType="phone-pad" maxLength={10} />
+            <ModalInput emoji="🏢" placeholder="Distributor / Supplier Name *" value={distributorName} onChangeText={setDistributorName} theme={theme} editable={!user?.distributor_name} />
+            <ModalInput emoji="📞" placeholder="Mobile Number *" value={distributorMobile} onChangeText={setDistributorMobile} theme={theme} keyboardType="phone-pad" maxLength={10} editable={!user?.distributor_mobile} />
 
             {/* Product Selection */}
             <SectionHeader title="Select Products" color={theme.secondary} theme={theme} />
@@ -443,57 +435,10 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
               </View>
             )}
 
-            {/* Discount & Tax */}
-            <SectionHeader title="Discount" color={theme.success} theme={theme} />
-            <ModalInput emoji="🏷️" placeholder="Discount (Rs.)" value={discount} onChangeText={setDiscount} theme={theme} keyboardType="numeric" />
-
-            {/* Payment Mode */}
-            <SectionHeader title="Payment Mode" color={theme.warning} theme={theme} />
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-              {paymentModes.map((mode) => (
-                <TouchableOpacity
-                  key={mode.value}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 9,
-                    borderRadius: 20,
-                    backgroundColor: paymentMode === mode.value ? theme.primary : theme.surfaceVariant,
-                    borderWidth: 1,
-                    borderColor: paymentMode === mode.value ? theme.primary : theme.divider,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                  }}
-                  onPress={() => {
-                    setPaymentMode(mode.value);
-                    if (mode.value === 'credit') {
-                      const d = new Date();
-                      d.setDate(d.getDate() + 5);
-                      const yyyy = d.getFullYear();
-                      const mm = String(d.getMonth() + 1).padStart(2, '0');
-                      const dd = String(d.getDate()).padStart(2, '0');
-                      setDueDate(`${yyyy}-${mm}-${dd}`);
-                    } else {
-                      setDueDate('');
-                    }
-                  }}
-                >
-                  <Text style={{ fontSize: 14, marginRight: 5 }}>{mode.emoji}</Text>
-                  <Text style={{
-                    fontSize: 13,
-                    fontWeight: '600',
-                    color: paymentMode === mode.value ? theme.buttonText : theme.textSecondary,
-                  }}>{mode.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Due Date (only for credit) */}
-            {paymentMode === 'credit' && (
-              <>
-                <SectionHeader title="Due Date" color={theme.primary} theme={theme} />
-                <ModalInput emoji="📅" placeholder="YYYY-MM-DD" value={dueDate} onChangeText={setDueDate} theme={theme} />
-              </>
-            )}
+            {/* Shop Details */}
+            <SectionHeader title="Shop Details" color={theme.success} theme={theme} />
+            <ModalInput emoji="🏪" placeholder="Shop Name *" value={shopName} onChangeText={setShopName} theme={theme} />
+            <ModalInput emoji="📞" placeholder="Shop Mobile *" value={shopMobile} onChangeText={setShopMobile} theme={theme} keyboardType="phone-pad" maxLength={10} />
 
             {/* Delivery Address */}
             <SectionHeader title="Delivery Address" color={theme.info} theme={theme} />
