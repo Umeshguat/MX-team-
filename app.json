@@ -47,7 +47,8 @@
           "locationAlwaysAndWhenInUsePermission": "The app needs your location to stamp GPS info on photos.",
           "locationWhenInUsePermission": "The app needs your location to stamp GPS info on photos."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

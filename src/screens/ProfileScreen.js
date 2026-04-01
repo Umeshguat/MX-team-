@@ -9,10 +9,11 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons, Ionicons, Feather, MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function ProfileScreen({ user, onGoBack, onLogout }) {
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme, isDark, toggleTheme, fonts } = useTheme();
 
   const fullName = user && user.fullName ? user.fullName : 'Employee';
   const email = user && user.email ? user.email : '--';
@@ -43,7 +44,7 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
             onPress={onGoBack}
             activeOpacity={0.7}
           >
-            <Text style={styles.navBtnText}>{'\u2039'}</Text>
+            <Ionicons name="chevron-back" size={24} color="#fff" />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>My Profile</Text>
@@ -77,7 +78,9 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
 
         <View style={[styles.infoCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoEmoji}>{'\uD83D\uDC64'}</Text>
+            <View style={styles.infoIconWrap}>
+              <Ionicons name="person" size={20} color={theme.primary} />
+            </View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>FULL NAME</Text>
               <Text style={[styles.infoValue, { color: theme.text }]}>{fullName}</Text>
@@ -87,7 +90,9 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
           <View style={[styles.divider, { backgroundColor: theme.divider }]} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoEmoji}>{'\u2709\uFE0F'}</Text>
+            <View style={styles.infoIconWrap}>
+              <MaterialCommunityIcons name="email-outline" size={20} color={theme.primary} />
+            </View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>EMAIL</Text>
               <Text style={[styles.infoValue, { color: theme.text }]}>{email}</Text>
@@ -97,7 +102,9 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
           <View style={[styles.divider, { backgroundColor: theme.divider }]} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoEmoji}>{'\uD83D\uDCF1'}</Text>
+            <View style={styles.infoIconWrap}>
+              <Feather name="phone" size={20} color={theme.primary} />
+            </View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>PHONE</Text>
               <Text style={[styles.infoValue, { color: theme.text }]}>{phone}</Text>
@@ -113,7 +120,9 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
 
         <View style={[styles.infoCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoEmoji}>{'\uD83D\uDCBC'}</Text>
+            <View style={styles.infoIconWrap}>
+              <MaterialCommunityIcons name="briefcase-outline" size={20} color={theme.secondary} />
+            </View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>DESIGNATION</Text>
               <Text style={[styles.infoValue, { color: theme.text }]}>{designation}</Text>
@@ -123,7 +132,9 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
           <View style={[styles.divider, { backgroundColor: theme.divider }]} />
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoEmoji}>{'\uD83C\uDFE2'}</Text>
+            <View style={styles.infoIconWrap}>
+              <MaterialCommunityIcons name="office-building" size={20} color={theme.secondary} />
+            </View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>HEADQUARTER</Text>
               <Text style={[styles.infoValue, { color: theme.text }]}>{headquarter}</Text>
@@ -139,7 +150,9 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
 
         <View style={[styles.infoCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoEmoji}>{'\uD83C\uDFA8'}</Text>
+            <View style={styles.infoIconWrap}>
+              <Ionicons name="color-palette-outline" size={20} color={theme.accent} />
+            </View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoLabel, { color: theme.textTertiary }]}>THEME</Text>
               <Text style={[styles.infoValue, { color: theme.text }]}>{isDark ? 'Dark Mode' : 'Light Mode'}</Text>
@@ -149,7 +162,11 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
               onPress={toggleTheme}
               activeOpacity={0.7}
             >
-              <Text style={styles.themeToggleIcon}>{isDark ? '\u2600\uFE0F' : '\uD83C\uDF19'}</Text>
+              {isDark ? (
+                <Ionicons name="sunny" size={20} color="#F59E0B" />
+              ) : (
+                <Ionicons name="moon" size={20} color={theme.primary} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -219,7 +236,7 @@ var styles = StyleSheet.create({
   navBtnText: {
     color: '#FFFFFF',
     fontSize: 24,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     marginTop: -2,
   },
   navBtnPlaceholder: {
@@ -228,7 +245,7 @@ var styles = StyleSheet.create({
   headerTitle: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     letterSpacing: 0.3,
   },
 
@@ -272,16 +289,16 @@ var styles = StyleSheet.create({
   avatarLetter: {
     color: '#FFFFFF',
     fontSize: 40,
-    fontWeight: '900',
+    fontFamily: 'Poppins-Black',
   },
   profileName: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     marginBottom: 4,
   },
   profileRole: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
 
   /* ── Section Header ── */
@@ -299,7 +316,7 @@ var styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.2,
   },
 
@@ -325,19 +342,25 @@ var styles = StyleSheet.create({
     width: 28,
     textAlign: 'center',
   },
+  infoIconWrap: {
+    width: 28,
+    marginRight: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   infoContent: {
     flex: 1,
   },
   infoLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginBottom: 3,
   },
   infoValue: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
   divider: {
     height: 1,
@@ -367,7 +390,7 @@ var styles = StyleSheet.create({
   logoutBtnText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     letterSpacing: 1,
   },
 

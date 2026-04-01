@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { BASE_URL } from '../config';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 
 var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -51,15 +52,15 @@ function getStatusLabel(status) {
   }
 }
 
-function getStatusEmoji(status) {
+function getStatusIconName(status) {
   switch (status) {
-    case 'checked in': return '✅';
-    case 'checked out': return '🔵';
-    case 'present': return '✅';
-    case 'absent': return '❌';
-    case 'half-day': return '🟡';
-    case 'leave': return '🏖️';
-    default: return '⏳';
+    case 'checked in': return { name: 'checkmark-circle', color: '#4CAF50' };
+    case 'checked out': return { name: 'ellipse', color: '#2196F3' };
+    case 'present': return { name: 'checkmark-circle', color: '#4CAF50' };
+    case 'absent': return { name: 'close-circle', color: '#F44336' };
+    case 'half-day': return { name: 'ellipse', color: '#FFC107' };
+    case 'leave': return { name: 'umbrella', color: '#2196F3' };
+    default: return { name: 'time-outline', color: '#9E9E9E' };
   }
 }
 
@@ -170,9 +171,12 @@ export default function AdminAttendanceListScreen({ user, onGoBack }) {
               ) : null}
             </View>
             <View style={[styles.statusChip, { backgroundColor: getStatusBg(empStatus, theme) }]}>
-              <Text style={[styles.statusChipText, { color: statusColor }]}>
-                {getStatusEmoji(empStatus)} {getStatusLabel(empStatus)}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name={getStatusIconName(empStatus).name} size={12} color={statusColor} style={{ marginRight: 4 }} />
+                <Text style={[styles.statusChipText, { color: statusColor }]}>
+                  {getStatusLabel(empStatus)}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -202,16 +206,25 @@ export default function AdminAttendanceListScreen({ user, onGoBack }) {
           {/* Location row */}
           {locationStr ? (
             <View style={styles.locationRow}>
-              <Text style={[styles.locationText, { color: theme.textTertiary }]}>
-                📍 {locationStr}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Ionicons name="location-sharp" size={13} color={theme.textTertiary} style={{ marginRight: 4 }} />
+                <Text style={[styles.locationText, { color: theme.textTertiary }]}>
+                  {locationStr}
+                </Text>
+              </View>
               {emp.hours ? (
-                <Text style={[styles.hoursText, { color: theme.textSecondary }]}>⏱ {emp.hours}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}>
+                  <Ionicons name="time-outline" size={13} color={theme.textSecondary} style={{ marginRight: 3 }} />
+                  <Text style={[styles.hoursText, { color: theme.textSecondary }]}>{emp.hours}</Text>
+                </View>
               ) : null}
             </View>
           ) : emp.hours ? (
             <View style={styles.locationRow}>
-              <Text style={[styles.hoursText, { color: theme.textSecondary }]}>⏱ {emp.hours}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="time-outline" size={13} color={theme.textSecondary} style={{ marginRight: 3 }} />
+                <Text style={[styles.hoursText, { color: theme.textSecondary }]}>{emp.hours}</Text>
+              </View>
             </View>
           ) : null}
         </View>
@@ -251,7 +264,7 @@ export default function AdminAttendanceListScreen({ user, onGoBack }) {
         {/* Nav Row */}
         <View style={styles.navRow}>
           <TouchableOpacity style={styles.backBtn} onPress={onGoBack} activeOpacity={0.7}>
-            <Text style={styles.backArrow}>‹</Text>
+            <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Attendance</Text>
           <View style={{ width: 38 }} />
@@ -262,21 +275,21 @@ export default function AdminAttendanceListScreen({ user, onGoBack }) {
       <View style={styles.statsContainer}>
         <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
           <View style={[styles.statIconBox, { backgroundColor: theme.primary + '1A' }]}>
-            <Text style={styles.statEmoji}>👥</Text>
+            <Ionicons name="people" size={18} color={theme.primary} />
           </View>
           <Text style={[styles.statNumber, { color: theme.text }]}>{totalRecords}</Text>
           <Text style={[styles.statLabel, { color: theme.textTertiary }]}>TOTAL</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
           <View style={[styles.statIconBox, { backgroundColor: theme.successBg }]}>
-            <Text style={styles.statEmoji}>✅</Text>
+            <Ionicons name="checkmark-circle" size={18} color={theme.success} />
           </View>
           <Text style={[styles.statNumber, { color: theme.success }]}>{checkedInCount}</Text>
           <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECKED IN</Text>
         </View>
         <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
           <View style={[styles.statIconBox, { backgroundColor: theme.infoBg }]}>
-            <Text style={styles.statEmoji}>🔵</Text>
+            <Ionicons name="ellipse" size={18} color={theme.info} />
           </View>
           <Text style={[styles.statNumber, { color: theme.info }]}>{checkedOutCount}</Text>
           <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECKED OUT</Text>
@@ -307,7 +320,7 @@ export default function AdminAttendanceListScreen({ user, onGoBack }) {
           ListEmptyComponent={
             <View style={[styles.emptyCard, { backgroundColor: theme.surface }]}>
               <View style={[styles.emptyIconBox, { backgroundColor: theme.primary + '1A' }]}>
-                <Text style={styles.emptyIcon}>📋</Text>
+                <Ionicons name="clipboard-outline" size={28} color={theme.primary} />
               </View>
               <Text style={[styles.emptyTitle, { color: theme.text }]}>No Records Found</Text>
               <Text style={[styles.emptySubtitle, { color: theme.textTertiary }]}>
@@ -395,13 +408,13 @@ var styles = StyleSheet.create({
   backArrow: {
     color: '#FFFFFF',
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     marginTop: -2,
   },
   headerTitle: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     letterSpacing: 0.3,
   },
 
@@ -433,16 +446,16 @@ var styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  statEmoji: {
+  statIcon: {
     fontSize: 18,
   },
   statNumber: {
     fontSize: 20,
-    fontWeight: '900',
+    fontFamily: 'Poppins-Black',
   },
   statLabel: {
     fontSize: 9,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.8,
     marginTop: 3,
   },
@@ -461,7 +474,7 @@ var styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     letterSpacing: 0.2,
   },
 
@@ -505,7 +518,7 @@ var styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 17,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   nameBlock: {
     flex: 1,
@@ -514,10 +527,11 @@ var styles = StyleSheet.create({
   },
   empName: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   empEmail: {
     fontSize: 11,
+    fontFamily: 'Poppins-Regular',
     marginTop: 2,
   },
   statusChip: {
@@ -527,7 +541,7 @@ var styles = StyleSheet.create({
   },
   statusChipText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
 
   /* Time info row */
@@ -544,13 +558,13 @@ var styles = StyleSheet.create({
   },
   timeLabel: {
     fontSize: 8,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.6,
     marginBottom: 4,
   },
   timeValue: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   timeDivider: {
     width: 1,
@@ -568,13 +582,12 @@ var styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
     flex: 1,
   },
   hoursText: {
     fontSize: 11,
-    fontWeight: '600',
-    marginLeft: 8,
+    fontFamily: 'Poppins-SemiBold',
   },
 
   /* ── Loading ── */
@@ -598,7 +611,7 @@ var styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     marginTop: 16,
   },
 
@@ -624,15 +637,16 @@ var styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 28,
+    fontFamily: 'Poppins-Regular',
   },
   emptyTitle: {
     fontSize: 17,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
     textAlign: 'center',
     lineHeight: 19,
   },
@@ -646,7 +660,7 @@ var styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     marginLeft: 8,
   },
 
@@ -674,11 +688,11 @@ var styles = StyleSheet.create({
   pageNumberText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   paginationLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
   recordsBadge: {
     paddingHorizontal: 12,
@@ -687,6 +701,6 @@ var styles = StyleSheet.create({
   },
   recordsBadgeText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
 });

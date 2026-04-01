@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 
 var { width } = Dimensions.get('window');
@@ -32,7 +33,7 @@ function getStatusConfig(status, theme) {
 }
 
 export default function AttendanceScreen({ user, onGoBack }) {
-  var { theme, isDark } = useTheme();
+  var { theme, isDark, fonts } = useTheme();
   var [records, setRecords] = useState([]);
   var [loading, setLoading] = useState(true);
   var [refreshing, setRefreshing] = useState(false);
@@ -174,7 +175,7 @@ export default function AttendanceScreen({ user, onGoBack }) {
           {/* Location info */}
           {(item.headquarter_name || item.working_town || item.route) ? (
             <View style={[styles.locationRow, { backgroundColor: theme.surfaceVariant }]}>
-              <Text style={[styles.locationIcon]}>📍</Text>
+              <Ionicons name="location-sharp" size={11} color={theme.textSecondary} style={{ marginRight: 6 }} />
               <Text style={[styles.locationText, { color: theme.textSecondary }]} numberOfLines={1}>
                 {item.headquarter_name || ''}{item.working_town ? ' > ' + item.working_town : ''}{item.route ? ' > ' + item.route : ''}
               </Text>
@@ -202,7 +203,7 @@ export default function AttendanceScreen({ user, onGoBack }) {
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
             <View style={[styles.statIconBg, { backgroundColor: theme.successBg }]}>
-              <Text style={styles.statEmoji}>✅</Text>
+              <Ionicons name="checkmark-circle" size={16} color={theme.success} />
             </View>
             <Text style={[styles.statNumber, { color: theme.success }]}>{presentCount}</Text>
             <Text style={[styles.statLabel, { color: theme.textTertiary }]}>Present</Text>
@@ -210,7 +211,7 @@ export default function AttendanceScreen({ user, onGoBack }) {
 
           <View style={[styles.statCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
             <View style={[styles.statIconBg, { backgroundColor: theme.infoBg }]}>
-              <Text style={styles.statEmoji}>🔵</Text>
+              <Ionicons name="ellipse" size={16} color={theme.info} />
             </View>
             <Text style={[styles.statNumber, { color: theme.info }]}>{checkedOutCount}</Text>
             <Text style={[styles.statLabel, { color: theme.textTertiary }]}>Checked Out</Text>
@@ -218,7 +219,7 @@ export default function AttendanceScreen({ user, onGoBack }) {
 
           <View style={[styles.statCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
             <View style={[styles.statIconBg, { backgroundColor: isDark ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.1)' }]}>
-              <Text style={styles.statEmoji}>📊</Text>
+              <Ionicons name="bar-chart" size={16} color={theme.secondary} />
             </View>
             <Text style={[styles.statNumber, { color: theme.secondary }]}>{totalRecords}</Text>
             <Text style={[styles.statLabel, { color: theme.textTertiary }]}>Total Records</Text>
@@ -253,7 +254,7 @@ export default function AttendanceScreen({ user, onGoBack }) {
         {/* Nav Row */}
         <View style={styles.navRow}>
           <TouchableOpacity style={styles.backButton} onPress={onGoBack} activeOpacity={0.7}>
-            <Text style={styles.backArrow}>{'‹'}</Text>
+            <Ionicons name="chevron-back" size={24} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Attendance</Text>
@@ -297,7 +298,7 @@ export default function AttendanceScreen({ user, onGoBack }) {
           ListEmptyComponent={
             <View style={[styles.emptyContainer, { backgroundColor: theme.surface }]}>
               <View style={[styles.emptyIconBg, { backgroundColor: theme.surfaceVariant }]}>
-                <Text style={styles.emptyIconText}>📋</Text>
+                <Ionicons name="clipboard-outline" size={28} color={theme.textTertiary} />
               </View>
               <Text style={[styles.emptyTitle, { color: theme.text }]}>No Records Found</Text>
               <Text style={[styles.emptySubtitle, { color: theme.textTertiary }]}>Your attendance records will appear here</Text>
@@ -381,7 +382,7 @@ var styles = StyleSheet.create({
   backArrow: {
     color: '#fff',
     fontSize: 24,
-    fontWeight: '300',
+    fontFamily: 'Poppins-Regular',
     marginTop: -2,
   },
   headerCenter: {
@@ -391,7 +392,7 @@ var styles = StyleSheet.create({
   headerTitle: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.5,
   },
   headerRightPlaceholder: {
@@ -413,7 +414,7 @@ var styles = StyleSheet.create({
   avatarText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   userDetails: {
     flex: 1,
@@ -421,12 +422,12 @@ var styles = StyleSheet.create({
   userName: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   userRole: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
     marginTop: 2,
   },
 
@@ -450,7 +451,7 @@ var styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
 
   /* ===== LIST CONTENT ===== */
@@ -489,15 +490,16 @@ var styles = StyleSheet.create({
   },
   statEmoji: {
     fontSize: 16,
+    fontFamily: 'Poppins-Regular',
   },
   statNumber: {
     fontSize: 22,
-    fontWeight: '900',
+    fontFamily: 'Poppins-Black',
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 10,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -517,7 +519,7 @@ var styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.3,
   },
 
@@ -559,18 +561,18 @@ var styles = StyleSheet.create({
   },
   dateNum: {
     fontSize: 17,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   dateInfo: {
     justifyContent: 'center',
   },
   dayText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   monthText: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
   },
   statusChip: {
     flexDirection: 'row',
@@ -582,10 +584,11 @@ var styles = StyleSheet.create({
   statusIcon: {
     fontSize: 8,
     marginRight: 5,
+    fontFamily: 'Poppins-Regular',
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.3,
   },
   recordDivider: {
@@ -605,14 +608,14 @@ var styles = StyleSheet.create({
   },
   blockLabel: {
     fontSize: 9,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 3,
   },
   blockValue: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   timeDivider: {
     width: 1,
@@ -631,10 +634,11 @@ var styles = StyleSheet.create({
   locationIcon: {
     fontSize: 11,
     marginRight: 6,
+    fontFamily: 'Poppins-Regular',
   },
   locationText: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
     flex: 1,
   },
 
@@ -658,15 +662,16 @@ var styles = StyleSheet.create({
   },
   emptyIconText: {
     fontSize: 28,
+    fontFamily: 'Poppins-Regular',
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
   },
 
   /* ===== FOOTER ===== */
@@ -679,7 +684,7 @@ var styles = StyleSheet.create({
   footerText: {
     fontSize: 13,
     marginLeft: 8,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
   },
 
   /* ===== PAGINATION ===== */
@@ -704,11 +709,11 @@ var styles = StyleSheet.create({
   pageIndicatorText: {
     color: '#fff',
     fontSize: 13,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   paginationText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     marginRight: 12,
   },
   recordsBadge: {
@@ -718,6 +723,6 @@ var styles = StyleSheet.create({
   },
   recordsBadgeText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
 });

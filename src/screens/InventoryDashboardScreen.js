@@ -21,6 +21,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
+import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 
 // ======================== CALENDAR DATE PICKER ========================
 function CalendarPicker({ value, onSelect, onClose, theme }) {
@@ -90,8 +91,8 @@ function CalendarPicker({ value, onSelect, onClose, theme }) {
               <Text style={[
                 calStyles.cellText,
                 { color: theme.text },
-                isSelected && { color: '#fff', fontWeight: '700' },
-                isToday && !isSelected && { color: '#e65100', fontWeight: '700' },
+                isSelected && { color: '#fff', fontFamily: 'Poppins-Bold' },
+                isToday && !isSelected && { color: '#e65100', fontFamily: 'Poppins-Bold' },
               ]}>{day}</Text>
             </TouchableOpacity>
           );
@@ -105,13 +106,13 @@ const calStyles = StyleSheet.create({
   container: { borderRadius: 16, borderWidth: 1, marginTop: 4, marginBottom: 8, padding: 12, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   navBtn: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  navText: { fontSize: 16, fontWeight: '700' },
-  monthText: { fontSize: 15, fontWeight: '700' },
+  navText: { fontSize: 16, fontFamily: 'Poppins-Bold' },
+  monthText: { fontSize: 15, fontFamily: 'Poppins-Bold' },
   daysRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 6 },
-  dayLabel: { width: '14.28%', textAlign: 'center', fontSize: 12, fontWeight: '700' },
+  dayLabel: { width: '14.28%', textAlign: 'center', fontSize: 12, fontFamily: 'Poppins-Bold' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 22 },
-  cellText: { fontSize: 14 },
+  cellText: { fontSize: 14, fontFamily: 'Poppins-Regular' },
 });
 
 const screenWidth = Dimensions.get('window').width;
@@ -132,13 +133,13 @@ class ScreenErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#e53935', marginBottom: 8 }}>Something went wrong</Text>
-          <Text style={{ fontSize: 13, color: '#666', textAlign: 'center', marginBottom: 16 }}>{this.state.error?.message || 'Unknown error'}</Text>
+          <Text style={{ fontSize: 18, fontFamily: 'Poppins-Bold', color: '#e53935', marginBottom: 8 }}>Something went wrong</Text>
+          <Text style={{ fontSize: 13, fontFamily: 'Poppins-Regular', color: '#666', textAlign: 'center', marginBottom: 16 }}>{this.state.error?.message || 'Unknown error'}</Text>
           <TouchableOpacity
             style={{ backgroundColor: '#4A67FF', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
             onPress={() => this.setState({ hasError: false, error: null })}
           >
-            <Text style={{ color: '#fff', fontWeight: '700' }}>Retry</Text>
+            <Text style={{ color: '#fff', fontFamily: 'Poppins-Bold' }}>Retry</Text>
           </TouchableOpacity>
         </View>
       );
@@ -224,10 +225,10 @@ function AlertsTab({ user, refreshing, onRefresh, theme }) {
 
   const getAlertIcon = (type) => {
     switch (type) {
-      case 'low_stock': return '📉';
-      case 'expiring': return '⏰';
-      case 'out_of_stock': return '🚫';
-      default: return '⚠';
+      case 'low_stock': return <MaterialCommunityIcons name="trending-down" size={20} />;
+      case 'expiring': return <Ionicons name="alarm" size={20} />;
+      case 'out_of_stock': return <MaterialCommunityIcons name="cancel" size={20} />;
+      default: return <Ionicons name="warning" size={20} />;
     }
   };
 
@@ -293,7 +294,7 @@ function AlertsTab({ user, refreshing, onRefresh, theme }) {
         <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
           <View style={[styles.summaryAccent, { backgroundColor: theme.error || theme.primary }]} />
           <View style={[styles.summaryIconWrap, { backgroundColor: theme.errorBg }]}>
-            <Text style={{ fontSize: 18 }}>🚫</Text>
+            <MaterialCommunityIcons name="cancel" size={18} color={theme.error || theme.primary} />
           </View>
           <Text style={[styles.summaryCount, { color: theme.error || theme.primary }]}>{outOfStockCount}</Text>
           <Text style={[styles.summaryLabel, { color: theme.textTertiary }]}>OUT OF STOCK</Text>
@@ -301,7 +302,7 @@ function AlertsTab({ user, refreshing, onRefresh, theme }) {
         <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
           <View style={[styles.summaryAccent, { backgroundColor: theme.warning }]} />
           <View style={[styles.summaryIconWrap, { backgroundColor: theme.warningBg }]}>
-            <Text style={{ fontSize: 18 }}>📉</Text>
+            <MaterialCommunityIcons name="trending-down" size={18} color={theme.warning} />
           </View>
           <Text style={[styles.summaryCount, { color: theme.warning }]}>{lowStockCount}</Text>
           <Text style={[styles.summaryLabel, { color: theme.textTertiary }]}>LOW STOCK</Text>
@@ -309,7 +310,7 @@ function AlertsTab({ user, refreshing, onRefresh, theme }) {
         <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
           <View style={[styles.summaryAccent, { backgroundColor: theme.info }]} />
           <View style={[styles.summaryIconWrap, { backgroundColor: theme.infoBg }]}>
-            <Text style={{ fontSize: 18 }}>⏰</Text>
+            <Ionicons name="alarm" size={18} color={theme.info} />
           </View>
           <Text style={[styles.summaryCount, { color: theme.info }]}>{expiringCount}</Text>
           <Text style={[styles.summaryLabel, { color: theme.textTertiary }]}>EXPIRING</Text>
@@ -342,7 +343,7 @@ function AlertsTab({ user, refreshing, onRefresh, theme }) {
       {filteredAlerts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={[styles.emptyIconWrap, { backgroundColor: theme.successBg }]}>
-            <Text style={{ fontSize: 28 }}>✅</Text>
+            <Ionicons name="checkmark-circle" size={28} color={theme.success} />
           </View>
           <Text style={[styles.emptyText, { color: theme.text }]}>No alerts found</Text>
           <Text style={[styles.emptySubText, { color: theme.textTertiary }]}>All inventory levels are healthy</Text>
@@ -352,7 +353,7 @@ function AlertsTab({ user, refreshing, onRefresh, theme }) {
           <View key={item.id} style={[styles.alertCard, { backgroundColor: theme.surface }]}>
             <View style={[styles.alertAccentBar, { backgroundColor: getAlertColor(item.severity) }]} />
             <View style={[styles.alertIconWrap, { backgroundColor: getAlertBg(item.severity) }]}>
-              <Text style={styles.alertIconText}>{getAlertIcon(item.type)}</Text>
+              <View style={styles.alertIconText}>{getAlertIcon(item.type)}</View>
             </View>
             <View style={styles.alertInfo}>
               <Text style={[styles.alertProduct, { color: theme.text }]} numberOfLines={1}>{item.product}</Text>

@@ -2,8 +2,18 @@ import { useState, useEffect } from 'react';
 import { ActivityIndicator, View, LogBox } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import * as Font from 'expo-font';
 
 LogBox.ignoreLogs(['ExpoKeepAwake']);
+
+const FONTS = {
+  'Poppins-Regular': require('./assets/fonts/Poppins-Regular.ttf'),
+  'Poppins-Medium': require('./assets/fonts/Poppins-Medium.ttf'),
+  'Poppins-SemiBold': require('./assets/fonts/Poppins-SemiBold.ttf'),
+  'Poppins-Bold': require('./assets/fonts/Poppins-Bold.ttf'),
+  'Poppins-ExtraBold': require('./assets/fonts/Poppins-ExtraBold.ttf'),
+  'Poppins-Black': require('./assets/fonts/Poppins-Black.ttf'),
+};
 import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
@@ -251,6 +261,22 @@ function AppContent() {
 }
 
 export default function App() {
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  useEffect(() => {
+    Font.loadAsync(FONTS)
+      .then(() => setFontsLoaded(true))
+      .catch(() => setFontsLoaded(true));
+  }, []);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
     <ThemeProvider>
       <AppContent />

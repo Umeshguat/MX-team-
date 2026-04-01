@@ -16,6 +16,7 @@ import { WebView } from 'react-native-webview';
 import { BASE_URL } from '../config';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 
 function getStatusLabel(status) {
   switch (status) {
@@ -370,7 +371,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
 
         <View style={styles.navRow}>
           <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
-            <Text style={styles.backArrow}>{'\u2039'}</Text>
+            <Ionicons name="chevron-back" size={22} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>All Employees</Text>
           <View style={styles.navSpacer} />
@@ -380,21 +381,21 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
             <View style={[styles.statEmojiWrap, { backgroundColor: theme.primary + '1A' }]}>
-              <Text style={styles.statEmoji}>{'👥'}</Text>
+              <Ionicons name="people" size={18} color={theme.primary} />
             </View>
             <Text style={[styles.statNumber, { color: theme.text }]}>{totalRecords}</Text>
             <Text style={[styles.statLabel, { color: theme.textTertiary }]}>TOTAL</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
             <View style={[styles.statEmojiWrap, { backgroundColor: theme.success + '1A' }]}>
-              <Text style={styles.statEmoji}>{'✅'}</Text>
+              <Ionicons name="checkmark-circle" size={18} color={theme.success} />
             </View>
             <Text style={[styles.statNumber, { color: theme.success }]}>{checkedInCount}</Text>
             <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECKED IN</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
             <View style={[styles.statEmojiWrap, { backgroundColor: theme.info + '1A' }]}>
-              <Text style={styles.statEmoji}>{'🚪'}</Text>
+              <MaterialCommunityIcons name="door-open" size={18} color={theme.info} />
             </View>
             <Text style={[styles.statNumber, { color: theme.info }]}>{checkedOutCount}</Text>
             <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECKED OUT</Text>
@@ -424,7 +425,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <View style={[styles.emptyIconWrap, { backgroundColor: theme.primary + '1A' }]}>
-                <Text style={styles.emptyIcon}>{'👤'}</Text>
+                <Ionicons name="person-outline" size={30} color={theme.primary} />
               </View>
               <Text style={[styles.emptyTitle, { color: theme.text }]}>No Employees Found</Text>
               <Text style={[styles.emptySubtitle, { color: theme.textTertiary }]}>There are no employee records to display</Text>
@@ -451,7 +452,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: theme.primary }]}>Employee Details</Text>
                 <TouchableOpacity style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceVariant }]} onPress={function() { setShowEmployeeModal(false); }}>
-                  <Text style={[styles.modalCloseText, { color: theme.textTertiary }]}>{'\u2715'}</Text>
+                  <Ionicons name="close" size={16} color={theme.textTertiary} />
                 </TouchableOpacity>
               </View>
 
@@ -479,7 +480,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
                   {/* Detail Rows */}
                   <View style={[styles.modalDetailRow, { borderBottomColor: theme.divider }]}>
                     <View style={[styles.modalDetailIconWrap, { backgroundColor: theme.primary + '1A' }]}>
-                      <Text style={styles.modalDetailIcon}>{'🏢'}</Text>
+                      <MaterialCommunityIcons name="office-building" size={20} color={theme.primary} />
                     </View>
                     <View style={styles.modalDetailTextWrap}>
                       <Text style={[styles.modalDetailLabel, { color: theme.textTertiary }]}>Headquarter</Text>
@@ -489,7 +490,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
 
                   <View style={[styles.modalDetailRow, { borderBottomColor: theme.divider }]}>
                     <View style={[styles.modalDetailIconWrap, { backgroundColor: theme.info + '1A' }]}>
-                      <Text style={styles.modalDetailIcon}>{'📱'}</Text>
+                      <Feather name="phone" size={20} color={theme.info} />
                     </View>
                     <View style={styles.modalDetailTextWrap}>
                       <Text style={[styles.modalDetailLabel, { color: theme.textTertiary }]}>Phone</Text>
@@ -499,7 +500,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
 
                   <View style={[styles.modalDetailRow, { borderBottomColor: theme.divider }]}>
                     <View style={[styles.modalDetailIconWrap, { backgroundColor: theme.warning + '1A' }]}>
-                      <Text style={styles.modalDetailIcon}>{'⏰'}</Text>
+                      <MaterialCommunityIcons name="clock-outline" size={20} color={theme.warning} />
                     </View>
                     <View style={styles.modalDetailTextWrap}>
                       <Text style={[styles.modalDetailLabel, { color: theme.textTertiary }]}>Check In Time</Text>
@@ -511,7 +512,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
                   <View style={styles.modalStatsRow}>
                     <TouchableOpacity style={[styles.modalStatCard, { backgroundColor: theme.successBg }]} onPress={openEmpVendorMap} activeOpacity={0.7}>
                       <View style={[styles.modalStatEmojiWrap, { backgroundColor: theme.success + '1A' }]}>
-                        <Text style={styles.modalStatEmoji}>{'🏪'}</Text>
+                        <MaterialCommunityIcons name="store" size={18} color={theme.success} />
                       </View>
                       <Text style={[styles.modalStatValue, { color: theme.success }]}>{selectedEmployee.vendor_visits != null ? selectedEmployee.vendor_visits : (selectedEmployee.vendors || 0)}</Text>
                       <Text style={[styles.modalStatLabel, { color: theme.textSecondary }]}>VENDOR VISITS</Text>
@@ -519,7 +520,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
                     </TouchableOpacity>
                     <View style={[styles.modalStatCard, { backgroundColor: theme.surfaceVariant }]}>
                       <View style={[styles.modalStatEmojiWrap, { backgroundColor: theme.secondary + '1A' }]}>
-                        <Text style={styles.modalStatEmoji}>{'💰'}</Text>
+                        <MaterialCommunityIcons name="cash" size={18} color={theme.secondary} />
                       </View>
                       <Text style={[styles.modalStatValue, { color: theme.secondary }]}>
                         {'\u20B9'}{selectedEmployee.total_allowance != null ? selectedEmployee.total_allowance : (selectedEmployee.allowance || selectedEmployee.daily_allowance || 0)}
@@ -545,7 +546,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
 
             <View style={styles.navRow}>
               <TouchableOpacity style={styles.backBtn} onPress={function() { setShowEmpVendorMap(false); }}>
-                <Text style={styles.backArrow}>{'\u2039'}</Text>
+                <Ionicons name="chevron-back" size={22} color="#fff" />
               </TouchableOpacity>
               <Text style={styles.headerTitle}>Vendor Map</Text>
               <View style={styles.navSpacer} />
@@ -556,14 +557,14 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
             <View style={styles.statsRow}>
               <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
                 <View style={[styles.statEmojiWrap, { backgroundColor: theme.primary + '1A' }]}>
-                  <Text style={styles.statEmoji}>{'📍'}</Text>
+                  <Ionicons name="location" size={18} color={theme.primary} />
                 </View>
                 <Text style={[styles.statNumber, { color: theme.text }]}>{empVendorVisits.length}</Text>
                 <Text style={[styles.statLabel, { color: theme.textTertiary }]}>TOTAL</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
                 <View style={[styles.statEmojiWrap, { backgroundColor: theme.success + '1A' }]}>
-                  <Text style={styles.statEmoji}>{'✅'}</Text>
+                  <Ionicons name="checkmark-circle" size={18} color={theme.success} />
                 </View>
                 <Text style={[styles.statNumber, { color: theme.success }]}>
                   {empVendorVisits.filter(function(v) { return v.on_board === true || v.on_board === 'true' || v.is_onboarded === true || v.is_onboarded === 'true'; }).length}
@@ -572,7 +573,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
               </View>
               <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
                 <View style={[styles.statEmojiWrap, { backgroundColor: theme.warning + '1A' }]}>
-                  <Text style={styles.statEmoji}>{'⏳'}</Text>
+                  <MaterialCommunityIcons name="timer-sand" size={18} color={theme.warning} />
                 </View>
                 <Text style={[styles.statNumber, { color: theme.warning }]}>
                   {empVendorVisits.filter(function(v) { return v.on_board === false || v.on_board === 'false' || v.is_onboarded === false || v.is_onboarded === 'false'; }).length}
@@ -600,7 +601,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
             ) : (
               <View style={styles.emptyWrap}>
                 <View style={[styles.emptyIconWrap, { backgroundColor: theme.warning + '1A' }]}>
-                  <Text style={styles.emptyIcon}>{'🗺'}</Text>
+                  <MaterialCommunityIcons name="map-marker-off" size={30} color={theme.warning} />
                 </View>
                 <Text style={[styles.emptyTitle, { color: theme.text }]}>No Visits Found</Text>
                 <Text style={[styles.emptySubtitle, { color: theme.textTertiary }]}>No vendor visits with GPS data found for this employee</Text>
@@ -673,13 +674,13 @@ var styles = StyleSheet.create({
   backArrow: {
     color: '#fff',
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     marginTop: -2,
   },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     textAlign: 'center',
   },
   navSpacer: {
@@ -688,6 +689,7 @@ var styles = StyleSheet.create({
   mapSubtitle: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 13,
+    fontFamily: 'Poppins-Regular',
     textAlign: 'center',
     marginBottom: 10,
   },
@@ -720,14 +722,15 @@ var styles = StyleSheet.create({
   },
   statEmoji: {
     fontSize: 18,
+    fontFamily: 'Poppins-Regular',
   },
   statNumber: {
     fontSize: 20,
-    fontWeight: '900',
+    fontFamily: 'Poppins-Black',
   },
   statLabel: {
     fontSize: 9,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.5,
     marginTop: 2,
   },
@@ -775,21 +778,23 @@ var styles = StyleSheet.create({
   empAvatarText: {
     color: '#fff',
     fontSize: 17,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   empInfo: {
     flex: 1,
   },
   empName: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   empDesig: {
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
     marginTop: 2,
   },
   empHq: {
     fontSize: 11,
+    fontFamily: 'Poppins-Regular',
     marginTop: 1,
   },
   empMetaRow: {
@@ -799,13 +804,15 @@ var styles = StyleSheet.create({
   },
   empMetaText: {
     fontSize: 10,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
   empMetaDot: {
     fontSize: 10,
+    fontFamily: 'Poppins-Regular',
   },
   empMetaSep: {
     fontSize: 10,
+    fontFamily: 'Poppins-Regular',
   },
   empRight: {
     alignItems: 'flex-end',
@@ -825,10 +832,11 @@ var styles = StyleSheet.create({
   },
   empStatusText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   empDateText: {
     fontSize: 10,
+    fontFamily: 'Poppins-Regular',
     marginTop: 4,
   },
 
@@ -840,7 +848,7 @@ var styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     marginTop: 12,
   },
 
@@ -861,14 +869,16 @@ var styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 30,
+    fontFamily: 'Poppins-Regular',
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 13,
+    fontFamily: 'Poppins-Regular',
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 40,
@@ -883,6 +893,7 @@ var styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
     marginLeft: 8,
   },
   paginationBar: {
@@ -895,7 +906,7 @@ var styles = StyleSheet.create({
   },
   paginationText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
 
   /* ── Modal ── */
@@ -917,7 +928,7 @@ var styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   modalCloseBtn: {
     width: 34,
@@ -928,7 +939,7 @@ var styles = StyleSheet.create({
   },
   modalCloseText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   modalProfile: {
     alignItems: 'center',

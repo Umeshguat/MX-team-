@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 
 var { width } = Dimensions.get('window');
@@ -24,7 +25,7 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
   const [password, setPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
   const [loading, setLoading] = useState(false);
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme, isDark, toggleTheme, fonts } = useTheme();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -103,7 +104,7 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
             {/* Top bar: back + sign up */}
             <View style={styles.topBar}>
               <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme} activeOpacity={0.7}>
-                <Text style={styles.themeIcon}>{isDark ? '☀️' : '🌙'}</Text>
+                {isDark ? <Ionicons name="sunny" size={18} color="#fff" /> : <Ionicons name="moon" size={18} color="#fff" />}
               </TouchableOpacity>
               <View style={styles.topRight}>
                 <Text style={styles.noAccountText}>Don't have an account?</Text>
@@ -159,7 +160,7 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
                   onChangeText={setPassword}
                 />
                 <TouchableOpacity style={styles.eyeBtn} onPress={() => setSecureText(!secureText)}>
-                  <Text style={[styles.eyeIcon, { color: theme.textTertiary }]}>{secureText ? '👁' : '🙈'}</Text>
+                  {secureText ? <Ionicons name="eye" size={20} color={theme.textTertiary} /> : <Ionicons name="eye-off" size={20} color={theme.textTertiary} />}
                 </TouchableOpacity>
               </View>
             </View>
@@ -266,7 +267,7 @@ var styles = StyleSheet.create({
   noAccountText: {
     color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
     marginRight: 8,
   },
   getStartedBtn: {
@@ -279,11 +280,11 @@ var styles = StyleSheet.create({
   getStartedText: {
     color: '#fff',
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   brandName: {
     fontSize: 34,
-    fontWeight: '900',
+    fontFamily: 'Poppins-Black',
     color: '#fff',
     textAlign: 'center',
     letterSpacing: 3,
@@ -293,7 +294,7 @@ var styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
     letterSpacing: 0.5,
   },
 
@@ -312,13 +313,13 @@ var styles = StyleSheet.create({
   },
   welcomeTitle: {
     fontSize: 26,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     textAlign: 'center',
     marginBottom: 6,
   },
   welcomeSub: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
     textAlign: 'center',
     marginBottom: 30,
   },
@@ -334,13 +335,13 @@ var styles = StyleSheet.create({
   },
   floatingLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     letterSpacing: 0.3,
     marginBottom: 2,
   },
   input: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
     paddingVertical: Platform.OS === 'ios' ? 10 : 6,
   },
   passwordRow: {
@@ -357,7 +358,6 @@ var styles = StyleSheet.create({
     padding: 6,
   },
   eyeIcon: {
-    fontSize: 20,
   },
 
   /* ===== SIGN IN BUTTON ===== */
@@ -378,7 +378,7 @@ var styles = StyleSheet.create({
   signInText: {
     color: '#fff',
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.5,
   },
 
@@ -390,7 +390,7 @@ var styles = StyleSheet.create({
   },
   forgotText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
   dividerRow: {
     flexDirection: 'row',
@@ -404,7 +404,7 @@ var styles = StyleSheet.create({
   dividerText: {
     marginHorizontal: 14,
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
   },
 
   /* ===== REGISTER BUTTON ===== */
@@ -416,6 +416,6 @@ var styles = StyleSheet.create({
   },
   registerBtnText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
 });

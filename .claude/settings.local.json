@@ -23,7 +23,13 @@
       "Bash(find 'e:\\\\project_after_1_ dec_2025\\\\salesmens' -type f -name *vendor* -o -name *visit* -o -name *VendorVisit*)",
       "Bash(grep -r vendor 'e:\\\\project_after_1_ dec_2025\\\\salesmens/src' --include=*.js -l)",
       "Bash(npx react-native-community/cli bundle --platform android --entry-file index.js --bundle-output /dev/null --dev false)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Read(//e//**)",
+      "Bash(curl -sL -o Poppins-Regular.ttf \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Regular.ttf\")",
+      "Bash(curl -sL -o Poppins-Medium.ttf \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Medium.ttf\")",
+      "Bash(curl -sL -o Poppins-SemiBold.ttf \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-SemiBold.ttf\")",
+      "Bash(curl -sL -o Poppins-Bold.ttf \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Bold.ttf\")",
+      "Bash(curl -sL -o Poppins-ExtraBold.ttf \"https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-ExtraBold.ttf\")"
     ]
   }
 }

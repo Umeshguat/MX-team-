@@ -22,9 +22,10 @@ import GPSCameraScreen from '../components/GPSCameraScreen';
 import { extractKmFromImage } from '../utils/ocrHelper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 
 export default function DashboardScreen({ user, onLogout, vendors, onVendorsChange, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits, onGoToInventory }) {
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme, isDark, toggleTheme, fonts } = useTheme();
 
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState(null);
@@ -517,17 +518,17 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
   const userInitial = userName.charAt(0).toUpperCase();
 
   const menuItems = [
-    { icon: '\uD83D\uDCC5', title: 'Attendance', subtitle: 'View your attendance history', onPress: onGoToAttendance, bgColor: theme.errorBg || 'rgba(239,68,68,0.12)' },
-    { icon: '\uD83D\uDCCD', title: 'Visits', subtitle: 'Track vendor visits', onPress: onGoToVisits, bgColor: theme.successBg || 'rgba(34,197,94,0.12)' },
-    { icon: '\uD83D\uDCB0', title: 'Allowance', subtitle: 'Daily allowance claims', onPress: onGoToDailyAllowance, bgColor: theme.warningBg || 'rgba(245,158,11,0.12)' },
-    { icon: '\uD83D\uDCE6', title: 'Inventory', subtitle: 'Stock & products', onPress: onGoToInventory, bgColor: theme.surfaceVariant || 'rgba(107,114,128,0.12)' },
-    { icon: '\uD83D\uDCCA', title: 'Reports', subtitle: 'View your reports', onPress: null, bgColor: theme.infoBg || 'rgba(59,130,246,0.12)' },
+    { iconComponent: <Ionicons name="calendar" size={22} color={theme.error || '#EF4444'} />, title: 'Attendance', subtitle: 'View your attendance history', onPress: onGoToAttendance, bgColor: theme.errorBg || 'rgba(239,68,68,0.12)' },
+    { iconComponent: <Ionicons name="location" size={22} color={theme.success || '#22C55E'} />, title: 'Visits', subtitle: 'Track vendor visits', onPress: onGoToVisits, bgColor: theme.successBg || 'rgba(34,197,94,0.12)' },
+    { iconComponent: <Ionicons name="cash" size={22} color={theme.warning || '#F59E0B'} />, title: 'Allowance', subtitle: 'Daily allowance claims', onPress: onGoToDailyAllowance, bgColor: theme.warningBg || 'rgba(245,158,11,0.12)' },
+    { iconComponent: <MaterialCommunityIcons name="package-variant-closed" size={22} color={theme.textSecondary || '#6B7280'} />, title: 'Inventory', subtitle: 'Stock & products', onPress: onGoToInventory, bgColor: theme.surfaceVariant || 'rgba(107,114,128,0.12)' },
+    { iconComponent: <Ionicons name="bar-chart" size={22} color={theme.info || '#3B82F6'} />, title: 'Reports', subtitle: 'View your reports', onPress: null, bgColor: theme.infoBg || 'rgba(59,130,246,0.12)' },
   ];
 
   const navItems = [
-    { icon: '\uD83C\uDFE0', label: 'Home', key: 'home', onPress: () => setActiveNav('home') },
-    { icon: '\uD83D\uDCC5', label: 'Attendance', key: 'attendance', onPress: () => { setActiveNav('attendance'); if (onGoToAttendance) onGoToAttendance(); } },
-    { icon: '\uD83D\uDCCD', label: 'Visits', key: 'visits', onPress: () => { setActiveNav('visits'); if (onGoToVisits) onGoToVisits(); } },
+    { iconName: 'home', iconLib: 'Ionicons', label: 'Home', key: 'home', onPress: () => setActiveNav('home') },
+    { iconName: 'calendar', iconLib: 'Ionicons', label: 'Attendance', key: 'attendance', onPress: () => { setActiveNav('attendance'); if (onGoToAttendance) onGoToAttendance(); } },
+    { iconName: 'location', iconLib: 'Ionicons', label: 'Visits', key: 'visits', onPress: () => { setActiveNav('visits'); if (onGoToVisits) onGoToVisits(); } },
   ];
 
   return (
@@ -562,7 +563,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               onPress={toggleTheme}
               activeOpacity={0.7}
             >
-              <Text style={styles.headerIconText}>{isDark ? '\u2600\uFE0F' : '\uD83C\uDF19'}</Text>
+              {isDark ? <Ionicons name="sunny" size={18} color="#fff" /> : <Ionicons name="moon" size={18} color="#fff" />}
             </TouchableOpacity>
           </View>
         </View>
@@ -581,7 +582,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
           <Text style={[styles.profileName, { color: theme.text }]}>{user && user.fullName ? user.fullName : 'Employee'}</Text>
           <Text style={[styles.profileRole, { color: theme.textTertiary }]}>{user && user.designation ? user.designation : 'Sales Executive'}</Text>
         </View>
-        <Text style={[styles.profileArrow, { color: theme.textTertiary }]}>{'\u203A'}</Text>
+        <Ionicons name="chevron-forward" size={22} color={theme.textTertiary} />
       </TouchableOpacity>
 
       <ScrollView
@@ -623,7 +624,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               end={{ x: 1, y: 1 }}
               style={[styles.primaryActionBtn, { shadowColor: checkedIn ? theme.error : theme.gradient1 }]}
             >
-              <Text style={styles.actionBtnIcon}>{checkedIn ? '\u2197' : '\u2199'}</Text>
+              {checkedIn ? <Feather name="arrow-up-right" size={20} color="#fff" /> : <Feather name="arrow-down-left" size={20} color="#fff" />}
               <Text style={styles.actionBtnLabel}>{checkedIn ? 'CHECK OUT' : 'CHECK IN'}</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -635,7 +636,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
             onPress={() => setShowVendorModal(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.actionBtnIcon}>{'\uD83C\uDFEA'}</Text>
+            <MaterialCommunityIcons name="store" size={20} color="#fff" style={{ marginBottom: 4 }} />
             <Text style={styles.actionBtnLabel}>VENDOR</Text>
           </TouchableOpacity>
         </View>
@@ -644,7 +645,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
             <View style={[styles.statIconCircle, { backgroundColor: theme.successBg || 'rgba(34,197,94,0.12)' }]}>
-              <Text style={styles.statIconEmoji}>{'\u2199'}</Text>
+              <Feather name="arrow-down-left" size={16} color={theme.success || '#22C55E'} />
             </View>
             <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECK IN</Text>
             <Text style={[styles.statValue, { color: theme.text }]}>{formatTime(checkInTime)}</Text>
@@ -654,7 +655,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
 
           <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
             <View style={[styles.statIconCircle, { backgroundColor: theme.errorBg || 'rgba(239,68,68,0.12)' }]}>
-              <Text style={styles.statIconEmoji}>{'\u2197'}</Text>
+              <Feather name="arrow-up-right" size={16} color={theme.error || '#EF4444'} />
             </View>
             <Text style={[styles.statLabel, { color: theme.textTertiary }]}>CHECK OUT</Text>
             <Text style={[styles.statValue, { color: theme.text }]}>{formatTime(checkOutTime)}</Text>
@@ -664,7 +665,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
 
           <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
             <View style={[styles.statIconCircle, { backgroundColor: theme.infoBg || 'rgba(59,130,246,0.12)' }]}>
-              <Text style={styles.statIconEmoji}>{'\u23F1'}</Text>
+              <Ionicons name="timer-outline" size={16} color={theme.info || '#3B82F6'} />
             </View>
             <Text style={[styles.statLabel, { color: theme.textTertiary }]}>HOURS</Text>
             <Text style={[styles.statValue, { color: theme.primary }]}>{getWorkingHours()}</Text>
@@ -686,13 +687,13 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               activeOpacity={0.7}
             >
               <View style={[styles.menuIconBg, { backgroundColor: item.bgColor }]}>
-                <Text style={styles.menuIconEmoji}>{item.icon}</Text>
+                {item.iconComponent}
               </View>
               <View style={styles.menuTextBlock}>
                 <Text style={[styles.menuTitle, { color: theme.text }]}>{item.title}</Text>
                 <Text style={[styles.menuSub, { color: theme.textTertiary }]}>{item.subtitle}</Text>
               </View>
-              <Text style={[styles.menuArrow, { color: theme.textTertiary }]}>{'\u203A'}</Text>
+              <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
             </TouchableOpacity>
           ))}
         </View>
@@ -707,7 +708,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
             onPress={navItem.onPress}
             activeOpacity={0.7}
           >
-            <Text style={[styles.navIcon, activeNav === navItem.key && { opacity: 1 }, activeNav !== navItem.key && { opacity: 0.5 }]}>{navItem.icon}</Text>
+            <Ionicons name={navItem.iconName} size={22} color={activeNav === navItem.key ? theme.primary : theme.textTertiary} style={{ marginBottom: 4 }} />
             <Text style={[styles.navLabel, { color: activeNav === navItem.key ? theme.primary : theme.textTertiary }]}>{navItem.label}</Text>
             {activeNav === navItem.key ? (
               <View style={[styles.navDot, { backgroundColor: theme.primary }]} />
@@ -738,7 +739,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   </Text>
                 </View>
                 <TouchableOpacity style={[styles.modalCloseBtn, { backgroundColor: theme.background }]} onPress={() => { setShowModal(false); resetModalFields(); }}>
-                  <Text style={[styles.modalCloseText, { color: theme.textTertiary }]}>{'\u2715'}</Text>
+                  <Ionicons name="close" size={16} color={theme.textTertiary} />
                 </TouchableOpacity>
               </View>
 
@@ -749,12 +750,12 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   <View style={styles.imagePreviewWrapper}>
                     <Image source={{ uri: selfieImage }} style={styles.imagePreview} />
                     <TouchableOpacity style={styles.removeImageBtn} onPress={() => setSelfieImage(null)}>
-                      <Text style={styles.removeImageText}>{'\u2715'}</Text>
+                      <Ionicons name="close" size={14} color="#fff" />
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={takeSelfie} activeOpacity={0.7}>
-                    <Text style={styles.uploadEmoji}>{'\uD83E\uDD33'}</Text>
+                    <Ionicons name="camera" size={30} color={theme.textSecondary} style={{ marginBottom: 6 }} />
                     <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Take Selfie</Text>
                   </TouchableOpacity>
                 )}
@@ -766,12 +767,12 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                 <View style={styles.imagePreviewWrapper}>
                   <Image source={{ uri: kmImage }} style={styles.imagePreview} />
                   <TouchableOpacity style={styles.removeImageBtn} onPress={() => setKmImage(null)}>
-                    <Text style={styles.removeImageText}>{'\u2715'}</Text>
+                    <Ionicons name="close" size={14} color="#fff" />
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={takePhoto} activeOpacity={0.7}>
-                  <Text style={styles.uploadEmoji}>{'\uD83D\uDCF7'}</Text>
+                  <Ionicons name="camera" size={30} color={theme.textSecondary} style={{ marginBottom: 6 }} />
                   <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Capture KM Photo</Text>
                 </TouchableOpacity>
               )}
@@ -779,7 +780,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               {/* KM Reading */}
               <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>KM READING {ocrLoading ? '(Reading...)' : ''}</Text>
               <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                <Text style={styles.inputIcon}>{'\uD83D\uDEE3'}</Text>
+                <MaterialCommunityIcons name="road-variant" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
                 <TextInput
                   style={[styles.inputField, { color: theme.text }]}
                   placeholder={ocrLoading ? 'Detecting KM...' : 'Enter KM reading'}
@@ -796,7 +797,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               {/* HQ Name */}
               <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>HQ NAME</Text>
               <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                <Text style={styles.inputIcon}>{'\uD83C\uDFE2'}</Text>
+                <MaterialCommunityIcons name="office-building" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
                 <TextInput
                   style={[styles.inputField, { color: theme.text }]}
                   placeholder="Enter headquarter name"
@@ -809,7 +810,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               {/* Working Town */}
               <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>WORKING TOWN</Text>
               <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                <Text style={styles.inputIcon}>{'\uD83C\uDFD8'}</Text>
+                <MaterialCommunityIcons name="home-city" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
                 <TextInput
                   style={[styles.inputField, { color: theme.text }]}
                   placeholder="Enter working town"
@@ -822,7 +823,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               {/* Route */}
               <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>ROUTE</Text>
               <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                <Text style={styles.inputIcon}>{'\uD83D\uDEA3'}</Text>
+                <MaterialCommunityIcons name="map-marker-path" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
                 <TextInput
                   style={[styles.inputField, { color: theme.text }]}
                   placeholder="Enter route"
@@ -839,7 +840,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                 activeOpacity={0.7}
               >
                 <View style={[styles.checkbox, { borderColor: theme.divider }, outOfTown && { backgroundColor: theme.info, borderColor: theme.info }]}>
-                  {outOfTown ? <Text style={styles.checkboxTick}>{'\u2713'}</Text> : null}
+                  {outOfTown ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
                 </View>
                 <Text style={[styles.checkboxLabel, { color: theme.text }]}>Out of Town</Text>
               </TouchableOpacity>
@@ -855,18 +856,18 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   {/* Stay Bill */}
                   <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>STAY BILL AMOUNT</Text>
                   <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                    <Text style={styles.inputIcon}>{'\uD83C\uDFE8'}</Text>
+                    <MaterialCommunityIcons name="bed" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
                     <TextInput style={[styles.inputField, { color: theme.text }]} placeholder="Enter stay bill amount" placeholderTextColor={theme.textTertiary} keyboardType="numeric" value={stayBillAmount} onChangeText={setStayBillAmount} />
                   </View>
                   <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>STAY BILL IMAGE</Text>
                   {stayBillImage ? (
                     <View style={styles.imagePreviewWrapper}>
                       <Image source={{ uri: stayBillImage }} style={styles.imagePreview} />
-                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setStayBillImage(null)}><Text style={styles.removeImageText}>{'\u2715'}</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setStayBillImage(null)}><Ionicons name="close" size={14} color="#fff" /></TouchableOpacity>
                     </View>
                   ) : (
                     <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={() => takeBillPhoto(setStayBillImage)} activeOpacity={0.7}>
-                      <Text style={styles.uploadEmoji}>{'\uD83D\uDCF7'}</Text>
+                      <Ionicons name="camera" size={30} color={theme.textSecondary} style={{ marginBottom: 6 }} />
                       <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Capture Photo</Text>
                     </TouchableOpacity>
                   )}
@@ -874,18 +875,18 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   {/* Food Bill */}
                   <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>FOOD BILL AMOUNT</Text>
                   <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                    <Text style={styles.inputIcon}>{'\uD83C\uDF7D'}</Text>
+                    <MaterialCommunityIcons name="silverware-fork-knife" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
                     <TextInput style={[styles.inputField, { color: theme.text }]} placeholder="Enter food bill amount" placeholderTextColor={theme.textTertiary} keyboardType="numeric" value={foodBillAmount} onChangeText={setFoodBillAmount} />
                   </View>
                   <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>FOOD BILL IMAGE</Text>
                   {foodBillImage ? (
                     <View style={styles.imagePreviewWrapper}>
                       <Image source={{ uri: foodBillImage }} style={styles.imagePreview} />
-                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setFoodBillImage(null)}><Text style={styles.removeImageText}>{'\u2715'}</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setFoodBillImage(null)}><Ionicons name="close" size={14} color="#fff" /></TouchableOpacity>
                     </View>
                   ) : (
                     <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={() => takeBillPhoto(setFoodBillImage)} activeOpacity={0.7}>
-                      <Text style={styles.uploadEmoji}>{'\uD83D\uDCF7'}</Text>
+                      <Ionicons name="camera" size={30} color={theme.textSecondary} style={{ marginBottom: 6 }} />
                       <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Capture Photo</Text>
                     </TouchableOpacity>
                   )}
@@ -893,23 +894,23 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   {/* Other Expense */}
                   <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>OTHER EXPENSE DESCRIPTION</Text>
                   <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                    <Text style={styles.inputIcon}>{'\uD83D\uDCDD'}</Text>
+                    <MaterialCommunityIcons name="note-edit-outline" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
                     <TextInput style={[styles.inputField, { color: theme.text }]} placeholder="Enter expense description" placeholderTextColor={theme.textTertiary} value={otherBillDescription} onChangeText={setOtherBillDescription} />
                   </View>
                   <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>OTHER EXPENSE AMOUNT</Text>
                   <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                    <Text style={styles.inputIcon}>{'\uD83D\uDCB5'}</Text>
+                    <MaterialCommunityIcons name="currency-usd" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
                     <TextInput style={[styles.inputField, { color: theme.text }]} placeholder="Enter other expense amount" placeholderTextColor={theme.textTertiary} keyboardType="numeric" value={otherBillAmount} onChangeText={setOtherBillAmount} />
                   </View>
                   <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>OTHER EXPENSE IMAGE</Text>
                   {otherBillImage ? (
                     <View style={styles.imagePreviewWrapper}>
                       <Image source={{ uri: otherBillImage }} style={styles.imagePreview} />
-                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setOtherBillImage(null)}><Text style={styles.removeImageText}>{'\u2715'}</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.removeImageBtn} onPress={() => setOtherBillImage(null)}><Ionicons name="close" size={14} color="#fff" /></TouchableOpacity>
                     </View>
                   ) : (
                     <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={() => takeBillPhoto(setOtherBillImage)} activeOpacity={0.7}>
-                      <Text style={styles.uploadEmoji}>{'\uD83D\uDCF7'}</Text>
+                      <Ionicons name="camera" size={30} color={theme.textSecondary} style={{ marginBottom: 6 }} />
                       <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Capture Photo</Text>
                     </TouchableOpacity>
                   )}
@@ -961,14 +962,14 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   <Text style={[styles.modalTitle, { color: theme.text }]}>Visit Vendor</Text>
                 </View>
                 <TouchableOpacity style={[styles.modalCloseBtn, { backgroundColor: theme.background }]} onPress={() => { setShowVendorModal(false); setVendorName(''); setVendorMobile(''); setVendorSelfie(null); setIsOnboarded(null); }}>
-                  <Text style={[styles.modalCloseText, { color: theme.textTertiary }]}>{'\u2715'}</Text>
+                  <Ionicons name="close" size={16} color={theme.textTertiary} />
                 </TouchableOpacity>
               </View>
 
               {/* Vendor Name */}
               <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>VENDOR NAME</Text>
               <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                <Text style={styles.inputIcon}>{'\uD83C\uDFEA'}</Text>
+                <MaterialCommunityIcons name="store" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
                 <TextInput
                   style={[styles.inputField, { color: theme.text }]}
                   placeholder="Enter vendor name"
@@ -981,7 +982,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               {/* Vendor Mobile */}
               <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>VENDOR MOBILE</Text>
               <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-                <Text style={styles.inputIcon}>{'\uD83D\uDCDE'}</Text>
+                <Ionicons name="call" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
                 <TextInput
                   style={[styles.inputField, { color: theme.text }]}
                   placeholder="Enter vendor mobile number"
@@ -998,12 +999,12 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                 <View style={styles.imagePreviewWrapper}>
                   <Image source={{ uri: vendorSelfie }} style={styles.imagePreview} />
                   <TouchableOpacity style={styles.removeImageBtn} onPress={() => setVendorSelfie(null)}>
-                    <Text style={styles.removeImageText}>{'\u2715'}</Text>
+                    <Ionicons name="close" size={14} color="#fff" />
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity style={[styles.uploadArea, { backgroundColor: theme.background, borderColor: theme.divider }]} onPress={takeVendorSelfie} activeOpacity={0.7}>
-                  <Text style={styles.uploadEmoji}>{'\uD83D\uDCF7'}</Text>
+                  <Ionicons name="camera" size={30} color={theme.textSecondary} style={{ marginBottom: 6 }} />
                   <Text style={[styles.uploadLabel, { color: theme.textSecondary }]}>Take Photo with Vendor</Text>
                 </TouchableOpacity>
               )}
@@ -1011,7 +1012,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
               {/* Note */}
               <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>NOTE</Text>
               <View style={[styles.inputWrapper, { backgroundColor: theme.background, borderColor: theme.divider, alignItems: 'flex-start', minHeight: 80 }]}>
-                <Text style={[styles.inputIcon, { marginTop: 4 }]}>{'\uD83D\uDCDD'}</Text>
+                <MaterialCommunityIcons name="note-edit-outline" size={18} color={theme.textSecondary} style={{ marginRight: 10, marginTop: 4 }} />
                 <TextInput
                   style={[styles.inputField, { color: theme.text, height: 70, textAlignVertical: 'top' }]}
                   placeholder="Enter note (optional)"
@@ -1032,7 +1033,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   activeOpacity={0.7}
                 >
                   <View style={[styles.onboardDot, { backgroundColor: theme.textTertiary }, isOnboarded === 'yes' && { backgroundColor: theme.success }]} />
-                  <Text style={[styles.onboardText, { color: theme.textSecondary }, isOnboarded === 'yes' && { color: theme.text, fontWeight: '700' }]}>
+                  <Text style={[styles.onboardText, { color: theme.textSecondary }, isOnboarded === 'yes' && { color: theme.text, fontFamily: 'Poppins-Bold' }]}>
                     Yes, Onboarded
                   </Text>
                 </TouchableOpacity>
@@ -1043,7 +1044,7 @@ export default function DashboardScreen({ user, onLogout, vendors, onVendorsChan
                   activeOpacity={0.7}
                 >
                   <View style={[styles.onboardDot, { backgroundColor: theme.textTertiary }, isOnboarded === 'no' && { backgroundColor: theme.error }]} />
-                  <Text style={[styles.onboardText, { color: theme.textSecondary }, isOnboarded === 'no' && { color: theme.text, fontWeight: '700' }]}>
+                  <Text style={[styles.onboardText, { color: theme.textSecondary }, isOnboarded === 'no' && { color: theme.text, fontFamily: 'Poppins-Bold' }]}>
                     Not Onboarded
                   </Text>
                 </TouchableOpacity>
@@ -1146,7 +1147,7 @@ var styles = StyleSheet.create({
   avatarText: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   headerGreetingBlock: {
     marginLeft: 12,
@@ -1156,10 +1157,11 @@ var styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
     letterSpacing: 0.3,
+    fontFamily: 'Poppins-Regular',
   },
   userName: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     color: '#fff',
     marginTop: 1,
   },
@@ -1188,7 +1190,7 @@ var styles = StyleSheet.create({
   logoutText: {
     color: 'rgba(255,255,255,0.9)',
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.5,
   },
 
@@ -1229,17 +1231,17 @@ var styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.3,
   },
   clockTimeLarge: {
     fontSize: 36,
-    fontWeight: '900',
+    fontFamily: 'Poppins-Black',
     letterSpacing: 2,
   },
   clockDateSmall: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
     marginTop: 4,
     letterSpacing: 0.3,
   },
@@ -1266,7 +1268,7 @@ var styles = StyleSheet.create({
   },
   actionBtnLabel: {
     fontSize: 13,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     color: '#fff',
     letterSpacing: 1.5,
     textTransform: 'uppercase',
@@ -1300,14 +1302,14 @@ var styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginBottom: 3,
   },
   statValue: {
     fontSize: 15,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
 
   /* ===== SECTION HEADER ===== */
@@ -1324,7 +1326,7 @@ var styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
 
   /* ===== INTERACTIVE MENU GRID ===== */
@@ -1363,15 +1365,16 @@ var styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   menuSub: {
     fontSize: 12,
     marginTop: 2,
+    fontFamily: 'Poppins-Regular',
   },
   menuArrow: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     alignSelf: 'flex-end',
   },
 
@@ -1395,7 +1398,7 @@ var styles = StyleSheet.create({
   },
   navLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
   navDot: {
     width: 4,
@@ -1430,7 +1433,7 @@ var styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   modalCloseBtn: {
     width: 36,
@@ -1441,11 +1444,11 @@ var styles = StyleSheet.create({
   },
   modalCloseText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   modalLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     marginBottom: 8,
     marginTop: 16,
     letterSpacing: 1,
@@ -1469,6 +1472,7 @@ var styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     paddingVertical: 12,
+    fontFamily: 'Poppins-Regular',
   },
 
   /* ===== UPLOAD AREA ===== */
@@ -1486,7 +1490,7 @@ var styles = StyleSheet.create({
   },
   uploadLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
 
   /* ===== IMAGE PREVIEW ===== */
@@ -1514,7 +1518,7 @@ var styles = StyleSheet.create({
   removeImageText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
 
   /* ===== CHECKBOX ===== */
@@ -1536,11 +1540,11 @@ var styles = StyleSheet.create({
   checkboxTick: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   checkboxLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
 
   /* ===== OUT OF TOWN ===== */
@@ -1552,7 +1556,7 @@ var styles = StyleSheet.create({
   },
   outOfTownTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
 
   /* ===== ONBOARD OPTIONS ===== */
@@ -1577,7 +1581,7 @@ var styles = StyleSheet.create({
   },
   onboardText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
 
   /* ===== SUBMIT BUTTON ===== */
@@ -1594,7 +1598,7 @@ var styles = StyleSheet.create({
   submitBtnText: {
     color: '#fff',
     fontSize: 15,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     letterSpacing: 2,
   },
 
@@ -1625,21 +1629,22 @@ var styles = StyleSheet.create({
   profileAvatarText: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   profileInfo: {
     flex: 1,
   },
   profileName: {
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   profileRole: {
     fontSize: 12,
     marginTop: 2,
+    fontFamily: 'Poppins-Regular',
   },
   profileArrow: {
     fontSize: 24,
-    fontWeight: '300',
+    fontFamily: 'Poppins-Regular',
   },
 });

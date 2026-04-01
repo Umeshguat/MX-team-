@@ -18,6 +18,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 
 var DISTRICT_OPTIONS = [
   'Same District',
@@ -42,13 +43,13 @@ function getStatusStyle(status, theme) {
 }
 
 export default function DailyAllowanceScreen({ user, onGoBack }) {
-  var { theme } = useTheme();
+  var { theme, fonts } = useTheme();
 
   var ALLOWANCE_TYPES = [
-    { key: 'km', label: 'KM Allowance', icon: '\uD83D\uDE97', color: theme.success, bg: theme.successBg, unit: '/km' },
-    { key: 'stay', label: 'Stay Allowance', icon: '\uD83C\uDFE8', color: theme.info, bg: theme.infoBg, unit: '' },
-    { key: 'food', label: 'Food Allowance', icon: '\uD83C\uDF7D', color: theme.warning, bg: theme.warningBg, unit: '' },
-    { key: 'fare', label: 'Fare Allowance', icon: '\uD83D\uDE8C', color: theme.secondary, bg: theme.surfaceVariant, unit: '' },
+    { key: 'km', label: 'KM Allowance', icon: <MaterialCommunityIcons name="car" size={18} color={theme.success} />, color: theme.success, bg: theme.successBg, unit: '/km' },
+    { key: 'stay', label: 'Stay Allowance', icon: <MaterialCommunityIcons name="office-building" size={18} color={theme.info} />, color: theme.info, bg: theme.infoBg, unit: '' },
+    { key: 'food', label: 'Food Allowance', icon: <MaterialCommunityIcons name="food" size={18} color={theme.warning} />, color: theme.warning, bg: theme.warningBg, unit: '' },
+    { key: 'fare', label: 'Fare Allowance', icon: <MaterialCommunityIcons name="bus" size={18} color={theme.secondary} />, color: theme.secondary, bg: theme.surfaceVariant, unit: '' },
   ];
 
   var [showAddModal, setShowAddModal] = useState(false);
@@ -208,7 +209,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
 
         <View style={styles.navRow}>
           <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
-            <Text style={styles.backArrow}>{'\u2039'}</Text>
+            <Ionicons name="chevron-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Daily Allowance</Text>
           <View style={[styles.avatar, { backgroundColor: theme.secondary }]}>
@@ -243,7 +244,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
             return (
               <View key={type.key} style={[styles.statsCard, { backgroundColor: theme.surface, width: (screenWidth - 52) / 2 }]}>
                 <View style={[styles.statsIconCircle, { backgroundColor: type.bg }]}>
-                  <Text style={styles.statsIconText}>{type.icon}</Text>
+                  {type.icon}
                 </View>
                 <Text style={[styles.statsLabel, { color: type.color }]}>{type.label.toUpperCase()}</Text>
               </View>
@@ -262,7 +263,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
         ) : history.length === 0 ? (
           <View style={[styles.emptyState, { backgroundColor: theme.surface }]}>
             <View style={[styles.emptyIconBox, { backgroundColor: theme.warningBg }]}>
-              <Text style={styles.emptyIcon}>{'\uD83D\uDCCB'}</Text>
+              <Ionicons name="clipboard-outline" size={28} color={theme.warning} />
             </View>
             <Text style={[styles.emptyTitle, { color: theme.text }]}>No Claims Yet</Text>
             <Text style={[styles.emptySubtitle, { color: theme.textTertiary }]}>Your allowance records will appear here</Text>
@@ -289,25 +290,25 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
                 <View style={styles.historyDetails}>
                   {item.details.km != null ? (
                     <View style={[styles.detailChip, { backgroundColor: theme.surfaceVariant }]}>
-                      <Text style={styles.detailChipIcon}>{'\uD83D\uDE97'}</Text>
+                      <MaterialCommunityIcons name="car" size={14} color={theme.success} style={{ marginRight: 4 }} />
                       <Text style={[styles.detailChipText, { color: theme.textSecondary }]}>{'\u20B9'}{item.details.km}</Text>
                     </View>
                   ) : null}
                   {item.details.stay != null ? (
                     <View style={[styles.detailChip, { backgroundColor: theme.surfaceVariant }]}>
-                      <Text style={styles.detailChipIcon}>{'\uD83C\uDFE8'}</Text>
+                      <MaterialCommunityIcons name="office-building" size={14} color={theme.info} style={{ marginRight: 4 }} />
                       <Text style={[styles.detailChipText, { color: theme.textSecondary }]}>{'\u20B9'}{item.details.stay}</Text>
                     </View>
                   ) : null}
                   {item.details.food != null ? (
                     <View style={[styles.detailChip, { backgroundColor: theme.surfaceVariant }]}>
-                      <Text style={styles.detailChipIcon}>{'\uD83C\uDF7D'}</Text>
+                      <MaterialCommunityIcons name="food" size={14} color={theme.warning} style={{ marginRight: 4 }} />
                       <Text style={[styles.detailChipText, { color: theme.textSecondary }]}>{'\u20B9'}{item.details.food}</Text>
                     </View>
                   ) : null}
                   {item.details.fare != null ? (
                     <View style={[styles.detailChip, { backgroundColor: theme.surfaceVariant }]}>
-                      <Text style={styles.detailChipIcon}>{'\uD83D\uDE8C'}</Text>
+                      <MaterialCommunityIcons name="bus" size={14} color={theme.secondary} style={{ marginRight: 4 }} />
                       <Text style={[styles.detailChipText, { color: theme.textSecondary }]}>{'\u20B9'}{item.details.fare}</Text>
                     </View>
                   ) : null}
@@ -348,7 +349,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
                   style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceVariant }]}
                   onPress={function() { setShowAddModal(false); resetForm(); }}
                 >
-                  <Text style={[styles.modalCloseText, { color: theme.textTertiary }]}>{'\u2715'}</Text>
+                  <Ionicons name="close" size={18} color={theme.textTertiary} />
                 </TouchableOpacity>
               </View>
 
@@ -358,16 +359,16 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
                 style={[styles.dropdownBtn, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}
                 onPress={function() { setShowDistrictDropdown(true); }}
               >
-                <Text style={styles.inputIcon}>{'\uD83D\uDCCD'}</Text>
+                <Ionicons name="location-sharp" size={16} color={theme.secondary} style={{ marginRight: 8 }} />
                 <Text style={[styles.dropdownBtnText, { color: theme.text }]}>{selectedDistrict}</Text>
-                <Text style={[styles.dropdownArrow, { color: theme.textTertiary }]}>{'\u25BC'}</Text>
+                <Ionicons name="chevron-down" size={14} color={theme.textTertiary} />
               </TouchableOpacity>
 
               {/* KM Allowance */}
               <View style={[styles.sectionCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]}>
                 <View style={styles.sectionCardHeader}>
                   <View style={[styles.sectionCardIconCircle, { backgroundColor: theme.successBg }]}>
-                    <Text style={styles.sectionCardIcon}>{'\uD83D\uDE97'}</Text>
+                    <MaterialCommunityIcons name="car" size={18} color={theme.success} />
                   </View>
                   <Text style={[styles.sectionCardTitle, { color: theme.text }]}>KM Allowance</Text>
                 </View>
@@ -375,7 +376,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
                   <View style={styles.kmField}>
                     <Text style={[styles.kmFieldLabel, { color: theme.textSecondary }]}>Start KM</Text>
                     <View style={[styles.inputWithIcon, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-                      <Text style={styles.inputIcon}>{'\uD83D\uDCCF'}</Text>
+                      <MaterialCommunityIcons name="ruler" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
                       <TextInput
                         style={[styles.modalInputInner, { color: theme.inputText }]}
                         placeholder="0"
@@ -389,7 +390,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
                   <View style={styles.kmField}>
                     <Text style={[styles.kmFieldLabel, { color: theme.textSecondary }]}>End KM</Text>
                     <View style={[styles.inputWithIcon, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}>
-                      <Text style={styles.inputIcon}>{'\uD83C\uDFC1'}</Text>
+                      <MaterialCommunityIcons name="flag-checkered" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
                       <TextInput
                         style={[styles.modalInputInner, { color: theme.inputText }]}
                         placeholder="0"
@@ -411,7 +412,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
               <View style={[styles.sectionCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]}>
                 <View style={styles.sectionCardHeader}>
                   <View style={[styles.sectionCardIconCircle, { backgroundColor: theme.warningBg }]}>
-                    <Text style={styles.sectionCardIcon}>{'\uD83C\uDF7D'}</Text>
+                    <MaterialCommunityIcons name="food" size={18} color={theme.warning} />
                   </View>
                   <Text style={[styles.sectionCardTitle, { color: theme.text }]}>Food Allowance</Text>
                 </View>
@@ -434,7 +435,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
                   <View style={[styles.sectionCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]}>
                     <View style={styles.sectionCardHeader}>
                       <View style={[styles.sectionCardIconCircle, { backgroundColor: theme.infoBg }]}>
-                        <Text style={styles.sectionCardIcon}>{'\uD83C\uDFE8'}</Text>
+                        <MaterialCommunityIcons name="office-building" size={18} color={theme.info} />
                       </View>
                       <Text style={[styles.sectionCardTitle, { color: theme.text }]}>Stay Allowance</Text>
                     </View>
@@ -454,7 +455,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
                   <View style={[styles.sectionCard, { backgroundColor: theme.surfaceVariant, borderColor: theme.divider }]}>
                     <View style={styles.sectionCardHeader}>
                       <View style={[styles.sectionCardIconCircle, { backgroundColor: theme.surfaceVariant }]}>
-                        <Text style={styles.sectionCardIcon}>{'\uD83D\uDE8C'}</Text>
+                        <MaterialCommunityIcons name="bus" size={18} color={theme.secondary} />
                       </View>
                       <Text style={[styles.sectionCardTitle, { color: theme.text }]}>Fare Allowance</Text>
                     </View>
@@ -476,7 +477,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
               {/* Remarks */}
               <Text style={[styles.modalLabel, { color: theme.textSecondary }]}>Remarks (Optional)</Text>
               <View style={[styles.inputWithIcon, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, alignItems: 'flex-start' }]}>
-                <Text style={[styles.inputIcon, { marginTop: 14 }]}>{'\uD83D\uDCDD'}</Text>
+                <MaterialCommunityIcons name="note-edit-outline" size={16} color={theme.textSecondary} style={{ marginRight: 8, marginTop: 14 }} />
                 <TextInput
                   style={[styles.modalInputInner, { color: theme.inputText, height: 70, textAlignVertical: 'top' }]}
                   placeholder="Add any remarks..."
@@ -547,7 +548,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
                   <Text style={[
                     styles.dropdownItemText,
                     { color: theme.textSecondary },
-                    isSelected && { color: theme.secondary, fontWeight: '700' },
+                    isSelected && { color: theme.secondary, fontFamily: 'Poppins-Bold' },
                   ]}>
                     {option}
                   </Text>
@@ -584,7 +585,7 @@ var styles = StyleSheet.create({
   fabText: {
     color: '#fff',
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     lineHeight: 30,
   },
 
@@ -642,13 +643,13 @@ var styles = StyleSheet.create({
   backArrow: {
     color: '#fff',
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     marginTop: -2,
   },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     textAlign: 'center',
   },
   avatar: {
@@ -661,11 +662,12 @@ var styles = StyleSheet.create({
   avatarText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   headerSubtitle: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 13,
+    fontFamily: 'Poppins-Regular',
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -690,12 +692,12 @@ var styles = StyleSheet.create({
   },
   headerSummaryValue: {
     fontSize: 22,
-    fontWeight: '900',
+    fontFamily: 'Poppins-Black',
   },
   headerSummaryLabel: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     marginTop: 4,
     letterSpacing: 1,
   },
@@ -737,10 +739,11 @@ var styles = StyleSheet.create({
   },
   statsIconText: {
     fontSize: 18,
+    fontFamily: 'Poppins-Regular',
   },
   statsLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     letterSpacing: 0.8,
   },
 
@@ -758,7 +761,7 @@ var styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
 
   /* ---- Empty State ---- */
@@ -782,15 +785,16 @@ var styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 28,
+    fontFamily: 'Poppins-Regular',
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
   },
 
   /* ---- History Card ---- */
@@ -820,10 +824,11 @@ var styles = StyleSheet.create({
   },
   historyDate: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   historyDistrict: {
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
     marginTop: 2,
   },
   statusChip: {
@@ -835,11 +840,12 @@ var styles = StyleSheet.create({
   },
   statusChipDot: {
     fontSize: 10,
+    fontFamily: 'Poppins-Regular',
     marginRight: 5,
   },
   statusChipText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   historyDetails: {
     flexDirection: 'row',
@@ -857,11 +863,12 @@ var styles = StyleSheet.create({
   },
   detailChipIcon: {
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     marginRight: 4,
   },
   detailChipText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
   historyFooter: {
     borderTopWidth: 1,
@@ -870,7 +877,7 @@ var styles = StyleSheet.create({
   },
   historyTotal: {
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
 
   /* ---- Modal ---- */
@@ -894,7 +901,7 @@ var styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
   modalCloseBtn: {
     width: 34,
@@ -905,11 +912,11 @@ var styles = StyleSheet.create({
   },
   modalCloseText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   modalLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     marginBottom: 6,
     marginTop: 12,
     letterSpacing: 0.5,
@@ -925,11 +932,13 @@ var styles = StyleSheet.create({
   },
   inputIcon: {
     fontSize: 16,
+    fontFamily: 'Poppins-Regular',
     marginRight: 8,
   },
   modalInputInner: {
     flex: 1,
     fontSize: 15,
+    fontFamily: 'Poppins-Regular',
     paddingVertical: 13,
   },
 
@@ -945,10 +954,11 @@ var styles = StyleSheet.create({
   dropdownBtnText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
   dropdownArrow: {
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
   },
 
   /* ---- Section Card (modal) ---- */
@@ -973,10 +983,11 @@ var styles = StyleSheet.create({
   },
   sectionCardIcon: {
     fontSize: 18,
+    fontFamily: 'Poppins-Regular',
   },
   sectionCardTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   kmRow: {
     flexDirection: 'row',
@@ -988,7 +999,7 @@ var styles = StyleSheet.create({
   },
   kmFieldLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     marginBottom: 4,
   },
   kmSummaryRow: {
@@ -1001,11 +1012,11 @@ var styles = StyleSheet.create({
   },
   kmSummaryText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
   kmSummaryAmount: {
     fontSize: 15,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
   },
 
   /* ---- Total Card ---- */
@@ -1019,12 +1030,12 @@ var styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     color: 'rgba(255,255,255,0.7)',
   },
   totalValue: {
     fontSize: 24,
-    fontWeight: '900',
+    fontFamily: 'Poppins-Black',
     color: '#fff',
   },
 
@@ -1041,7 +1052,7 @@ var styles = StyleSheet.create({
   },
   submitBtnText: {
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     letterSpacing: 2,
   },
 
@@ -1057,7 +1068,7 @@ var styles = StyleSheet.create({
   },
   dropdownListTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: 'Poppins-ExtraBold',
     marginBottom: 14,
     textAlign: 'center',
   },
@@ -1069,7 +1080,7 @@ var styles = StyleSheet.create({
   },
   dropdownItemText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     textAlign: 'center',
   },
 });

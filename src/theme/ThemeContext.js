@@ -138,6 +138,16 @@ const darkTheme = {
   navBg: '#1A1D35',
 };
 
+// Font weight to Poppins font family mapping
+const fontFamily = {
+  regular: 'Poppins-Regular',
+  medium: 'Poppins-Medium',
+  semiBold: 'Poppins-SemiBold',
+  bold: 'Poppins-Bold',
+  extraBold: 'Poppins-ExtraBold',
+  black: 'Poppins-Black',
+};
+
 const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
@@ -164,7 +174,7 @@ export function ThemeProvider({ children }) {
   var theme = isDark ? darkTheme : lightTheme;
 
   return (
-    <ThemeContext.Provider value={{ theme: theme, isDark: isDark, toggleTheme: toggleTheme, loaded: loaded }}>
+    <ThemeContext.Provider value={{ theme: theme, isDark: isDark, toggleTheme: toggleTheme, loaded: loaded, fonts: fontFamily }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -178,4 +188,4 @@ export function useTheme() {
   return ctx;
 }
 
-export { lightTheme, darkTheme };
+export { lightTheme, darkTheme, fontFamily };
