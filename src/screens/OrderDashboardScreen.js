@@ -181,21 +181,18 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
       const orderPayload = {
         vendor_name: distributorName.trim(),
         vendor_mobile: distributorMobile.trim(),
-        vendor_address: null,
+        vendor_address: deliveryAddress.trim() || null,
         items: orderItems,
-        shop_name: shopName.trim(),
-        shop_mobile: shopMobile.trim(),
         note: notes.trim(),
-      };
-
-      if (deliveryAddress.trim() || deliveryCity.trim() || deliveryState.trim() || deliveryPincode.trim()) {
-        orderPayload.delivery_address = {
+        delivery_address: {
+          shop_name: shopName.trim(),
+          shop_mobile: shopMobile.trim(),
           address: deliveryAddress.trim(),
           city: deliveryCity.trim(),
           state: deliveryState.trim(),
           pincode: deliveryPincode.trim(),
-        };
-      }
+        },
+      };
 
       const response = await fetch(`${BASE_URL}/api/orders`, {
         method: 'POST',
@@ -405,15 +402,6 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
                     <Text style={{ fontSize: 13, color: theme.textSecondary }}>Subtotal</Text>
                     <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>Rs. {subtotal}</Text>
                   </View>
-                  {discountVal > 0 && (
-                    <>
-                      <View style={{ height: 1, backgroundColor: theme.divider, marginBottom: 8 }} />
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <Text style={{ fontSize: 13, color: theme.success }}>Discount</Text>
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.success }}>- Rs. {discountVal}</Text>
-                      </View>
-                    </>
-                  )}
                 </View>
 
                 {/* Grand Total */}
