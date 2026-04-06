@@ -76,6 +76,11 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
   const [deliveryCity, setDeliveryCity] = useState('');
   const [deliveryState, setDeliveryState] = useState('');
   const [deliveryPincode, setDeliveryPincode] = useState('');
+  const [shopSuggestions, setShopSuggestions] = useState([]);
+  const [showShopSuggestions, setShowShopSuggestions] = useState(false);
+  const [searchingShop, setSearchingShop] = useState(false);
+  const [shopNotFound, setShopNotFound] = useState(false);
+  const shopSearchTimer = useRef(null);
 
   useEffect(() => {
     if (visible) {
@@ -91,6 +96,9 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
       setDeliveryCity('');
       setDeliveryState('');
       setDeliveryPincode('');
+      setShopSuggestions([]);
+      setShowShopSuggestions(false);
+      setShopNotFound(false);
     }
   }, [visible]);
 
@@ -112,6 +120,64 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
     } finally {
       setLoadingProducts(false);
     }
+  };
+
+  const searchShop = async (keyword) => {
+    if (!keyword || keyword.trim().length < 2) {
+      setShopSuggestions([]);
+      setShowShopSuggestions(false);
+      setShopNotFound(false);
+      return;
+    }
+    try {
+      setSearchingShop(true);
+      setShopNotFound(false);
+      const token = user && user.token ? user.token : '';
+      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+      const response = await fetch(`${BASE_URL}/api/shops/search?keyword=${encodeURIComponent(keyword.trim())}`, { headers });
+      const result = await response.json();
+      if ((result.status === 200 || response.ok) && result.data) {
+        const shops = Array.isArray(result.data) ? result.data : [result.data];
+        setShopSuggestions(shops);
+        setShowShopSuggestions(true);
+        setShopNotFound(false);
+      } else {
+        setShopSuggestions([]);
+        setShowShopSuggestions(false);
+        setShopNotFound(true);
+      }
+    } catch (e) {
+      console.log('Shop search error:', e);
+      setShopSuggestions([]);
+      setShowShopSuggestions(false);
+      setShopNotFound(true);
+    } finally {
+      setSearchingShop(false);
+    }
+  };
+
+  const handleShopNameChange = (text) => {
+    setShopName(text);
+    if (shopSearchTimer.current) clearTimeout(shopSearchTimer.current);
+    shopSearchTimer.current = setTimeout(() => searchShop(text), 500);
+  };
+
+  const handleShopMobileChange = (text) => {
+    setShopMobile(text);
+    if (shopSearchTimer.current) clearTimeout(shopSearchTimer.current);
+    shopSearchTimer.current = setTimeout(() => searchShop(text), 500);
+  };
+
+  const selectShop = (shop) => {
+    setShopName(shop.shop_name || '');
+    setShopMobile(shop.shop_mobile || '');
+    setDeliveryAddress(shop.shop_address || '');
+    setDeliveryCity(shop.city || '');
+    setDeliveryState(shop.state || '');
+    setDeliveryPincode(shop.pincode || '');
+    setShowShopSuggestions(false);
+    setShopSuggestions([]);
+    setShopNotFound(false);
   };
 
   const toggleProduct = (product) => {
@@ -425,8 +491,72 @@ function CreateOrderModal({ visible, onClose, onSubmit, user }) {
 
             {/* Shop Details */}
             <SectionHeader title="Shop Details" color={theme.success} theme={theme} />
-            <ModalInput emoji="🏪" placeholder="Shop Name *" value={shopName} onChangeText={setShopName} theme={theme} />
-            <ModalInput emoji="📞" placeholder="Shop Mobile *" value={shopMobile} onChangeText={setShopMobile} theme={theme} keyboardType="phone-pad" maxLength={10} />
+            <ModalInput emoji="🏪" placeholder="Shop Name *" value={shopName} onChangeText={handleShopNameChange} theme={theme} />
+            <ModalInput emoji="📞" placeholder="Shop Mobile *" value={shopMobile} onChangeText={handleShopMobileChange} theme={theme} keyboardType="phone-pad" maxLength={10} />
+
+            {/* Shop Search Suggestions */}
+            {searchingShop && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8 }}>
+                <ActivityIndicator size="small" color={theme.primary} />
+                <Text style={{ fontSize: 12, color: theme.textTertiary, marginLeft: 8 }}>Searching shops...</Text>
+              </View>
+            )}
+            {!searchingShop && shopNotFound && (
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: theme.error + '12',
+                borderRadius: 10,
+                padding: 10,
+                marginBottom: 10,
+                borderWidth: 1,
+                borderColor: theme.error + '30',
+              }}>
+                <Text style={{ fontSize: 16, marginRight: 8 }}>⚠️</Text>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: theme.error }}>Shop does not exist</Text>
+              </View>
+            )}
+            {showShopSuggestions && shopSuggestions.length > 0 && (
+              <View style={{
+                backgroundColor: theme.surface,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: theme.divider,
+                marginBottom: 10,
+                maxHeight: 180,
+                elevation: 4,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+              }}>
+                <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                  {shopSuggestions.map((shop, index) => (
+                    <TouchableOpacity
+                      key={shop._id || index}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingHorizontal: 14,
+                        paddingVertical: 12,
+                        borderBottomWidth: index < shopSuggestions.length - 1 ? 1 : 0,
+                        borderBottomColor: theme.divider,
+                      }}
+                      onPress={() => selectShop(shop)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: theme.success + '18', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                        <Text style={{ fontSize: 16 }}>🏪</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }} numberOfLines={1}>{shop.shop_name || '--'}</Text>
+                        <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}>{shop.shop_mobile || ''}{shop.city ? ` | ${shop.city}` : ''}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
             {/* Delivery Address */}
             <SectionHeader title="Delivery Address" color={theme.info} theme={theme} />
