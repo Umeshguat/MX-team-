@@ -393,13 +393,13 @@ function ReportsTab({ user, refreshing, onRefresh, theme }) {
       const token = user && user.token ? user.token : '';
       const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
 
-      const [dashRes, agingRes] = await Promise.all([
-        fetch(`${BASE_URL}/api/inventory/dashboard`, { headers }),
-        fetch(`${BASE_URL}/api/inventory/reports/stock-aging`, { headers }),
+      const [dashResult, agingResult] = await Promise.allSettled([
+        fetch(`${BASE_URL}/api/inventory/dashboard`, { headers }).then(r => r.json()),
+        fetch(`${BASE_URL}/api/inventory/reports/stock-aging`, { headers }).then(r => r.json()),
       ]);
 
-      const dashData = await dashRes.json();
-      const agingData = await agingRes.json();
+      const dashData = dashResult.status === 'fulfilled' ? dashResult.value : {};
+      const agingData = agingResult.status === 'fulfilled' ? agingResult.value : {};
 
       if (dashData.status === 200 && dashData.dashboard) {
         const d = dashData.dashboard;
@@ -533,36 +533,41 @@ function ReportsTab({ user, refreshing, onRefresh, theme }) {
             <View style={[styles.sectionBar, { backgroundColor: theme.secondary }]} />
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Stock Aging Report</Text>
           </View>
-          {agingReport.map((item) => (
-            <View key={item._id} style={[styles.movementCard, { backgroundColor: theme.surface }]}>
-              <View style={styles.movementInfo}>
-                <Text style={[styles.movementProduct, { color: theme.text }]} numberOfLines={1}>{item.product_name}</Text>
-                <Text style={[styles.movementParty, { color: theme.textTertiary }]}>{item.product_code} | {item.category}</Text>
+          {agingReport.map((item) => {
+            const categoryName = item.category?.category_name || (typeof item.category === 'string' ? item.category : '');
+            const brandName = item.brand?.brand_name || (typeof item.brand === 'string' ? item.brand : '');
+            return (
+              <View key={item._id} style={[styles.movementCard, { backgroundColor: theme.surface }]}>
+                <View style={styles.movementInfo}>
+                  <Text style={[styles.movementProduct, { color: theme.text }]} numberOfLines={1}>{item.product_name}</Text>
+                  <Text style={[styles.movementParty, { color: theme.textTertiary }]}>{item.product_code}{brandName ? ` | ${brandName}` : ''}{categoryName ? ` | ${categoryName}` : ''}</Text>
+                  <Text style={[styles.movementParty, { color: theme.textTertiary }]}>Qty: {item.total_quantity || 0} | Shelf Life: {item.shelf_life_days || 0} days</Text>
+                </View>
+                <View style={styles.agingBadges}>
+                  {item.aging?.green?.total_qty > 0 ? (
+                    <View style={[styles.agingBadge, { backgroundColor: theme.successBg }]}>
+                      <Text style={[styles.agingBadgeText, { color: theme.success }]}>{item.aging.green.total_qty}</Text>
+                    </View>
+                  ) : null}
+                  {item.aging?.yellow?.total_qty > 0 ? (
+                    <View style={[styles.agingBadge, { backgroundColor: theme.warningBg }]}>
+                      <Text style={[styles.agingBadgeText, { color: theme.warning }]}>{item.aging.yellow.total_qty}</Text>
+                    </View>
+                  ) : null}
+                  {item.aging?.red?.total_qty > 0 ? (
+                    <View style={[styles.agingBadge, { backgroundColor: theme.errorBg }]}>
+                      <Text style={[styles.agingBadgeText, { color: theme.error || theme.primary }]}>{item.aging.red.total_qty}</Text>
+                    </View>
+                  ) : null}
+                  {item.aging?.expired?.total_qty > 0 ? (
+                    <View style={[styles.agingBadge, { backgroundColor: theme.surfaceVariant }]}>
+                      <Text style={[styles.agingBadgeText, { color: theme.textTertiary }]}>{item.aging.expired.total_qty}</Text>
+                    </View>
+                  ) : null}
+                </View>
               </View>
-              <View style={styles.agingBadges}>
-                {item.aging.green.total_qty > 0 ? (
-                  <View style={[styles.agingBadge, { backgroundColor: theme.successBg }]}>
-                    <Text style={[styles.agingBadgeText, { color: theme.success }]}>{item.aging.green.total_qty}</Text>
-                  </View>
-                ) : null}
-                {item.aging.yellow.total_qty > 0 ? (
-                  <View style={[styles.agingBadge, { backgroundColor: theme.warningBg }]}>
-                    <Text style={[styles.agingBadgeText, { color: theme.warning }]}>{item.aging.yellow.total_qty}</Text>
-                  </View>
-                ) : null}
-                {item.aging.red.total_qty > 0 ? (
-                  <View style={[styles.agingBadge, { backgroundColor: theme.errorBg }]}>
-                    <Text style={[styles.agingBadgeText, { color: theme.error || theme.primary }]}>{item.aging.red.total_qty}</Text>
-                  </View>
-                ) : null}
-                {item.aging.expired.total_qty > 0 ? (
-                  <View style={[styles.agingBadge, { backgroundColor: theme.surfaceVariant }]}>
-                    <Text style={[styles.agingBadgeText, { color: theme.textTertiary }]}>{item.aging.expired.total_qty}</Text>
-                  </View>
-                ) : null}
-              </View>
-            </View>
-          ))}
+            );
+          })}
           <View style={styles.agingLegend}>
             <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: theme.success }]} /><Text style={[styles.agingLegendText, { color: theme.textSecondary }]}>Good</Text></View>
             <View style={styles.agingLegendItem}><View style={[styles.agingLegendDot, { backgroundColor: theme.warning }]} /><Text style={[styles.agingLegendText, { color: theme.textSecondary }]}>{'<60d'}</Text></View>
@@ -1676,7 +1681,9 @@ export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
   if (currentScreen === 'alerts') {
     return (
       <SubScreenWrapper title="Alerts" onGoBack={() => setCurrentScreen('home')} user={user} theme={theme}>
-        <AlertsTab user={user} refreshing={refreshing} onRefresh={onRefresh} theme={theme} />
+        <ScreenErrorBoundary>
+          <AlertsTab user={user} refreshing={refreshing} onRefresh={onRefresh} theme={theme} />
+        </ScreenErrorBoundary>
       </SubScreenWrapper>
     );
   }
@@ -1684,7 +1691,9 @@ export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
   if (currentScreen === 'reports') {
     return (
       <SubScreenWrapper title="Reports" onGoBack={() => setCurrentScreen('home')} user={user} theme={theme}>
-        <ReportsTab user={user} refreshing={refreshing} onRefresh={onRefresh} theme={theme} />
+        <ScreenErrorBoundary>
+          <ReportsTab user={user} refreshing={refreshing} onRefresh={onRefresh} theme={theme} />
+        </ScreenErrorBoundary>
       </SubScreenWrapper>
     );
   }
