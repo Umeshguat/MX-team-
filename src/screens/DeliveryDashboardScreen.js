@@ -13,6 +13,7 @@ import {
   TextInput,
   Image,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
@@ -48,12 +49,45 @@ const PRIORITY_COLORS = {
 };
 
 // ======================== DELIVERY DETAIL MODAL ========================
-function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate, theme }) {
+function DeliveryDetailModal({ visible, onClose, delivery: deliveryProp, user, onStatusUpdate, theme }) {
   const [updating, setUpdating] = useState(false);
+  const [detailData, setDetailData] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const delivery = detailData || deliveryProp;
+
+  useEffect(() => {
+    if (!visible || !deliveryProp || !deliveryProp._id) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingDetail(true);
+      try {
+        const token = user && user.token ? user.token : '';
+        const res = await fetch(`${BASE_URL}/api/deliveries/${deliveryProp._id}`, {
+          headers: { 'Authorization': 'Bearer ' + token },
+        });
+        const result = await res.json();
+        if (!cancelled && res.ok) {
+          setDetailData(result.data || result.delivery || result);
+        }
+      } catch (e) {
+        // keep prop fallback
+      } finally {
+        if (!cancelled) setLoadingDetail(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [visible, deliveryProp && deliveryProp._id]);
+
+  useEffect(() => {
+    if (!visible) setDetailData(null);
+  }, [visible]);
+
   const [proofImage, setProofImage] = useState(null);
   const [receivedBy, setReceivedBy] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState('cash');
+  const [transactionReference, setTransactionReference] = useState('');
+  const [note, setNote] = useState('');
   const PAYMENT_MODES = [
     { key: 'cash', label: 'Cash' },
     { key: 'upi', label: 'UPI' },
@@ -79,29 +113,29 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
 
   const handleGPSCapture = (photoData) => {
     setShowGPSCamera(false);
-    if (photoData && photoData.uri) {
+    if (!photoData) return;
+    // photoData can be a string (uri) OR an object { uri, base64 }
+    if (typeof photoData === 'string') {
+      setProofImage({ uri: photoData, base64: null });
+    } else if (photoData.uri) {
       setProofImage({ uri: photoData.uri, base64: photoData.base64 || null });
     }
   };
 
   const handleStatusUpdate = async (newStatus) => {
-    if (newStatus === 'delivered' && !proofImage) {
-      Alert.alert('Required', 'Please capture delivery proof photo before marking as delivered');
-      return;
-    }
     setUpdating(true);
     try {
       const token = user && user.token ? user.token : '';
       const body = { delivery_status: newStatus };
       if (newStatus === 'delivered') {
-        if (proofImage && proofImage.base64) {
-          body.delivery_proof = {
-            image_url: 'data:image/jpeg;base64,' + proofImage.base64,
-            received_by: receivedBy.trim() || 'N/A',
-            payment_amount: paymentAmount.trim() ? parseFloat(paymentAmount.trim()) : 0,
-            payment_mode: paymentMode,
-          };
-        }
+        body.delivery_proof = {
+          image_url: proofImage && proofImage.base64
+            ? 'data:image/jpeg;base64,' + proofImage.base64
+            : (proofImage && proofImage.uri ? proofImage.uri : ''),
+          received_by: receivedBy.trim() || 'N/A',
+          payment_amount: paymentAmount.trim() ? parseFloat(paymentAmount.trim()) : 0,
+          payment_mode: paymentMode,
+        };
       }
       const response = await fetch(`${BASE_URL}/api/deliveries/${delivery._id}/status`, {
         method: 'PUT',
@@ -126,6 +160,8 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
               body: JSON.stringify({
                 amount: parseFloat(paymentAmount.trim()),
                 payment_mode: paymentMode,
+                transaction_reference: transactionReference.trim() || undefined,
+                note: note.trim() || undefined,
               }),
             });
             const payResult = await payResponse.json();
@@ -141,6 +177,8 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
         setReceivedBy('');
         setPaymentAmount('');
         setPaymentMode('cash');
+        setTransactionReference('');
+        setNote('');
         onStatusUpdate();
         onClose();
       } else {
@@ -172,6 +210,10 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <View style={[mStyles.overlay, { backgroundColor: theme.overlay }]}>
         <View style={[mStyles.container, { backgroundColor: theme.surface }]}>
           {/* Handle bar */}
@@ -179,7 +221,7 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
             <View style={[mStyles.handleBar, { backgroundColor: theme.divider }]} />
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
             {/* Modal header */}
             <View style={mStyles.header}>
               <Text style={[mStyles.title, { color: theme.primary }]}>Delivery Details</Text>
@@ -288,8 +330,17 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
                         {proofImage ? 'Retake Proof Photo' : 'Capture Delivery Proof'}
                       </Text>
                     </TouchableOpacity>
-                    {proofImage && (
-                      <Image source={{ uri: proofImage.uri }} style={mStyles.proofImage} />
+                    {proofImage ? (
+                      <View>
+                        <Text style={{ color: theme.success || 'green', fontSize: 12, marginTop: 6, marginBottom: 4 }}>
+                          ✓ Photo captured
+                        </Text>
+                        <Image source={{ uri: proofImage.uri }} style={mStyles.proofImage} />
+                      </View>
+                    ) : (
+                      <Text style={{ color: theme.textTertiary, fontSize: 12, marginTop: 6, marginBottom: 4 }}>
+                        No photo captured yet (optional)
+                      </Text>
                     )}
                     <TextInput
                       style={[mStyles.input, { backgroundColor: theme.surfaceVariant, color: theme.text, borderColor: theme.divider }]}
@@ -330,6 +381,20 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
                         );
                       })}
                     </View>
+                    <TextInput
+                      style={[mStyles.input, { backgroundColor: theme.surfaceVariant, color: theme.text, borderColor: theme.divider }]}
+                      placeholder="Transaction Reference"
+                      placeholderTextColor={theme.textTertiary}
+                      value={transactionReference}
+                      onChangeText={setTransactionReference}
+                    />
+                    <TextInput
+                      style={[mStyles.input, { backgroundColor: theme.surfaceVariant, color: theme.text, borderColor: theme.divider }]}
+                      placeholder="Note (optional)"
+                      placeholderTextColor={theme.textTertiary}
+                      value={note}
+                      onChangeText={setNote}
+                    />
                   </View>
                 )}
                 <View style={mStyles.statusBtnsRow}>
@@ -353,6 +418,7 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
           </ScrollView>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

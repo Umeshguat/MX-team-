@@ -13,6 +13,8 @@ import {
   Modal,
   TextInput,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
@@ -82,37 +84,53 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
 
   var pickProofImage = async function() {
     try {
+      var perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission Required', 'Camera permission is required. Enable it in settings.');
+        return;
+      }
       var result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        quality: 0.5,
+        quality: 0.4,
         base64: true,
+        allowsEditing: false,
       });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setProofImage(result.assets[0]);
+      if (result.canceled) {
+        return;
       }
+      var asset = null;
+      if (result.assets && result.assets.length > 0) {
+        asset = result.assets[0];
+      } else if (result.uri) {
+        asset = result;
+      }
+      if (!asset || !asset.uri) {
+        Alert.alert('Error', 'Camera returned no image. Please try again.');
+        return;
+      }
+      setProofImage({
+        uri: asset.uri,
+        base64: asset.base64 || null,
+      });
     } catch (e) {
-      Alert.alert('Error', 'Could not open camera');
+      Alert.alert('Camera Error', (e && e.message) ? e.message : String(e));
     }
   };
 
   var handleStatusUpdate = async function(newStatus) {
-    if (newStatus === 'delivered' && !proofImage) {
-      Alert.alert('Required', 'Please capture delivery proof photo before marking as delivered');
-      return;
-    }
     setUpdating(true);
     try {
       var token = user && user.token ? user.token : '';
       var body = { delivery_status: newStatus };
       if (newStatus === 'delivered') {
-        if (proofImage && proofImage.base64) {
-          body.delivery_proof = {
-            image_url: 'data:image/jpeg;base64,' + proofImage.base64,
-            received_by: receivedBy.trim() || 'N/A',
-            payment_amount: paymentAmount.trim() ? parseFloat(paymentAmount.trim()) : 0,
-            payment_mode: paymentMode,
-          };
-        }
+        body.delivery_proof = {
+          image_url: proofImage && proofImage.base64
+            ? 'data:image/jpeg;base64,' + proofImage.base64
+            : (proofImage && proofImage.uri ? proofImage.uri : ''),
+          received_by: receivedBy.trim() || 'N/A',
+          payment_amount: paymentAmount.trim() ? parseFloat(paymentAmount.trim()) : 0,
+          payment_mode: paymentMode,
+        };
       }
       var response = await fetch(BASE_URL + '/api/deliveries/' + delivery._id + '/status', {
         method: 'PUT',
@@ -176,6 +194,10 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <View style={[mStyles.overlay, { backgroundColor: theme.overlay }]}>
         <View style={[mStyles.container, { backgroundColor: theme.surface }]}>
           {/* Handle bar */}
@@ -183,7 +205,11 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
             <View style={[mStyles.handleBar, { backgroundColor: theme.divider }]} />
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 40 }}
+          >
             {/* Modal header */}
             <View style={mStyles.header}>
               <Text style={[mStyles.title, { color: theme.primary }]}>Delivery Details</Text>
@@ -320,8 +346,17 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
                       </Text>
                     </TouchableOpacity>
                     {proofImage ? (
-                      <Image source={{ uri: proofImage.uri }} style={mStyles.proofImage} />
-                    ) : null}
+                      <View>
+                        <Text style={{ color: theme.success || 'green', fontSize: 12, marginTop: 6, marginBottom: 4 }}>
+                          ✓ Photo captured ({proofImage.base64 ? 'with base64' : 'uri only'})
+                        </Text>
+                        <Image source={{ uri: proofImage.uri }} style={mStyles.proofImage} />
+                      </View>
+                    ) : (
+                      <Text style={{ color: theme.textTertiary, fontSize: 12, marginTop: 6 }}>
+                        No photo captured yet (optional)
+                      </Text>
+                    )}
                     <TextInput
                       style={[mStyles.input, { backgroundColor: theme.surfaceVariant, color: theme.text, borderColor: theme.divider }]}
                       placeholder="Received by (name)"
@@ -400,6 +435,7 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
           </ScrollView>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
