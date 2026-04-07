@@ -129,7 +129,7 @@ export default function DeliveryAgentListScreen({ user, onGoBack }) {
             try {
               setDeletingId(item._id);
               const token = user && user.token ? user.token : '';
-              const response = await fetch(`${BASE_URL}/api/employees/delivery/${item._id}`, {
+              const response = await fetch(`${BASE_URL}/api/employees/${item._id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
               });
@@ -201,60 +201,60 @@ export default function DeliveryAgentListScreen({ user, onGoBack }) {
 
   const renderItem = ({ item }) => {
     const designation = item.designation_id && item.designation_id.designation_name;
-    const role = item.role_id && item.role_id.role_name;
     return (
       <View
         style={{
           backgroundColor: theme.surface,
           borderRadius: 16,
           padding: 16,
+          marginBottom: 12,
           marginHorizontal: 16,
-          marginBottom: 10,
           elevation: 2,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
+          shadowOffset: { width: 0, height: 1 },
           shadowOpacity: 0.08,
-          shadowRadius: 6,
+          shadowRadius: 4,
+          borderLeftWidth: 4,
+          borderLeftColor: theme.info,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: theme.primary + '22',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginRight: 12,
-            }}
-          >
-            <Text style={{ fontSize: 20 }}>🚚</Text>
+        {/* Header: avatar, name, HQ badge */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: theme.info + '18', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+              <Text style={{ fontSize: 20 }}>🚚</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: theme.text }} numberOfLines={1}>{item.full_name || '--'}</Text>
+              {item.phone_number ? (
+                <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>{item.phone_number}</Text>
+              ) : null}
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>
-              {item.full_name || 'Unnamed'}
-            </Text>
-            {role ? (
-              <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}>{role}</Text>
-            ) : null}
-          </View>
+          {item.headquarter_name ? (
+            <View style={{ backgroundColor: theme.infoBg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.info }}>{item.headquarter_name}</Text>
+            </View>
+          ) : null}
         </View>
+
+        {/* Email */}
         {item.email ? (
-          <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 8 }}>✉ {item.email}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 }}>
+            <Text style={{ fontSize: 13, marginRight: 6 }}>✉️</Text>
+            <Text style={{ fontSize: 13, color: theme.textSecondary, flex: 1 }} numberOfLines={1}>{item.email}</Text>
+          </View>
         ) : null}
-        {item.phone_number ? (
-          <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>📞 {item.phone_number}</Text>
-        ) : null}
-        {item.headquarter_name ? (
-          <Text style={{ fontSize: 11, color: theme.primary, marginTop: 6, fontWeight: '600' }}>
-            📍 {item.headquarter_name}
-          </Text>
-        ) : null}
+
+        {/* Designation */}
         {designation ? (
-          <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 4 }}>{designation}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ fontSize: 13, marginRight: 6 }}>🪪</Text>
+            <Text style={{ fontSize: 12, color: theme.textTertiary }}>{designation}</Text>
+          </View>
         ) : null}
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10, gap: 8 }}>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 8 }}>
           <TouchableOpacity
             onPress={() => openEditModal(item)}
             style={{
