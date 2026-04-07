@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BASE_URL } from '../config';
+import BackButton from '../components/BackButton';
 import {
   StyleSheet,
   Text,
@@ -105,9 +106,7 @@ export default function VisitsScreen({ user, vendors, onGoBack }) {
         <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
 
         <View style={styles.navRow}>
-          <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
-            <Text style={styles.backArrow}>{'\u2039'}</Text>
-          </TouchableOpacity>
+          <BackButton onPress={onGoBack} />
           <Text style={styles.headerTitle}>Vendor Visits</Text>
           <View style={[styles.avatar, { backgroundColor: theme.secondary }]}>
             <Text style={styles.avatarText}>{avatarLetter}</Text>

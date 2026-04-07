@@ -1,4 +1,5 @@
 import React from 'react';
+import BackButton from '../components/BackButton';
 import {
   StyleSheet,
   Text,
@@ -39,13 +40,7 @@ export default function ProfileScreen({ user, onGoBack, onLogout }) {
         <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
 
         <View style={styles.headerNav}>
-          <TouchableOpacity
-            style={styles.navBtn}
-            onPress={onGoBack}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-          </TouchableOpacity>
+          <BackButton onPress={onGoBack} />
 
           <Text style={styles.headerTitle}>My Profile</Text>
 

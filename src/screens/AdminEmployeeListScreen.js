@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import BackButton from '../components/BackButton';
 import {
   StyleSheet,
   Text,
@@ -370,9 +371,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
         <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
 
         <View style={styles.navRow}>
-          <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
-            <Ionicons name="chevron-back" size={22} color="#fff" />
-          </TouchableOpacity>
+          <BackButton onPress={onGoBack} />
           <Text style={styles.headerTitle}>All Employees</Text>
           <View style={styles.navSpacer} />
         </View>
@@ -545,9 +544,7 @@ export default function AdminEmployeeListScreen({ user, onGoBack }) {
             <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
 
             <View style={styles.navRow}>
-              <TouchableOpacity style={styles.backBtn} onPress={function() { setShowEmpVendorMap(false); }}>
-                <Ionicons name="chevron-back" size={22} color="#fff" />
-              </TouchableOpacity>
+              <BackButton onPress={function() { setShowEmpVendorMap(false); }} />
               <Text style={styles.headerTitle}>Vendor Map</Text>
               <View style={styles.navSpacer} />
             </View>

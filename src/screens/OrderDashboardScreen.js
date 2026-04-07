@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { BASE_URL } from '../config';
+import BackButton from '../components/BackButton';
 import {
   StyleSheet,
   Text,
@@ -982,13 +983,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {onGoBack ? (
-              <TouchableOpacity
-                style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}
-                onPress={onGoBack}
-                activeOpacity={0.7}
-              >
-                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>{'<'}</Text>
-              </TouchableOpacity>
+              <BackButton onPress={onGoBack} />
             ) : null}
             <View>
               <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>Welcome Back,</Text>

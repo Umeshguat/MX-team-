@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BASE_URL } from '../config';
+import BackButton from '../components/BackButton';
 import {
   StyleSheet,
   Text,
@@ -1211,9 +1212,7 @@ export default function AdminDashboardScreen({ user, onLogout, onGoToProfile, on
             <View style={[s.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
             <View style={[s.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
             <View style={s.mapHeaderTop}>
-              <TouchableOpacity style={s.mapBackBtn} onPress={function() { setShowEmpVendorMap(false); }}>
-                <Text style={s.mapBackText}>{"<"} Back</Text>
-              </TouchableOpacity>
+              <BackButton onPress={function() { setShowEmpVendorMap(false); }} />
               <Text style={s.mapHeaderTitle}>Vendor Map</Text>
               <View style={{ width: 60 }} />
             </View>

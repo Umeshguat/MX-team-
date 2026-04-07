@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { BASE_URL } from '../config';
+import BackButton from '../components/BackButton';
 import {
   StyleSheet,
   Text,
@@ -1595,9 +1596,7 @@ function SubScreenWrapper({ title, onGoBack, user, children, theme }) {
         <View style={[styles.circle3, { backgroundColor: theme.secondary ? (theme.secondary + '26') : 'rgba(139,92,246,0.15)' }]} />
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
-            <TouchableOpacity style={styles.navBtn} onPress={onGoBack} activeOpacity={0.7}>
-              <Text style={styles.navBtnText}>{'<'}</Text>
-            </TouchableOpacity>
+            <BackButton onPress={onGoBack} />
             <Text style={styles.headerTitle}>{title}</Text>
           </View>
         </View>
@@ -1724,9 +1723,7 @@ export default function InventoryDashboardScreen({ user, onGoBack, onLogout }) {
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
             {onGoBack ? (
-              <TouchableOpacity style={styles.navBtn} onPress={onGoBack} activeOpacity={0.7}>
-                <Text style={styles.navBtnText}>{'<'}</Text>
-              </TouchableOpacity>
+              <BackButton onPress={onGoBack} />
             ) : null}
             <View style={[styles.userAvatar, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
               <Text style={styles.userAvatarText}>{userInitial}</Text>

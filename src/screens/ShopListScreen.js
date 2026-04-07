@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BASE_URL } from '../config';
+import BackButton from '../components/BackButton';
 import {
   Text,
   View,
@@ -233,13 +234,7 @@ export default function ShopListScreen({ user, onGoBack }) {
         {/* Nav Row */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
           {onGoBack ? (
-            <TouchableOpacity
-              style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}
-              onPress={onGoBack}
-              activeOpacity={0.7}
-            >
-              <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>{'<'}</Text>
-            </TouchableOpacity>
+            <BackButton onPress={onGoBack} />
           ) : null}
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 20, fontWeight: '800', color: '#FFFFFF' }}>Shops</Text>

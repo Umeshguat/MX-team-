@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BASE_URL } from '../config';
+import BackButton from '../components/BackButton';
 import {
   StyleSheet,
   Text,
@@ -253,9 +254,7 @@ export default function AttendanceScreen({ user, onGoBack }) {
 
         {/* Nav Row */}
         <View style={styles.navRow}>
-          <TouchableOpacity style={styles.backButton} onPress={onGoBack} activeOpacity={0.7}>
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-          </TouchableOpacity>
+          <BackButton onPress={onGoBack} />
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Attendance</Text>
           </View>

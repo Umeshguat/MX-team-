@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BASE_URL } from '../config';
+import BackButton from '../components/BackButton';
 import {
   StyleSheet,
   Text,
@@ -208,9 +209,7 @@ export default function DailyAllowanceScreen({ user, onGoBack }) {
         <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
 
         <View style={styles.navRow}>
-          <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-          </TouchableOpacity>
+          <BackButton onPress={onGoBack} />
           <Text style={styles.headerTitle}>Daily Allowance</Text>
           <View style={[styles.avatar, { backgroundColor: theme.secondary }]}>
             <Text style={styles.avatarText}>{avatarLetter}</Text>

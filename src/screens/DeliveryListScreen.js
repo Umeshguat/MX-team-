@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BASE_URL } from '../config';
+import BackButton from '../components/BackButton';
 import {
   StyleSheet,
   Text,
@@ -683,9 +684,7 @@ export default function DeliveryListScreen({ user, onGoBack }) {
         <View style={styles.circle3} />
 
         <View style={styles.headerTop}>
-          <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
-            <Text style={styles.backText}>&#8249;</Text>
-          </TouchableOpacity>
+          <BackButton onPress={onGoBack} />
           <Text style={styles.headerTitle}>All Deliveries</Text>
           <View style={styles.headerAvatar}>
             <Text style={styles.headerAvatarText}>{firstLetter}</Text>

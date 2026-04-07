@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BASE_URL } from '../config';
+import BackButton from '../components/BackButton';
 import {
   StyleSheet,
   Text,
@@ -338,9 +339,7 @@ export default function OrderListScreen({ user, onGoBack }) {
         <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
 
         <View style={styles.headerNav}>
-          <TouchableOpacity style={styles.backBtn} onPress={onGoBack} activeOpacity={0.7}>
-            <Text style={styles.backBtnText}>‹</Text>
-          </TouchableOpacity>
+          <BackButton onPress={onGoBack} />
           <Text style={styles.headerTitle}>All Orders</Text>
           <View style={{ width: 38 }} />
         </View>

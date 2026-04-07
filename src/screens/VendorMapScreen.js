@@ -10,6 +10,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
 import { BASE_URL } from '../config';
+import BackButton from '../components/BackButton';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -141,9 +142,7 @@ export default function VendorMapScreen({ user, onGoBack }) {
         <View style={[styles.decorCircle3, { backgroundColor: theme.secondary + '26' }]} />
 
         <View style={styles.navRow}>
-          <TouchableOpacity style={styles.backBtn} onPress={onGoBack}>
-            <Text style={styles.backArrow}>{'\u2039'}</Text>
-          </TouchableOpacity>
+          <BackButton onPress={onGoBack} />
           <Text style={styles.headerTitle}>Vendor Visit Map</Text>
           <View style={styles.navSpacer} />
         </View>
