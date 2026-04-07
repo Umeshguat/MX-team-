@@ -21,9 +21,9 @@ import { useTheme } from '../theme/ThemeContext';
 
 const PAGE_LIMIT = 10;
 
-export default function SalesListScreen({ user, onGoBack }) {
+export default function DeliveryAgentListScreen({ user, onGoBack }) {
   const { theme, isDark } = useTheme();
-  const [sales, setSales] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,7 +70,7 @@ export default function SalesListScreen({ user, onGoBack }) {
     setModalVisible(true);
   };
 
-  const handleAddSales = async () => {
+  const handleSubmit = async () => {
     const requiredOk = editingId
       ? form.full_name && form.email && form.headquarter_name && form.phone_number
       : form.full_name && form.email && form.headquarter_name && form.phone_number && form.password;
@@ -86,7 +86,7 @@ export default function SalesListScreen({ user, onGoBack }) {
       if (editingId && !body.password) delete body.password;
       const url = editingId
         ? `${BASE_URL}/api/employees/${editingId}`
-        : `${BASE_URL}/api/employees/sales`;
+        : `${BASE_URL}/api/employees/delivery`;
       const response = await fetch(url, {
         method: editingId ? 'PUT' : 'POST',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -97,16 +97,15 @@ export default function SalesListScreen({ user, onGoBack }) {
       try {
         result = text ? JSON.parse(text) : {};
       } catch (parseErr) {
-        console.log('Sales add parse error:', parseErr, 'raw:', text);
         Alert.alert('Error', `Server returned invalid response (${response.status})`);
         return;
       }
       if (response.ok && (result.status === 200 || result.status === 201 || result.success)) {
-        Alert.alert('Success', result.message || (editingId ? 'Updated' : 'Sales employee added'));
+        Alert.alert('Success', result.message || (editingId ? 'Updated' : 'Delivery agent added'));
         setModalVisible(false);
         setEditingId(null);
         resetForm();
-        fetchSales(1, false);
+        fetchAgents(1, false);
       } else {
         Alert.alert('Error', result.message || 'Failed');
       }
@@ -117,7 +116,7 @@ export default function SalesListScreen({ user, onGoBack }) {
     }
   };
 
-  const handleDeleteSales = (item) => {
+  const handleDelete = (item) => {
     Alert.alert(
       'Delete',
       `Delete ${item.full_name}?`,
@@ -130,13 +129,13 @@ export default function SalesListScreen({ user, onGoBack }) {
             try {
               setDeletingId(item._id);
               const token = user && user.token ? user.token : '';
-              const response = await fetch(`${BASE_URL}/api/employees/sales/${item._id}`, {
+              const response = await fetch(`${BASE_URL}/api/employees/delivery/${item._id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
               });
               const result = await response.json().catch(() => ({}));
               if (response.ok && (result.status === 200 || result.success !== false)) {
-                setSales((prev) => prev.filter((s) => s._id !== item._id));
+                setAgents((prev) => prev.filter((s) => s._id !== item._id));
               } else {
                 Alert.alert('Error', result.message || 'Failed to delete');
               }
@@ -151,23 +150,23 @@ export default function SalesListScreen({ user, onGoBack }) {
     );
   };
 
-  const fetchSales = useCallback(async (pageNum = 1, append = false) => {
+  const fetchAgents = useCallback(async (pageNum = 1, append = false) => {
     try {
       if (append) setLoadingMore(true);
       else if (!refreshing) setLoading(true);
       const token = user && user.token ? user.token : '';
       const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-      const url = `${BASE_URL}/api/employees/sales?page=${pageNum}&limit=${PAGE_LIMIT}`;
+      const url = `${BASE_URL}/api/employees/delivery?page=${pageNum}&limit=${PAGE_LIMIT}`;
       const response = await fetch(url, { headers });
       const result = await response.json();
-      const list = result.data || result.sales || [];
+      const list = result.data || [];
       const safeList = Array.isArray(list) ? list : [];
-      setSales((prev) => (append ? [...prev, ...safeList] : safeList));
-      setPage((result.pagination && result.pagination.page) || result.page || pageNum);
-      setTotalPages((result.pagination && result.pagination.totalPages) || result.totalPages || 1);
+      setAgents((prev) => (append ? [...prev, ...safeList] : safeList));
+      setPage((result.pagination && result.pagination.page) || pageNum);
+      setTotalPages((result.pagination && result.pagination.totalPages) || 1);
     } catch (e) {
-      console.log('Sales fetch error:', e);
-      if (!append) setSales([]);
+      console.log('Delivery agents fetch error:', e);
+      if (!append) setAgents([]);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -176,97 +175,118 @@ export default function SalesListScreen({ user, onGoBack }) {
   }, [user, refreshing]);
 
   useEffect(() => {
-    fetchSales(1, false);
+    fetchAgents(1, false);
   }, [user]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchSales(1, false);
+    fetchAgents(1, false);
   };
 
   const onEndReached = () => {
     if (loadingMore || loading) return;
     if (page >= totalPages) return;
-    fetchSales(page + 1, true);
+    fetchAgents(page + 1, true);
   };
 
-  const filtered = sales.filter((s) => {
+  const filtered = agents.filter((s) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
-    const name = (s.full_name || s.name || s.employee_name || '').toLowerCase();
+    const name = (s.full_name || '').toLowerCase();
     const email = (s.email || '').toLowerCase();
-    const mobile = (s.phone_number || s.mobile || s.phone || '').toString().toLowerCase();
+    const mobile = (s.phone_number || '').toString().toLowerCase();
     const hq = (s.headquarter_name || '').toLowerCase();
     return name.includes(q) || email.includes(q) || mobile.includes(q) || hq.includes(q);
   });
 
-  const renderItem = ({ item }) => (
-    <View
-      style={{
-        backgroundColor: theme.surface,
-        borderRadius: 16,
-        padding: 16,
-        marginHorizontal: 16,
-        marginBottom: 10,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
-      }}
-    >
-      <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>
-        {item.full_name || item.name || item.employee_name || 'Unnamed'}
-      </Text>
-      {item.email ? (
-        <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 4 }}>{item.email}</Text>
-      ) : null}
-      {item.phone_number || item.mobile || item.phone ? (
-        <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>
-          {item.phone_number || item.mobile || item.phone}
-        </Text>
-      ) : null}
-      {item.headquarter_name ? (
-        <Text style={{ fontSize: 11, color: theme.primary, marginTop: 6, fontWeight: '600' }}>
-          {item.headquarter_name}
-        </Text>
-      ) : null}
-      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10, gap: 8 }}>
-        <TouchableOpacity
-          onPress={() => openEditModal(item)}
-          style={{
-            backgroundColor: theme.primary,
-            paddingHorizontal: 14,
-            paddingVertical: 7,
-            borderRadius: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-        >
-          <Text style={{ color: theme.buttonText, fontSize: 12, fontWeight: '700' }}>✎ Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          disabled={deletingId === item._id}
-          onPress={() => handleDeleteSales(item)}
-          style={{
-            backgroundColor: '#e53935',
-            paddingHorizontal: 14,
-            paddingVertical: 7,
-            borderRadius: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-            opacity: deletingId === item._id ? 0.6 : 1,
-          }}
-        >
-          {deletingId === item._id ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>🗑 Delete</Text>
-          )}
-        </TouchableOpacity>
+  const renderItem = ({ item }) => {
+    const designation = item.designation_id && item.designation_id.designation_name;
+    const role = item.role_id && item.role_id.role_name;
+    return (
+      <View
+        style={{
+          backgroundColor: theme.surface,
+          borderRadius: 16,
+          padding: 16,
+          marginHorizontal: 16,
+          marginBottom: 10,
+          elevation: 2,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 6,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: theme.primary + '22',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 12,
+            }}
+          >
+            <Text style={{ fontSize: 20 }}>🚚</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>
+              {item.full_name || 'Unnamed'}
+            </Text>
+            {role ? (
+              <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}>{role}</Text>
+            ) : null}
+          </View>
+        </View>
+        {item.email ? (
+          <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 8 }}>✉ {item.email}</Text>
+        ) : null}
+        {item.phone_number ? (
+          <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>📞 {item.phone_number}</Text>
+        ) : null}
+        {item.headquarter_name ? (
+          <Text style={{ fontSize: 11, color: theme.primary, marginTop: 6, fontWeight: '600' }}>
+            📍 {item.headquarter_name}
+          </Text>
+        ) : null}
+        {designation ? (
+          <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 4 }}>{designation}</Text>
+        ) : null}
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10, gap: 8 }}>
+          <TouchableOpacity
+            onPress={() => openEditModal(item)}
+            style={{
+              backgroundColor: theme.primary,
+              paddingHorizontal: 14,
+              paddingVertical: 7,
+              borderRadius: 8,
+            }}
+          >
+            <Text style={{ color: theme.buttonText, fontSize: 12, fontWeight: '700' }}>✎ Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            disabled={deletingId === item._id}
+            onPress={() => handleDelete(item)}
+            style={{
+              backgroundColor: '#e53935',
+              paddingHorizontal: 14,
+              paddingVertical: 7,
+              borderRadius: 8,
+              opacity: deletingId === item._id ? 0.6 : 1,
+            }}
+          >
+            {deletingId === item._id ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>🗑 Delete</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -280,7 +300,7 @@ export default function SalesListScreen({ user, onGoBack }) {
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
           <BackButton onPress={onGoBack} color={theme.buttonText} />
           <Text style={{ fontSize: 20, fontWeight: '800', color: theme.buttonText, marginLeft: 12, flex: 1 }}>
-            Sales Team
+            Delivery Agents
           </Text>
           <TouchableOpacity
             onPress={openAddModal}
@@ -299,7 +319,7 @@ export default function SalesListScreen({ user, onGoBack }) {
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Search sales..."
+          placeholder="Search delivery agents..."
           placeholderTextColor={theme.textTertiary}
           style={{
             backgroundColor: theme.surface,
@@ -319,7 +339,7 @@ export default function SalesListScreen({ user, onGoBack }) {
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={(item, idx) => (item._id || item.id || String(idx))}
+          keyExtractor={(item, idx) => (item._id || String(idx))}
           renderItem={renderItem}
           contentContainerStyle={{ paddingTop: 14, paddingBottom: 30 }}
           refreshControl={
@@ -336,7 +356,7 @@ export default function SalesListScreen({ user, onGoBack }) {
           }
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingVertical: 50 }}>
-              <Text style={{ fontSize: 14, color: theme.textTertiary }}>No sales found</Text>
+              <Text style={{ fontSize: 14, color: theme.textTertiary }}>No delivery agents found</Text>
             </View>
           }
         />
@@ -364,7 +384,7 @@ export default function SalesListScreen({ user, onGoBack }) {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text, flex: 1 }}>
-                {editingId ? 'Edit Sales Employee' : 'Add Sales Employee'}
+                {editingId ? 'Edit Delivery Agent' : 'Add Delivery Agent'}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Text style={{ fontSize: 22, color: theme.textTertiary }}>×</Text>
@@ -405,7 +425,7 @@ export default function SalesListScreen({ user, onGoBack }) {
               ))}
               <TouchableOpacity
                 disabled={submitting}
-                onPress={handleAddSales}
+                onPress={handleSubmit}
                 style={{
                   backgroundColor: theme.primary,
                   borderRadius: 12,
@@ -420,7 +440,7 @@ export default function SalesListScreen({ user, onGoBack }) {
                   <ActivityIndicator color={theme.buttonText} />
                 ) : (
                   <Text style={{ color: theme.buttonText, fontWeight: '700', fontSize: 15 }}>
-                    {editingId ? 'Update Sales Employee' : 'Add Sales Employee'}
+                    {editingId ? 'Update Delivery Agent' : 'Add Delivery Agent'}
                   </Text>
                 )}
               </TouchableOpacity>

@@ -33,6 +33,7 @@ import DeliveryListScreen from './src/screens/DeliveryListScreen';
 import OrderListScreen from './src/screens/OrderListScreen';
 import ShopListScreen from './src/screens/ShopListScreen';
 import SalesListScreen from './src/screens/SalesListScreen';
+import DeliveryAgentListScreen from './src/screens/DeliveryAgentListScreen';
 
 const SESSION_KEY = 'user_session';
 
@@ -204,7 +205,7 @@ function AppContent() {
         onGoToInventory={() => setScreen('inventory')}
         onGoToOrderList={() => setScreen('orderList')}
         onGoToShopList={() => setScreen('shopList')}
-        onGoToDeliveryList={isDistributor ? () => setScreen('deliveryList') : null}
+        onGoToDeliveryList={isDistributor ? () => setScreen('deliveryAgentList') : null}
         onGoToSalesList={() => setScreen('salesList')}
       />
     );
@@ -231,6 +232,15 @@ function AppContent() {
   if (screen === 'salesList') {
     return (
       <SalesListScreen
+        user={user}
+        onGoBack={() => setScreen(homeDashboard)}
+      />
+    );
+  }
+
+  if (screen === 'deliveryAgentList') {
+    return (
+      <DeliveryAgentListScreen
         user={user}
         onGoBack={() => setScreen(homeDashboard)}
       />
