@@ -58,6 +58,17 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
   var [updating, setUpdating] = useState(false);
   var [proofImage, setProofImage] = useState(null);
   var [receivedBy, setReceivedBy] = useState('');
+  var [paymentAmount, setPaymentAmount] = useState('');
+  var [paymentMode, setPaymentMode] = useState('cash');
+  var [transactionReference, setTransactionReference] = useState('');
+  var [note, setNote] = useState('');
+  var PAYMENT_MODES = [
+    { key: 'cash', label: 'Cash' },
+    { key: 'upi', label: 'UPI' },
+    { key: 'card', label: 'Card' },
+    { key: 'online', label: 'Online' },
+    { key: 'marginx_bharat', label: 'MarginX Bharat' },
+  ];
 
   var getNextStatuses = function(current) {
     switch (current) {
@@ -98,6 +109,8 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
           body.delivery_proof = {
             image_url: 'data:image/jpeg;base64,' + proofImage.base64,
             received_by: receivedBy.trim() || 'N/A',
+            payment_amount: paymentAmount.trim() ? parseFloat(paymentAmount.trim()) : 0,
+            payment_mode: paymentMode,
           };
         }
       }
@@ -111,9 +124,38 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
       });
       var result = await response.json();
       if (response.ok) {
+        // Call payment API if delivered with payment amount
+        if (newStatus === 'delivered' && paymentAmount.trim()) {
+          var orderId = delivery.order_id && delivery.order_id._id ? delivery.order_id._id : delivery.order_id;
+          try {
+            var payResponse = await fetch(BASE_URL + '/api/payment-credits/' + orderId + '/pay', {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                amount: parseFloat(paymentAmount.trim()),
+                payment_mode: paymentMode,
+                transaction_reference: transactionReference.trim() || undefined,
+                note: note.trim() || undefined,
+              }),
+            });
+            var payResult = await payResponse.json();
+            if (!payResponse.ok) {
+              Alert.alert('Payment Warning', payResult.message || 'Payment recording failed, but delivery was updated.');
+            }
+          } catch (payErr) {
+            Alert.alert('Payment Warning', 'Could not record payment, but delivery was updated.');
+          }
+        }
         Alert.alert('Success', 'Delivery status updated to ' + STATUS_LABELS[newStatus]);
         setProofImage(null);
         setReceivedBy('');
+        setPaymentAmount('');
+        setPaymentMode('cash');
+        setTransactionReference('');
+        setNote('');
         onStatusUpdate();
         onClose();
       } else {
@@ -281,11 +323,57 @@ function DeliveryDetailModal({ visible, onClose, delivery, user, onStatusUpdate,
                       <Image source={{ uri: proofImage.uri }} style={mStyles.proofImage} />
                     ) : null}
                     <TextInput
-                      style={[mStyles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.divider }]}
+                      style={[mStyles.input, { backgroundColor: theme.surfaceVariant, color: theme.text, borderColor: theme.divider }]}
                       placeholder="Received by (name)"
                       placeholderTextColor={theme.textTertiary}
                       value={receivedBy}
                       onChangeText={setReceivedBy}
+                    />
+                    <TextInput
+                      style={[mStyles.input, { backgroundColor: theme.surfaceVariant, color: theme.text, borderColor: theme.divider }]}
+                      placeholder="Payment Amount (₹)"
+                      placeholderTextColor={theme.textTertiary}
+                      value={paymentAmount}
+                      onChangeText={setPaymentAmount}
+                      keyboardType="numeric"
+                    />
+                    <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 6, marginTop: 4 }}>Payment Mode</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                      {PAYMENT_MODES.map(function(mode) {
+                        var isSelected = paymentMode === mode.key;
+                        return (
+                          <TouchableOpacity
+                            key={mode.key}
+                            onPress={function() { setPaymentMode(mode.key); }}
+                            style={{
+                              paddingHorizontal: 16,
+                              paddingVertical: 8,
+                              borderRadius: 20,
+                              backgroundColor: isSelected ? theme.primary : theme.surfaceVariant,
+                              borderWidth: 1,
+                              borderColor: isSelected ? theme.primary : theme.divider,
+                            }}
+                          >
+                            <Text style={{ color: isSelected ? '#fff' : theme.text, fontWeight: isSelected ? '700' : '500', fontSize: 13 }}>
+                              {mode.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    <TextInput
+                      style={[mStyles.input, { backgroundColor: theme.surfaceVariant, color: theme.text, borderColor: theme.divider }]}
+                      placeholder="Transaction Reference"
+                      placeholderTextColor={theme.textTertiary}
+                      value={transactionReference}
+                      onChangeText={setTransactionReference}
+                    />
+                    <TextInput
+                      style={[mStyles.input, { backgroundColor: theme.surfaceVariant, color: theme.text, borderColor: theme.divider }]}
+                      placeholder="Note (optional)"
+                      placeholderTextColor={theme.textTertiary}
+                      value={note}
+                      onChangeText={setNote}
                     />
                   </View>
                 ) : null}
