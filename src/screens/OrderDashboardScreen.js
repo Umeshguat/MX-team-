@@ -852,7 +852,7 @@ function OrderDetailModal({ visible, order, onClose, user }) {
 }
 
 // ======================== MAIN ORDER DASHBOARD ========================
-export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToProfile, onGoToInventory, onGoToOrderList, onGoToShopList }) {
+export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToProfile, onGoToInventory, onGoToOrderList, onGoToShopList, onGoToDeliveryList, onGoToSalesList }) {
   const { theme, isDark, toggleTheme } = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -862,6 +862,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filter, setFilter] = useState('all');
   const [stats, setStats] = useState({ total: 0, pending: 0, confirmed: 0, delivered: 0, totalAmount: 0 });
+  const isDistributor = user && user.role === 'Distributor';
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -1141,6 +1142,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
           <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>Quick Actions</Text>
         </View>
         <View style={{ marginBottom: 10 }}>
+          {!isDistributor ? (
           <TouchableOpacity
             style={{
               backgroundColor: theme.surface,
@@ -1169,6 +1171,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
               <Text style={{ fontSize: 16, color: theme.textTertiary }}>→</Text>
             </View>
           </TouchableOpacity>
+          ) : null}
 
           {onGoToInventory ? (
             <TouchableOpacity
@@ -1225,6 +1228,68 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>Shops</Text>
                 <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>View all shops</Text>
+              </View>
+              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, color: theme.textTertiary }}>→</Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
+
+          {onGoToSalesList ? (
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.surface,
+                borderRadius: 16,
+                padding: 18,
+                marginBottom: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+                elevation: 3,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+              }}
+              onPress={onGoToSalesList}
+              activeOpacity={0.7}
+            >
+              <View style={{ width: 46, height: 46, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: (theme.success || theme.primary) + '18' }}>
+                <Text style={{ fontSize: 22 }}>👥</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>Sales</Text>
+                <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>View sales team</Text>
+              </View>
+              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, color: theme.textTertiary }}>→</Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
+
+          {onGoToDeliveryList ? (
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.surface,
+                borderRadius: 16,
+                padding: 18,
+                marginBottom: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+                elevation: 3,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+              }}
+              onPress={onGoToDeliveryList}
+              activeOpacity={0.7}
+            >
+              <View style={{ width: 46, height: 46, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: (theme.warning || theme.primary) + '18' }}>
+                <Text style={{ fontSize: 22 }}>🚚</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>Delivery Agent</Text>
+                <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>Manage deliveries</Text>
               </View>
               <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
                 <Text style={{ fontSize: 16, color: theme.textTertiary }}>→</Text>
@@ -1288,7 +1353,8 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
               <Text style={{ fontSize: 32 }}>📋</Text>
             </View>
             <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>No Orders Found</Text>
-            <Text style={{ fontSize: 13, color: theme.textTertiary, marginTop: 6 }}>Create your first order to get started</Text>
+            <Text style={{ fontSize: 13, color: theme.textTertiary, marginTop: 6 }}>{isDistributor ? 'No orders to display' : 'Create your first order to get started'}</Text>
+            {!isDistributor ? (
             <TouchableOpacity
               style={{ backgroundColor: theme.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20, marginTop: 18 }}
               onPress={() => setShowCreateModal(true)}
@@ -1296,6 +1362,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
             >
               <Text style={{ color: theme.buttonText, fontSize: 14, fontWeight: '700' }}>+ Create Order</Text>
             </TouchableOpacity>
+            ) : null}
           </View>
         ) : (
           filteredOrders.map((order) => (
@@ -1339,6 +1406,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
       </ScrollView>
 
       {/* FAB - Create Order */}
+      {!isDistributor ? (
       <TouchableOpacity
         style={{
           position: 'absolute',
@@ -1361,6 +1429,7 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
       >
         <Text style={{ fontSize: 28, color: theme.buttonText, fontWeight: '600', marginTop: -2 }}>+</Text>
       </TouchableOpacity>
+      ) : null}
 
       {/* Modals */}
       <CreateOrderModal

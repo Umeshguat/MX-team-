@@ -32,6 +32,7 @@ import DeliveryDashboardScreen from './src/screens/DeliveryDashboardScreen';
 import DeliveryListScreen from './src/screens/DeliveryListScreen';
 import OrderListScreen from './src/screens/OrderListScreen';
 import ShopListScreen from './src/screens/ShopListScreen';
+import SalesListScreen from './src/screens/SalesListScreen';
 
 const SESSION_KEY = 'user_session';
 
@@ -39,6 +40,7 @@ function getHomeDashboard(role) {
   if (role === 'admin') return 'adminDashboard';
   if (role === 'Warehouse') return 'inventory';
   if (role === 'Sales') return 'orderDashboard';
+  if (role === 'Distributor') return 'orderDashboard';
   if (role === 'DeliveryAgent') return 'deliveryDashboard';
   return 'dashboard';
 }
@@ -192,6 +194,7 @@ function AppContent() {
   }
 
   if (screen === 'orderDashboard') {
+    const isDistributor = user && user.role === 'Distributor';
     return (
       <OrderDashboardScreen
         user={user}
@@ -201,6 +204,8 @@ function AppContent() {
         onGoToInventory={() => setScreen('inventory')}
         onGoToOrderList={() => setScreen('orderList')}
         onGoToShopList={() => setScreen('shopList')}
+        onGoToDeliveryList={isDistributor ? () => setScreen('deliveryList') : null}
+        onGoToSalesList={() => setScreen('salesList')}
       />
     );
   }
@@ -209,7 +214,7 @@ function AppContent() {
     return (
       <OrderListScreen
         user={user}
-        onGoBack={() => setScreen('orderDashboard')}
+        onGoBack={() => setScreen(homeDashboard)}
       />
     );
   }
@@ -218,7 +223,16 @@ function AppContent() {
     return (
       <ShopListScreen
         user={user}
-        onGoBack={() => setScreen('orderDashboard')}
+        onGoBack={() => setScreen(homeDashboard)}
+      />
+    );
+  }
+
+  if (screen === 'salesList') {
+    return (
+      <SalesListScreen
+        user={user}
+        onGoBack={() => setScreen(homeDashboard)}
       />
     );
   }
@@ -238,7 +252,7 @@ function AppContent() {
     return (
       <DeliveryListScreen
         user={user}
-        onGoBack={() => setScreen('deliveryDashboard')}
+        onGoBack={() => setScreen(homeDashboard)}
       />
     );
   }
