@@ -17,6 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BASE_URL } from '../config';
 import BackButton from '../components/BackButton';
+import EmployeeDetailModal from '../components/EmployeeDetailModal';
 import { useTheme } from '../theme/ThemeContext';
 
 const PAGE_LIMIT = 10;
@@ -35,6 +36,8 @@ export default function DeliveryAgentListScreen({ user, onGoBack }) {
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailEmployeeId, setDetailEmployeeId] = useState(null);
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -204,7 +207,12 @@ export default function DeliveryAgentListScreen({ user, onGoBack }) {
   const renderItem = ({ item }) => {
     const designation = item.designation_id && item.designation_id.designation_name;
     return (
-      <View
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => {
+          setDetailEmployeeId(item._id);
+          setDetailVisible(true);
+        }}
         style={{
           backgroundColor: theme.surface,
           borderRadius: 16,
@@ -292,7 +300,7 @@ export default function DeliveryAgentListScreen({ user, onGoBack }) {
             )}
           </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -488,6 +496,13 @@ export default function DeliveryAgentListScreen({ user, onGoBack }) {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <EmployeeDetailModal
+        visible={detailVisible}
+        employeeId={detailEmployeeId}
+        token={user && user.token}
+        onClose={() => setDetailVisible(false)}
+      />
     </View>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BASE_URL } from '../config';
 import BackButton from '../components/BackButton';
+import EmployeeDetailModal from '../components/EmployeeDetailModal';
 import {
   Text,
   View,
@@ -26,6 +27,22 @@ export default function ShopListScreen({ user, onGoBack }) {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailEmployeeId, setDetailEmployeeId] = useState(null);
+
+  const openShopDetail = (shop) => {
+    const empId =
+      shop.created_by ||
+      shop.added_by ||
+      shop.salesman_id ||
+      shop.employee_id ||
+      shop.user_id ||
+      (shop.salesman && (shop.salesman._id || shop.salesman)) ||
+      (shop.created_by_id && (shop.created_by_id._id || shop.created_by_id));
+    if (!empId) return;
+    setDetailEmployeeId(empId);
+    setDetailVisible(true);
+  };
 
   const fetchShops = async (pageNum = 1, reset = false) => {
     try {
@@ -109,7 +126,9 @@ export default function ShopListScreen({ user, onGoBack }) {
   };
 
   const renderShopCard = ({ item: shop }) => (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => openShopDetail(shop)}
       style={{
         backgroundColor: theme.surface,
         borderRadius: 16,
@@ -186,7 +205,7 @@ export default function ShopListScreen({ user, onGoBack }) {
           </View>
         ) : null}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   const renderFooter = () => {
@@ -305,6 +324,13 @@ export default function ShopListScreen({ user, onGoBack }) {
           ListEmptyComponent={renderEmpty}
         />
       )}
+
+      <EmployeeDetailModal
+        visible={detailVisible}
+        employeeId={detailEmployeeId}
+        token={user && user.token}
+        onClose={() => setDetailVisible(false)}
+      />
     </View>
   );
 }
