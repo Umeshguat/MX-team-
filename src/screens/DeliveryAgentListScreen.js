@@ -30,6 +30,7 @@ export default function DeliveryAgentListScreen({ user, onGoBack }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -164,6 +165,7 @@ export default function DeliveryAgentListScreen({ user, onGoBack }) {
       setAgents((prev) => (append ? [...prev, ...safeList] : safeList));
       setPage((result.pagination && result.pagination.page) || pageNum);
       setTotalPages((result.pagination && result.pagination.totalPages) || 1);
+      setTotal((result.pagination && result.pagination.total) || result.total || (Array.isArray(list) ? list.length : 0));
     } catch (e) {
       console.log('Delivery agents fetch error:', e);
       if (!append) setAgents([]);
@@ -254,33 +256,39 @@ export default function DeliveryAgentListScreen({ user, onGoBack }) {
           </View>
         ) : null}
 
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 8 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10, gap: 8 }}>
           <TouchableOpacity
             onPress={() => openEditModal(item)}
             style={{
-              backgroundColor: theme.primary,
-              paddingHorizontal: 14,
-              paddingVertical: 7,
+              width: 30,
+              height: 30,
               borderRadius: 8,
+              backgroundColor: '#1976d222',
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
+            activeOpacity={0.7}
           >
-            <Text style={{ color: theme.buttonText, fontSize: 12, fontWeight: '700' }}>✎ Edit</Text>
+            <Text style={{ fontSize: 14, color: '#1976d2' }}>✎</Text>
           </TouchableOpacity>
           <TouchableOpacity
             disabled={deletingId === item._id}
             onPress={() => handleDelete(item)}
             style={{
-              backgroundColor: '#e53935',
-              paddingHorizontal: 14,
-              paddingVertical: 7,
+              width: 30,
+              height: 30,
               borderRadius: 8,
+              backgroundColor: '#e5393522',
+              justifyContent: 'center',
+              alignItems: 'center',
               opacity: deletingId === item._id ? 0.6 : 1,
             }}
+            activeOpacity={0.7}
           >
             {deletingId === item._id ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color="#e53935" />
             ) : (
-              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>🗑 Delete</Text>
+              <Text style={{ fontSize: 14, color: '#e53935' }}>🗑</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -291,17 +299,23 @@ export default function DeliveryAgentListScreen({ user, onGoBack }) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <LinearGradient
-        colors={[theme.primary, theme.primaryDark || theme.primary]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ paddingTop: 50, paddingBottom: 20, paddingHorizontal: 16 }}
-      >
+      <LinearGradient colors={[theme.gradient1, theme.gradient2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{
+        paddingTop: 50,
+        paddingHorizontal: 20,
+        paddingBottom: 22,
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
+        overflow: 'hidden',
+      }}>
+        <View style={{ position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.08)', top: -40, right: -30 }} />
+        <View style={{ position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.05)', top: 70, left: -50 }} />
+
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-          <BackButton onPress={onGoBack} color={theme.buttonText} />
-          <Text style={{ fontSize: 20, fontWeight: '800', color: theme.buttonText, marginLeft: 12, flex: 1 }}>
-            Delivery Agents
-          </Text>
+          {onGoBack ? <BackButton onPress={onGoBack} /> : null}
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 20, fontWeight: '800', color: '#FFFFFF' }}>Delivery Agents</Text>
+            <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>{loading ? '...' : `${total} agents found`}</Text>
+          </View>
           <TouchableOpacity
             onPress={openAddModal}
             style={{
@@ -313,24 +327,50 @@ export default function DeliveryAgentListScreen({ user, onGoBack }) {
               justifyContent: 'center',
             }}
           >
-            <Text style={{ color: theme.buttonText, fontSize: 22, fontWeight: '700', marginTop: -2 }}>+</Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '700', marginTop: -2 }}>+</Text>
           </TouchableOpacity>
         </View>
-        <TextInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search delivery agents..."
-          placeholderTextColor={theme.textTertiary}
-          style={{
-            backgroundColor: theme.surface,
-            borderRadius: 12,
-            paddingHorizontal: 14,
-            paddingVertical: 10,
-            color: theme.text,
-            fontSize: 14,
-          }}
-        />
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{ fontSize: 22, fontWeight: '900', color: '#FFFFFF' }}>{total}</Text>
+            <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>Total</Text>
+          </View>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{ fontSize: 22, fontWeight: '900', color: '#FFFFFF' }}>{page}/{totalPages}</Text>
+            <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>Page</Text>
+          </View>
+        </View>
       </LinearGradient>
+
+      <View style={{ marginHorizontal: 16, marginTop: -18, zIndex: 10 }}>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: theme.surface,
+          borderRadius: 16,
+          paddingHorizontal: 14,
+          elevation: 4,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.12,
+          shadowRadius: 6,
+        }}>
+          <Text style={{ fontSize: 18, marginRight: 10 }}>🔍</Text>
+          <TextInput
+            style={{ flex: 1, paddingVertical: 14, fontSize: 14, color: theme.text }}
+            placeholder="Search by name, email, mobile..."
+            placeholderTextColor={theme.textTertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7}>
+              <Text style={{ fontSize: 18, color: theme.textTertiary }}>✕</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
 
       {loading && !refreshing ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
