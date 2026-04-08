@@ -852,7 +852,7 @@ function OrderDetailModal({ visible, order, onClose, user }) {
 }
 
 // ======================== MAIN ORDER DASHBOARD ========================
-export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToProfile, onGoToInventory, onGoToOrderList, onGoToShopList, onGoToDeliveryList, onGoToSalesList }) {
+export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToProfile, onGoToInventory, onGoToOrderList, onGoToShopList, onGoToDeliveryList, onGoToSalesList, onGoToReturnRequest }) {
   const { theme, isDark, toggleTheme } = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1290,6 +1290,37 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>Delivery Agent</Text>
                 <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>Manage deliveries</Text>
+              </View>
+              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, color: theme.textTertiary }}>→</Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
+
+          {isDistributor ? (
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.surface,
+                borderRadius: 16,
+                padding: 18,
+                marginBottom: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+                elevation: 3,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+              }}
+              onPress={onGoToReturnRequest}
+              activeOpacity={0.7}
+            >
+              <View style={{ width: 46, height: 46, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: (theme.error || theme.primary) + '18' }}>
+                <Text style={{ fontSize: 22 }}>↩️</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>Return Request</Text>
+                <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>Manage return requests</Text>
               </View>
               <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
                 <Text style={{ fontSize: 16, color: theme.textTertiary }}>→</Text>
