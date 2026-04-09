@@ -354,7 +354,6 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                   return (
                     <View style={{ paddingBottom: 20 }}>
                       <Section title="Return Request">
-                        <Row label="ID" value={d._id} />
                         <Row label="Reason" value={d.reason} />
                         <Row label="Quantity" value={d.unit} />
                         <Row label="Status" value={d.status} />
@@ -375,10 +374,9 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                           <Row label="Reorder Level" value={product.reorder_level} />
                           <Row label="Shelf Life (days)" value={product.shelf_life_days} />
                           <Row label="Active" value={product.is_active ? 'Yes' : 'No'} />
-                          <Row label="Product ID" value={product._id} />
                         </Section>
                       ) : (
-                        <Section title="Product"><Row label="Product ID" value={d.product_id} /></Section>
+                        <Section title="Product"><Row label="Product" value={d.product_id} /></Section>
                       )}
 
                       {Array.isArray(product.batches) && product.batches.length > 0 ? (
@@ -399,38 +397,35 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                       <Section title="Order">
                         {isObj(order) ? (
                           <>
-                            <Row label="Order ID" value={order._id} />
-                            <Row label="Order No." value={order.order_number} />
+                            <Row label="Order No." value={order.order_number || order._id} />
                             <Row label="Total" value={order.total_amount} />
                             <Row label="Status" value={order.status} />
                           </>
                         ) : (
-                          <Row label="Order ID" value={d.order_id} />
+                          <Row label="Order" value={d.order_id} />
                         )}
                       </Section>
 
                       <Section title="Sales Person">
                         {isObj(sales) ? (
                           <>
-                            <Row label="ID" value={sales._id} />
                             <Row label="Name" value={sales.full_name} />
                             <Row label="Email" value={sales.email} />
                             <Row label="Phone" value={sales.phone_number} />
                           </>
                         ) : (
-                          <Row label="ID" value={d.sales_person_id} />
+                          <Row label="Sales Person" value={d.sales_person_id} />
                         )}
                       </Section>
 
                       <Section title="Delivery Agent">
                         {isObj(agent) ? (
                           <>
-                            <Row label="ID" value={agent._id} />
                             <Row label="Name" value={agent.full_name} />
                             <Row label="Phone" value={agent.phone_number} />
                           </>
                         ) : (
-                          <Row label="ID" value={d.delivery_agent_id} />
+                          <Row label="Delivery Agent" value={d.delivery_agent_id} />
                         )}
                       </Section>
                     </View>
