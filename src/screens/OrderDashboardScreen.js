@@ -862,9 +862,6 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filter, setFilter] = useState('all');
   const [stats, setStats] = useState({ total: 0, pending: 0, confirmed: 0, delivered: 0, totalAmount: 0 });
-  const [returnRequests, setReturnRequests] = useState([]);
-  const [returnRequestCount, setReturnRequestCount] = useState(0);
-  const [loadingReturns, setLoadingReturns] = useState(false);
   const isDistributor = user && user.role === 'Distributor';
 
   useEffect(() => {
@@ -874,9 +871,6 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
 
   useEffect(() => {
     fetchOrders();
-    if (!isDistributor) {
-      fetchReturnRequests();
-    }
   }, []);
 
   const fetchOrders = async () => {
@@ -912,35 +906,9 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
     setStats({ total, pending, confirmed, delivered, totalAmount });
   };
 
-  const fetchReturnRequests = async (page = 1) => {
-    try {
-      setLoadingReturns(true);
-      const token = user && user.token ? user.token : '';
-      const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-      const response = await fetch(`${BASE_URL}/api/return-requests/sales?page=${page}&limit=10`, { headers });
-      const result = await response.json();
-      if ((result.status === 200 || response.ok) && result.data) {
-        setReturnRequests(result.data);
-        setReturnRequestCount(result.pagination?.total || result.data.length);
-      } else {
-        setReturnRequests([]);
-        setReturnRequestCount(0);
-      }
-    } catch (e) {
-      console.log('Return requests fetch error:', e);
-      setReturnRequests([]);
-      setReturnRequestCount(0);
-    } finally {
-      setLoadingReturns(false);
-    }
-  };
-
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([
-      fetchOrders(),
-      !isDistributor ? fetchReturnRequests() : Promise.resolve(),
-    ]).finally(() => setRefreshing(false));
+    fetchOrders().finally(() => setRefreshing(false));
   }, []);
 
   const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
@@ -1323,11 +1291,6 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
                 <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>Return Request</Text>
                 <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>Manage return requests</Text>
               </View>
-              {returnRequestCount > 0 ? (
-                <View style={{ backgroundColor: theme.error, borderRadius: 12, minWidth: 24, height: 24, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8, marginRight: 10 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#fff' }}>{returnRequestCount}</Text>
-                </View>
-              ) : null}
               <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center' }}>
                 <Text style={{ fontSize: 16, color: theme.textTertiary }}>→</Text>
               </View>
@@ -1441,117 +1404,6 @@ export default function OrderDashboardScreen({ user, onGoBack, onLogout, onGoToP
           ))
         )}
 
-        {/* Return Requests Section */}
-        {!isDistributor && (
-          <>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 22, marginBottom: 14 }}>
-              <View style={{ width: 4, height: 20, borderRadius: 2, backgroundColor: theme.error || '#EF4444', marginRight: 10 }} />
-              <Text style={{ fontSize: 18, fontWeight: '800', color: theme.text }}>Return Requests</Text>
-              {returnRequestCount > 0 && (
-                <View style={{ backgroundColor: theme.errorBg || 'rgba(239,68,68,0.12)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 2, marginLeft: 10 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: theme.error || '#EF4444' }}>{returnRequestCount}</Text>
-                </View>
-              )}
-            </View>
-
-            {loadingReturns ? (
-              <View style={{ alignItems: 'center', paddingVertical: 30 }}>
-                <ActivityIndicator size="small" color={theme.error || '#EF4444'} />
-                <Text style={{ fontSize: 13, color: theme.textTertiary, marginTop: 8 }}>Loading return requests...</Text>
-              </View>
-            ) : returnRequests.length === 0 ? (
-              <View style={{ alignItems: 'center', paddingVertical: 30 }}>
-                <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: theme.surfaceVariant, justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
-                  <Text style={{ fontSize: 26 }}>↩️</Text>
-                </View>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: theme.text }}>No Return Requests</Text>
-                <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 4 }}>No return requests found</Text>
-              </View>
-            ) : (
-              returnRequests.map((item) => {
-                const product = item.product_id;
-                const statusColor = (item.status || '').toLowerCase() === 'requested' ? theme.warning
-                  : (item.status || '').toLowerCase() === 'approved' ? theme.success
-                  : (item.status || '').toLowerCase() === 'rejected' ? theme.error
-                  : theme.textTertiary;
-                const statusBg = (item.status || '').toLowerCase() === 'requested' ? theme.warningBg
-                  : (item.status || '').toLowerCase() === 'approved' ? theme.successBg
-                  : (item.status || '').toLowerCase() === 'rejected' ? theme.errorBg
-                  : theme.surfaceVariant;
-
-                return (
-                  <TouchableOpacity
-                    key={item._id}
-                    style={{
-                      backgroundColor: theme.surface,
-                      borderRadius: 16,
-                      padding: 16,
-                      marginBottom: 10,
-                      elevation: 2,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: 0.08,
-                      shadowRadius: 4,
-                      borderLeftWidth: 4,
-                      borderLeftColor: statusColor,
-                    }}
-                    onPress={() => onGoToReturnRequest && onGoToReturnRequest()}
-                    activeOpacity={0.7}
-                  >
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <Text style={{ fontSize: 14, fontWeight: '800', color: theme.text }}>
-                        {product?.product_name || 'Unknown Product'}
-                      </Text>
-                      <View style={{ backgroundColor: statusBg, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 }}>
-                        <Text style={{ fontSize: 10, fontWeight: '800', letterSpacing: 0.5, color: statusColor }}>
-                          {(item.status || 'Pending').toUpperCase()}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {product?.product_code ? (
-                      <Text style={{ fontSize: 12, color: theme.textTertiary, marginBottom: 6 }}>Code: {product.product_code}</Text>
-                    ) : null}
-
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <Text style={{ fontSize: 13, color: theme.textSecondary }}>Qty: {item.unit || '--'}</Text>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: theme.primary }}>
-                        Rs. {product?.selling_price || 0}
-                      </Text>
-                    </View>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                      <Text style={{ fontSize: 12, color: theme.textTertiary }}>Reason: </Text>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: theme.text }}>{item.reason || '--'}</Text>
-                    </View>
-
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Text style={{ fontSize: 11, color: theme.textTertiary }}>QC: </Text>
-                        <Text style={{ fontSize: 11, fontWeight: '700', color: item.qc_status === 'pending' ? theme.warning : theme.success }}>
-                          {(item.qc_status || 'pending').toUpperCase()}
-                        </Text>
-                      </View>
-                      <Text style={{ fontSize: 11, color: theme.textTertiary }}>
-                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '--'}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
-            )}
-
-            {returnRequestCount > returnRequests.length && onGoToReturnRequest ? (
-              <TouchableOpacity
-                style={{ alignItems: 'center', paddingVertical: 10, marginBottom: 10 }}
-                onPress={onGoToReturnRequest}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: 13, fontWeight: '700', color: theme.primary }}>View All Return Requests ›</Text>
-              </TouchableOpacity>
-            ) : null}
-          </>
-        )}
       </ScrollView>
 
       {/* FAB - Create Order */}

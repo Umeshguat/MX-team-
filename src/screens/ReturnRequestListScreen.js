@@ -10,6 +10,8 @@ import {
   Modal,
   ScrollView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -54,6 +56,19 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
   const [detail, setDetail] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(null);
   const isDistributor = user && user.role === 'Distributor';
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnForm, setReturnForm] = useState({ order_id: '', product_id: '', reason: '', unit: '' });
+  const [submittingReturn, setSubmittingReturn] = useState(false);
+  const [orderDropdownList, setOrderDropdownList] = useState([]);
+  const [productDropdownList, setProductDropdownList] = useState([]);
+  const [loadingOrderDropdown, setLoadingOrderDropdown] = useState(false);
+  const [loadingProductDropdown, setLoadingProductDropdown] = useState(false);
+  const [showOrderDropdown, setShowOrderDropdown] = useState(false);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const [selectedOrderLabel, setSelectedOrderLabel] = useState('');
+  const [selectedProductLabel, setSelectedProductLabel] = useState('');
 
   const updateStatus = async (newStatus) => {
     if (!detail || !detail._id) return;
@@ -92,9 +107,10 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
     );
   };
 
-  const openDetail = async (id) => {
+  const openDetail = async (id, cachedItem) => {
     setDetailVisible(true);
-    setDetail(null);
+    if (cachedItem) setDetail(cachedItem);
+    else setDetail(null);
     setDetailLoading(true);
     try {
       const token = user && user.token ? user.token : '';
@@ -102,11 +118,98 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       });
       const result = await response.json();
-      setDetail(result.data || result || null);
+      if (result.data || result._id) {
+        setDetail(result.data || result);
+      }
     } catch (e) {
       console.log('Return request detail error:', e);
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const fetchOrderDropdown = async () => {
+    try {
+      setLoadingOrderDropdown(true);
+      const token = user && user.token ? user.token : '';
+      const response = await fetch(`${BASE_URL}/api/orders`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      });
+      const result = await response.json();
+      const list = result.orders || result.data || [];
+      setOrderDropdownList(Array.isArray(list) ? list : []);
+    } catch (e) {
+      console.log('Order dropdown fetch error:', e);
+      setOrderDropdownList([]);
+    } finally {
+      setLoadingOrderDropdown(false);
+    }
+  };
+
+  const fetchProductDropdown = async () => {
+    try {
+      setLoadingProductDropdown(true);
+      const token = user && user.token ? user.token : '';
+      const response = await fetch(`${BASE_URL}/api/inventory/products`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      });
+      const result = await response.json();
+      const list = result.products || result.data || [];
+      setProductDropdownList(Array.isArray(list) ? list : []);
+    } catch (e) {
+      console.log('Product dropdown fetch error:', e);
+      setProductDropdownList([]);
+    } finally {
+      setLoadingProductDropdown(false);
+    }
+  };
+
+  const openReturnModal = () => {
+    setShowReturnModal(true);
+    setReturnForm({ order_id: '', product_id: '', reason: '', unit: '' });
+    setSelectedOrderLabel('');
+    setSelectedProductLabel('');
+    setOrderSearch('');
+    setProductSearch('');
+    setShowOrderDropdown(false);
+    setShowProductDropdown(false);
+    fetchOrderDropdown();
+    fetchProductDropdown();
+  };
+
+  const submitReturnRequest = async () => {
+    const { order_id, product_id, reason, unit } = returnForm;
+    if (!order_id || !product_id || !reason || !unit) {
+      Alert.alert('Error', 'Please fill all fields');
+      return;
+    }
+    try {
+      setSubmittingReturn(true);
+      const token = user && user.token ? user.token : '';
+      const response = await fetch(`${BASE_URL}/api/return-requests`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: order_id.trim(),
+          sales_person_id: user._id || user.id || '',
+          product_id: product_id.trim(),
+          reason: reason.trim(),
+          unit: parseInt(unit) || 0,
+        }),
+      });
+      const result = await response.json();
+      if (response.ok || result.status === 200 || result.success) {
+        Alert.alert('Success', result.message || 'Return request created successfully');
+        setShowReturnModal(false);
+        setReturnForm({ order_id: '', product_id: '', reason: '', unit: '' });
+        fetchItems(1, false);
+      } else {
+        Alert.alert('Error', result.message || 'Failed to create return request');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.message || 'Something went wrong');
+    } finally {
+      setSubmittingReturn(false);
     }
   };
 
@@ -172,7 +275,7 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
     return (
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => openDetail(item._id)}
+        onPress={() => openDetail(item._id, item)}
         style={{
           backgroundColor: theme.surface,
           borderRadius: 16,
@@ -258,6 +361,14 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
             <Text style={{ fontSize: 20, fontWeight: '800', color: '#FFFFFF' }}>Return Requests</Text>
             <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>{loading ? '...' : `${total} requests found`}</Text>
           </View>
+          <TouchableOpacity
+            onPress={openReturnModal}
+            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 18, color: '#fff', marginRight: 4 }}>+</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>Add</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
@@ -340,7 +451,7 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                 <Text style={{ fontSize: 24, color: theme.textTertiary }}>×</Text>
               </TouchableOpacity>
             </View>
-            {detailLoading || !detail ? (
+            {!detail ? (
               <View style={{ paddingVertical: 60, alignItems: 'center' }}>
                 <ActivityIndicator size="large" color={theme.primary} />
               </View>
@@ -463,6 +574,180 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
             ) : null}
           </View>
         </View>
+      </Modal>
+
+      {/* Add Return Request Modal */}
+      <Modal visible={showReturnModal} transparent animationType="slide" onRequestClose={() => setShowReturnModal(false)}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={() => { setShowOrderDropdown(false); setShowProductDropdown(false); }}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
+            <View style={{ backgroundColor: theme.surface, borderRadius: 20, padding: 24, elevation: 10, maxHeight: '85%' }}>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: theme.text }}>New Return Request</Text>
+                  <TouchableOpacity onPress={() => setShowReturnModal(false)} activeOpacity={0.7}>
+                    <Text style={{ fontSize: 24, color: theme.textTertiary }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Order Dropdown */}
+                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary, marginBottom: 6 }}>Select Order</Text>
+                <TouchableOpacity
+                  onPress={() => { setShowOrderDropdown(!showOrderDropdown); setShowProductDropdown(false); }}
+                  style={{ backgroundColor: theme.background, borderRadius: 12, padding: 12, marginBottom: 4, borderWidth: 1, borderColor: showOrderDropdown ? theme.primary : theme.divider, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 14, color: selectedOrderLabel ? theme.text : theme.textTertiary, flex: 1 }} numberOfLines={1}>
+                    {selectedOrderLabel || 'Select an order'}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: theme.textTertiary }}>{showOrderDropdown ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
+                {showOrderDropdown && (
+                  <View style={{ backgroundColor: theme.background, borderRadius: 12, borderWidth: 1, borderColor: theme.divider, marginBottom: 4, maxHeight: 200 }}>
+                    <TextInput
+                      style={{ padding: 10, fontSize: 13, color: theme.text, borderBottomWidth: 1, borderBottomColor: theme.divider }}
+                      placeholder="Search order..."
+                      placeholderTextColor={theme.textTertiary}
+                      value={orderSearch}
+                      onChangeText={setOrderSearch}
+                    />
+                    {loadingOrderDropdown ? (
+                      <View style={{ padding: 16, alignItems: 'center' }}><ActivityIndicator size="small" color={theme.primary} /></View>
+                    ) : (
+                      <FlatList
+                        data={orderDropdownList.filter(o => {
+                          if (!orderSearch) return true;
+                          const q = orderSearch.toLowerCase();
+                          return (o._id || '').toLowerCase().includes(q) || (o.order_number || '').toLowerCase().includes(q) || String(o.grand_total || '').includes(q);
+                        })}
+                        keyExtractor={(item) => item._id}
+                        keyboardShouldPersistTaps="handled"
+                        nestedScrollEnabled
+                        style={{ maxHeight: 150 }}
+                        renderItem={({ item }) => (
+                          <TouchableOpacity
+                            onPress={() => {
+                              setReturnForm(f => ({ ...f, order_id: item._id }));
+                              setSelectedOrderLabel(item.order_number ? `#${item.order_number} - Rs.${item.grand_total || 0}` : `${item._id.slice(-8)} - Rs.${item.grand_total || 0}`);
+                              setShowOrderDropdown(false);
+                              setOrderSearch('');
+                            }}
+                            style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: theme.divider, backgroundColor: returnForm.order_id === item._id ? (theme.primaryBg || 'rgba(59,130,246,0.08)') : 'transparent' }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }} numberOfLines={1}>
+                              {item.order_number ? `#${item.order_number}` : `ID: ...${item._id.slice(-8)}`}
+                            </Text>
+                            <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}>
+                              Rs. {item.grand_total || 0} {item.order_status ? `• ${item.order_status}` : ''}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                        ListEmptyComponent={<Text style={{ padding: 16, textAlign: 'center', fontSize: 13, color: theme.textTertiary }}>No orders found</Text>}
+                      />
+                    )}
+                  </View>
+                )}
+                <View style={{ height: 10 }} />
+
+                {/* Product Dropdown */}
+                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary, marginBottom: 6 }}>Select Product</Text>
+                <TouchableOpacity
+                  onPress={() => { setShowProductDropdown(!showProductDropdown); setShowOrderDropdown(false); }}
+                  style={{ backgroundColor: theme.background, borderRadius: 12, padding: 12, marginBottom: 4, borderWidth: 1, borderColor: showProductDropdown ? theme.primary : theme.divider, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 14, color: selectedProductLabel ? theme.text : theme.textTertiary, flex: 1 }} numberOfLines={1}>
+                    {selectedProductLabel || 'Select a product'}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: theme.textTertiary }}>{showProductDropdown ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
+                {showProductDropdown && (
+                  <View style={{ backgroundColor: theme.background, borderRadius: 12, borderWidth: 1, borderColor: theme.divider, marginBottom: 4, maxHeight: 200 }}>
+                    <TextInput
+                      style={{ padding: 10, fontSize: 13, color: theme.text, borderBottomWidth: 1, borderBottomColor: theme.divider }}
+                      placeholder="Search product..."
+                      placeholderTextColor={theme.textTertiary}
+                      value={productSearch}
+                      onChangeText={setProductSearch}
+                    />
+                    {loadingProductDropdown ? (
+                      <View style={{ padding: 16, alignItems: 'center' }}><ActivityIndicator size="small" color={theme.primary} /></View>
+                    ) : (
+                      <FlatList
+                        data={productDropdownList.filter(p => {
+                          if (!productSearch) return true;
+                          const q = productSearch.toLowerCase();
+                          return (p.product_name || '').toLowerCase().includes(q) || (p.product_code || '').toLowerCase().includes(q);
+                        })}
+                        keyExtractor={(item) => item._id}
+                        keyboardShouldPersistTaps="handled"
+                        nestedScrollEnabled
+                        style={{ maxHeight: 150 }}
+                        renderItem={({ item }) => (
+                          <TouchableOpacity
+                            onPress={() => {
+                              setReturnForm(f => ({ ...f, product_id: item._id }));
+                              setSelectedProductLabel(`${item.product_name || 'Product'} (${item.product_code || item._id.slice(-6)})`);
+                              setShowProductDropdown(false);
+                              setProductSearch('');
+                            }}
+                            style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: theme.divider, backgroundColor: returnForm.product_id === item._id ? (theme.primaryBg || 'rgba(59,130,246,0.08)') : 'transparent' }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }} numberOfLines={1}>
+                              {item.product_name || 'Unknown'}
+                            </Text>
+                            <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}>
+                              {item.product_code ? `Code: ${item.product_code}` : ''} {item.selling_price ? `• Rs. ${item.selling_price}` : ''}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                        ListEmptyComponent={<Text style={{ padding: 16, textAlign: 'center', fontSize: 13, color: theme.textTertiary }}>No products found</Text>}
+                      />
+                    )}
+                  </View>
+                )}
+                <View style={{ height: 10 }} />
+
+                {/* Reason */}
+                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary, marginBottom: 6 }}>Reason</Text>
+                <TextInput
+                  style={{ backgroundColor: theme.background, borderRadius: 12, padding: 12, fontSize: 14, color: theme.text, marginBottom: 14, borderWidth: 1, borderColor: theme.divider, minHeight: 60 }}
+                  placeholder="Enter reason (e.g. damage, wrong item)"
+                  placeholderTextColor={theme.textTertiary}
+                  value={returnForm.reason}
+                  onChangeText={(v) => setReturnForm(f => ({ ...f, reason: v }))}
+                  multiline
+                />
+
+                {/* Unit */}
+                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary, marginBottom: 6 }}>Unit (Quantity)</Text>
+                <TextInput
+                  style={{ backgroundColor: theme.background, borderRadius: 12, padding: 12, fontSize: 14, color: theme.text, marginBottom: 20, borderWidth: 1, borderColor: theme.divider }}
+                  placeholder="Enter quantity"
+                  placeholderTextColor={theme.textTertiary}
+                  value={returnForm.unit}
+                  onChangeText={(v) => setReturnForm(f => ({ ...f, unit: v }))}
+                  keyboardType="numeric"
+                />
+
+                {/* Submit */}
+                <TouchableOpacity
+                  onPress={submitReturnRequest}
+                  disabled={submittingReturn}
+                  style={{ backgroundColor: theme.error || '#EF4444', borderRadius: 14, paddingVertical: 14, alignItems: 'center', opacity: submittingReturn ? 0.6 : 1 }}
+                  activeOpacity={0.7}
+                >
+                  {submittingReturn ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={{ fontSize: 15, fontWeight: '800', color: '#fff' }}>Submit Return Request</Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
