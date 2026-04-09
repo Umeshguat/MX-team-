@@ -207,8 +207,7 @@ function AppContent() {
         onGoToOrderList={() => setScreen('orderList')}
         onGoToShopList={() => setScreen('shopList')}
         onGoToDeliveryList={isDistributor ? () => setScreen('deliveryAgentList') : null}
-        onGoToSalesList={() => setScreen('salesList')}
-        onGoToReturnRequest={isDistributor ? () => setScreen('returnRequest') : null}
+        onGoToReturnRequest={() => setScreen('returnRequest')}
       />
     );
   }

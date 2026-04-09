@@ -53,6 +53,7 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(null);
+  const isDistributor = user && user.role === 'Distributor';
 
   const updateStatus = async (newStatus) => {
     if (!detail || !detail._id) return;
@@ -115,7 +116,8 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
       else if (!refreshing) setLoading(true);
       const token = user && user.token ? user.token : '';
       const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-      const url = `${BASE_URL}/api/return-requests/distributor?page=${pageNum}&limit=${PAGE_LIMIT}`;
+      const endpoint = isDistributor ? 'distributor' : 'sales';
+      const url = `${BASE_URL}/api/return-requests/${endpoint}?page=${pageNum}&limit=${PAGE_LIMIT}`;
       const response = await fetch(url, { headers });
       const result = await response.json();
       const list = Array.isArray(result.data) ? result.data : [];
