@@ -71,7 +71,8 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
   const [selectedProductLabel, setSelectedProductLabel] = useState('');
 
   const updateStatus = async (newStatus) => {
-    if (!detail || !detail._id) return;
+    const detailId = detail && (detail._id || detail.id);
+    if (!detailId) return;
     Alert.alert(
       'Confirm',
       `Mark this return request as ${newStatus}?`,
@@ -83,16 +84,16 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
             try {
               setUpdatingStatus(newStatus);
               const token = user && user.token ? user.token : '';
-              const response = await fetch(`${BASE_URL}/api/return-requests/${detail._id}/status`, {
+              const response = await fetch(`${BASE_URL}/api/return-requests/${detailId}/status`, {
                 method: 'PUT',
                 headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus }),
               });
               const result = await response.json().catch(() => ({}));
-              if (response.ok && (result.status === 200 || result.success !== false)) {
+              if (response.ok) {
                 Alert.alert('Success', result.message || 'Status updated');
                 setDetail((prev) => (prev ? { ...prev, status: newStatus } : prev));
-                setItems((prev) => prev.map((it) => (it._id === detail._id ? { ...it, status: newStatus } : it)));
+                setItems((prev) => prev.map((it) => ((it._id || it.id) === detailId ? { ...it, status: newStatus } : it)));
               } else {
                 Alert.alert('Error', result.message || 'Failed to update status');
               }
@@ -118,8 +119,9 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       });
       const result = await response.json();
-      if (result.data || result._id) {
-        setDetail(result.data || result);
+      const detailData = result.data || result.returnRequest || (result._id ? result : null);
+      if (detailData) {
+        setDetail(detailData);
       }
     } catch (e) {
       console.log('Return request detail error:', e);
@@ -541,37 +543,38 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                           <Row label="Delivery Agent" value={d.delivery_agent_id} />
                         )}
                       </Section>
+
+                      {['requested', 'pending'].includes((d.status || '').toLowerCase()) ? (
+                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                          <TouchableOpacity
+                            disabled={!!updatingStatus}
+                            onPress={() => updateStatus('rejected')}
+                            style={{ flex: 1, backgroundColor: '#e53935', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: updatingStatus ? 0.7 : 1 }}
+                          >
+                            {updatingStatus === 'rejected' ? (
+                              <ActivityIndicator color="#fff" />
+                            ) : (
+                              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Reject</Text>
+                            )}
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            disabled={!!updatingStatus}
+                            onPress={() => updateStatus('approved')}
+                            style={{ flex: 1, backgroundColor: '#43a047', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: updatingStatus ? 0.7 : 1 }}
+                          >
+                            {updatingStatus === 'approved' ? (
+                              <ActivityIndicator color="#fff" />
+                            ) : (
+                              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Approve</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
                     </View>
                   );
                 })()}
               </ScrollView>
             )}
-            {detail && !detailLoading && (detail.status || '').toLowerCase() === 'requested' ? (
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                <TouchableOpacity
-                  disabled={!!updatingStatus}
-                  onPress={() => updateStatus('rejected')}
-                  style={{ flex: 1, backgroundColor: '#e53935', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: updatingStatus ? 0.7 : 1 }}
-                >
-                  {updatingStatus === 'rejected' ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Reject</Text>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  disabled={!!updatingStatus}
-                  onPress={() => updateStatus('approved')}
-                  style={{ flex: 1, backgroundColor: '#43a047', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: updatingStatus ? 0.7 : 1 }}
-                >
-                  {updatingStatus === 'approved' ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Approve</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            ) : null}
           </View>
         </View>
       </Modal>
