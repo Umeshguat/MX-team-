@@ -424,7 +424,7 @@ function DeliveryDetailModal({ visible, onClose, delivery: deliveryProp, user, o
 }
 
 // ======================== MAIN DASHBOARD ========================
-export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile, onGoToDeliveryList }) {
+export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile, onGoToDeliveryList, onGoToReturnRequest }) {
   const { theme, isDark, toggleTheme } = useTheme();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [deliveries, setDeliveries] = useState([]);
@@ -432,6 +432,7 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
   const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
   const [stats, setStats] = useState({ assigned: 0, picked_up: 0, in_transit: 0, delivered: 0, failed: 0, total: 0 });
+  const [returnRequestCount, setReturnRequestCount] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -490,9 +491,32 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
     }
   }, [user]);
 
+  const fetchReturnRequests = useCallback(async () => {
+    try {
+      const token = user && user.token ? user.token : '';
+      const response = await fetch(`${BASE_URL}/api/return-requests/pickup`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      if (response.ok) {
+        const total = (result.pagination && result.pagination.total) || (Array.isArray(result.data) ? result.data.length : 0);
+        setReturnRequestCount(total);
+      } else {
+        setReturnRequestCount(0);
+      }
+    } catch (e) {
+      console.log('Fetch return requests error:', e);
+    }
+  }, [user]);
+
   useEffect(() => {
     fetchDashboard(true);
-  }, [fetchDashboard]);
+    fetchReturnRequests();
+  }, [fetchDashboard, fetchReturnRequests]);
 
   const pendingDeliveries = deliveries.filter((d) => ['assigned', 'picked_up'].includes(d.delivery_status));
   const activeDeliveries = deliveries.filter((d) => d.delivery_status === 'in_transit');
@@ -620,6 +644,22 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
           </View>
         </View>
 
+        {/* Return Requests card full-width */}
+        <TouchableOpacity
+          style={[styles.totalCard, { backgroundColor: theme.surface }]}
+          onPress={onGoToReturnRequest}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.statsEmojiWrap, { backgroundColor: theme.warningBg }]}>
+            <Text style={styles.statsEmoji}>↩️</Text>
+          </View>
+          <View style={styles.totalCardText}>
+            <Text style={[styles.totalCardNumber, { color: theme.primary }]}>{returnRequestCount}</Text>
+            <Text style={[styles.statsLabel, { color: theme.textTertiary }]}>RETURN REQUESTS</Text>
+          </View>
+          <Text style={[styles.profileArrow, { color: theme.textTertiary, marginLeft: 'auto' }]}>›</Text>
+        </TouchableOpacity>
+
         {/* Menu Cards */}
         <View style={styles.sectionHeader}>
           <View style={[styles.sectionBar, { backgroundColor: theme.primary }]} />
@@ -632,6 +672,17 @@ export default function DeliveryDashboardScreen({ user, onLogout, onGoToProfile,
           <View style={styles.menuTextCol}>
             <Text style={[styles.menuTitle, { color: theme.text }]}>All Deliveries</Text>
             <Text style={[styles.menuSub, { color: theme.textTertiary }]}>View all delivery orders</Text>
+          </View>
+          <Text style={[styles.menuArrow, { color: theme.textTertiary }]}>›</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.menuCard, { backgroundColor: theme.surface }]} onPress={onGoToReturnRequest} activeOpacity={0.7}>
+          <View style={[styles.menuIconBg, { backgroundColor: theme.warningBg }]}>
+            <Text style={styles.menuEmoji}>↩️</Text>
+          </View>
+          <View style={styles.menuTextCol}>
+            <Text style={[styles.menuTitle, { color: theme.text }]}>Return Requests</Text>
+            <Text style={[styles.menuSub, { color: theme.textTertiary }]}>{returnRequestCount} return request{returnRequestCount !== 1 ? 's' : ''}</Text>
           </View>
           <Text style={[styles.menuArrow, { color: theme.textTertiary }]}>›</Text>
         </TouchableOpacity>

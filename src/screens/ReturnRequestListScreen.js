@@ -29,18 +29,6 @@ const STATUS_COLORS = {
   pending: '#fb8c00',
 };
 
-function StatusBadge({ label, value, theme }) {
-  const color = STATUS_COLORS[(value || '').toLowerCase()] || theme.textTertiary;
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10, marginTop: 6 }}>
-      <Text style={{ fontSize: 11, color: theme.textTertiary, marginRight: 4 }}>{label}:</Text>
-      <View style={{ backgroundColor: color + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
-        <Text style={{ fontSize: 11, fontWeight: '700', color, textTransform: 'capitalize' }}>{value || '--'}</Text>
-      </View>
-    </View>
-  );
-}
-
 export default function ReturnRequestListScreen({ user, onGoBack }) {
   const { theme, isDark } = useTheme();
   const [items, setItems] = useState([]);
@@ -55,7 +43,50 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [receiving, setReceiving] = useState(null);
   const isDistributor = user && user.role === 'Distributor';
+  const isDeliveryAgent = user && user.role === 'DeliveryAgent';
+
+  const receiveReturn = async (qcStatus, idOverride) => {
+    const detailId = idOverride || (detail && (detail._id || detail.id));
+    if (!detailId) {
+      Alert.alert('Error', 'No return request selected');
+      return;
+    }
+    try {
+      setReceiving(qcStatus);
+      const token = user && user.token ? user.token : '';
+      if (!token) {
+        Alert.alert('Auth Error', 'No auth token found. Please log in again.');
+        setReceiving(null);
+        return;
+      }
+      const payload = { qc_status: qcStatus };
+      const url = `${BASE_URL}/api/return-requests/${detailId}/receive`;
+      const authHeader = 'Bearer ' + token;
+      console.log('Receive return →', url);
+      console.log('Auth header present:', !!token, 'token length:', token.length);
+      console.log('Payload:', payload);
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json().catch(() => ({}));
+      console.log('Receive return ←', response.status, result);
+      if (response.ok) {
+        Alert.alert('Success', result.message || `Return marked as QC ${qcStatus}`);
+        setDetail((prev) => (prev ? { ...prev, qc_status: qcStatus } : prev));
+        setItems((prev) => prev.map((it) => ((it._id || it.id) === detailId ? { ...it, qc_status: qcStatus } : it)));
+      } else {
+        Alert.alert('Error', `${response.status}: ${result.message || 'Failed to receive return'}`);
+      }
+    } catch (e) {
+      Alert.alert('Error', e.message || 'Network error');
+    } finally {
+      setReceiving(null);
+    }
+  };
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [returnForm, setReturnForm] = useState({ order_id: '', product_id: '', reason: '', unit: '' });
   const [submittingReturn, setSubmittingReturn] = useState(false);
@@ -221,7 +252,7 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
       else if (!refreshing) setLoading(true);
       const token = user && user.token ? user.token : '';
       const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-      const endpoint = isDistributor ? 'distributor' : 'sales';
+      const endpoint = isDeliveryAgent ? 'pickup' : isDistributor ? 'distributor' : 'sales';
       const url = `${BASE_URL}/api/return-requests/${endpoint}?page=${pageNum}&limit=${PAGE_LIMIT}`;
       const response = await fetch(url, { headers });
       const result = await response.json();
@@ -261,7 +292,9 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
     const name = ((it.product_id && it.product_id.product_name) || '').toLowerCase();
     const code = ((it.product_id && it.product_id.product_code) || '').toLowerCase();
     const reason = (it.reason || '').toLowerCase();
-    return name.includes(q) || code.includes(q) || reason.includes(q);
+    const orderNo = ((it.order_id && it.order_id.order_number) || '').toLowerCase();
+    const vendor = ((it.order_id && it.order_id.vendor_name) || '').toLowerCase();
+    return name.includes(q) || code.includes(q) || reason.includes(q) || orderNo.includes(q) || vendor.includes(q);
   });
 
   const formatDate = (d) => {
@@ -273,7 +306,13 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
   };
 
   const renderItem = ({ item }) => {
-    const product = item.product_id || {};
+    const product = (item.product_id && typeof item.product_id === 'object') ? item.product_id : {};
+    const order = (item.order_id && typeof item.order_id === 'object') ? item.order_id : {};
+    const addr = (order && order.delivery_address) || item.delivery_address || {};
+    const orderNumber = order.order_number || item.order_number || 'N/A';
+    const vendorName = order.vendor_name || item.vendor_name || 'N/A';
+    const cityText = [addr.city, addr.state].filter(Boolean).join(', ');
+    const statusColor = STATUS_COLORS[(item.status || '').toLowerCase()] || theme.textTertiary;
     return (
       <TouchableOpacity
         activeOpacity={0.85}
@@ -281,49 +320,84 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
         style={{
           backgroundColor: theme.surface,
           borderRadius: 16,
-          padding: 16,
           marginBottom: 12,
           marginHorizontal: 16,
+          flexDirection: 'row',
+          overflow: 'hidden',
           elevation: 2,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 1 },
           shadowOpacity: 0.08,
           shadowRadius: 4,
-          borderLeftWidth: 4,
-          borderLeftColor: theme.error || '#e53935',
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-          <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: (theme.error || '#e53935') + '18', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
-            <Text style={{ fontSize: 20 }}>↩️</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: theme.text }} numberOfLines={1}>
-              {product.product_name || '--'}
+        {/* Left accent bar */}
+        <View style={{ width: 4, backgroundColor: statusColor }} />
+        <View style={{ flex: 1, padding: 16 }}>
+          {/* Header: order number + status chip */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: theme.primary }} numberOfLines={1}>
+              {orderNumber}
             </Text>
-            {product.product_code ? (
-              <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 2 }}>{product.product_code}</Text>
+            <View style={{ backgroundColor: statusColor, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 }}>
+              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700', textTransform: 'capitalize' }}>
+                {item.status || '--'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Body rows */}
+          <View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: theme.divider }}>
+              <Text style={{ fontSize: 13, width: 75, fontWeight: '500', color: theme.textTertiary }}>Vendor</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', flex: 1, color: theme.text }} numberOfLines={1}>
+                {vendorName}
+              </Text>
+            </View>
+
+            {addr.shop_name ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: theme.divider }}>
+                <Text style={{ fontSize: 13, width: 75, fontWeight: '500', color: theme.textTertiary }}>Shop</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', flex: 1, color: theme.text }} numberOfLines={1}>
+                  {addr.shop_name}
+                </Text>
+              </View>
             ) : null}
+
+            {cityText ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: theme.divider }}>
+                <Text style={{ fontSize: 13, width: 75, fontWeight: '500', color: theme.textTertiary }}>City</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', flex: 1, color: theme.text }} numberOfLines={1}>
+                  {cityText}
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: theme.divider }}>
+              <Text style={{ fontSize: 13, width: 75, fontWeight: '500', color: theme.textTertiary }}>Product</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', flex: 1, color: theme.text }} numberOfLines={1}>
+                {product.product_name || '--'}{product.product_code ? ` (${product.product_code})` : ''}
+              </Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: theme.primary, marginLeft: 8 }}>x{item.unit || '--'}</Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: theme.divider }}>
+              <Text style={{ fontSize: 13, width: 75, fontWeight: '500', color: theme.textTertiary }}>Reason</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', flex: 1, color: theme.text }} numberOfLines={2}>
+                {item.reason || '--'}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
+              <Text style={{ fontSize: 13, width: 75, fontWeight: '500', color: theme.textTertiary }}>QC</Text>
+              <View style={{ backgroundColor: (STATUS_COLORS[(item.qc_status || '').toLowerCase()] || theme.textTertiary) + '22', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 }}>
+                <Text style={{ color: STATUS_COLORS[(item.qc_status || '').toLowerCase()] || theme.textTertiary, fontSize: 11, fontWeight: '700', textTransform: 'capitalize' }}>
+                  {item.qc_status || '--'}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 11, color: theme.textTertiary, marginLeft: 'auto' }}>🕒 {formatDate(item.createdAt)}</Text>
+            </View>
           </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={{ fontSize: 11, color: theme.textTertiary }}>Qty</Text>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: theme.text }}>{item.unit || '--'}</Text>
-          </View>
-        </View>
-
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 }}>
-          <Text style={{ fontSize: 13, marginRight: 6 }}>📝</Text>
-          <Text style={{ fontSize: 13, color: theme.textSecondary, flex: 1 }}>{item.reason || '--'}</Text>
-        </View>
-
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-          <StatusBadge label="Status" value={item.status} theme={theme} />
-          <StatusBadge label="QC" value={item.qc_status} theme={theme} />
-          <StatusBadge label="Refund" value={item.refund_status} theme={theme} />
-        </View>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-          <Text style={{ fontSize: 11, color: theme.textTertiary }}>🕒 {formatDate(item.createdAt)}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -363,14 +437,16 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
             <Text style={{ fontSize: 20, fontWeight: '800', color: '#FFFFFF' }}>Return Requests</Text>
             <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>{loading ? '...' : `${total} requests found`}</Text>
           </View>
-          <TouchableOpacity
-            onPress={openReturnModal}
-            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 }}
-            activeOpacity={0.7}
-          >
-            <Text style={{ fontSize: 18, color: '#fff', marginRight: 4 }}>+</Text>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>Add</Text>
-          </TouchableOpacity>
+          {!isDeliveryAgent ? (
+            <TouchableOpacity
+              onPress={openReturnModal}
+              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ fontSize: 18, color: '#fff', marginRight: 4 }}>+</Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>Add</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
@@ -461,90 +537,45 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
               <ScrollView showsVerticalScrollIndicator={false}>
                 {(() => {
                   const d = detail || {};
-                  const product = d.product_id || {};
-                  const sales = d.sales_person_id || {};
-                  const order = d.order_id || {};
-                  const agent = d.delivery_agent_id || {};
-                  const isObj = (v) => v && typeof v === 'object';
+                  const product = (d.product_id && typeof d.product_id === 'object') ? d.product_id : {};
+                  const order = (d.order_id && typeof d.order_id === 'object') ? d.order_id : {};
+                  const addr = (order && typeof order.delivery_address === 'object' && order.delivery_address) || {};
                   return (
                     <View style={{ paddingBottom: 20 }}>
+                      {/* Order Information */}
+                      <Section title="Order Information">
+                        <Row label="Order No." value={order.order_number || (typeof d.order_id === 'string' ? d.order_id : '--')} />
+                        <Row label="Vendor" value={order.vendor_name} />
+                        <Row label="Status" value={d.status} />
+                      </Section>
+
+                      {/* Delivery Address */}
+                      <Section title="Delivery Address">
+                        <Row label="Shop Name" value={addr.shop_name} />
+                        <Row label="Shop Mobile" value={addr.shop_mobile} />
+                        <Row label="Address" value={addr.address} />
+                        <Row label="City" value={addr.city} />
+                        <Row label="State" value={addr.state} />
+                        <Row label="Pincode" value={addr.pincode} />
+                      </Section>
+
+                      {/* Product */}
+                      <Section title="Product">
+                        <Row label="Name" value={product.product_name} />
+                        <Row label="Code" value={product.product_code} />
+                      </Section>
+
+                      {/* Return Request */}
                       <Section title="Return Request">
                         <Row label="Reason" value={d.reason} />
                         <Row label="Quantity" value={d.unit} />
-                        <Row label="Status" value={d.status} />
                         <Row label="QC Status" value={d.qc_status} />
                         <Row label="Refund Status" value={d.refund_status} />
                         <Row label="Created" value={formatDate(d.createdAt)} />
                         <Row label="Updated" value={formatDate(d.updatedAt)} />
                       </Section>
 
-                      {isObj(product) ? (
-                        <Section title="Product">
-                          <Row label="Name" value={product.product_name} />
-                          <Row label="Code" value={product.product_code} />
-                          <Row label="Description" value={product.description} />
-                          <Row label="Unit" value={product.unit} />
-                          <Row label="Selling Price" value={product.selling_price} />
-                          <Row label="Total Quantity" value={product.total_quantity} />
-                          <Row label="Reorder Level" value={product.reorder_level} />
-                          <Row label="Shelf Life (days)" value={product.shelf_life_days} />
-                          <Row label="Active" value={product.is_active ? 'Yes' : 'No'} />
-                        </Section>
-                      ) : (
-                        <Section title="Product"><Row label="Product" value={d.product_id} /></Section>
-                      )}
-
-                      {Array.isArray(product.batches) && product.batches.length > 0 ? (
-                        <Section title="Batches">
-                          {product.batches.map((b, i) => (
-                            <View key={b._id || i} style={{ marginBottom: 8, padding: 10, backgroundColor: theme.surface, borderRadius: 10 }}>
-                              <Row label="Batch No." value={b.batch_number} />
-                              <Row label="Mfg Date" value={formatDate(b.manufacturing_date)} />
-                              <Row label="Expiry" value={formatDate(b.expiry_date)} />
-                              <Row label="Quantity" value={b.quantity} />
-                              <Row label="Purchase Price" value={b.purchase_price} />
-                              <Row label="Active" value={b.is_active ? 'Yes' : 'No'} />
-                            </View>
-                          ))}
-                        </Section>
-                      ) : null}
-
-                      <Section title="Order">
-                        {isObj(order) ? (
-                          <>
-                            <Row label="Order No." value={order.order_number || order._id} />
-                            <Row label="Total" value={order.total_amount} />
-                            <Row label="Status" value={order.status} />
-                          </>
-                        ) : (
-                          <Row label="Order" value={d.order_id} />
-                        )}
-                      </Section>
-
-                      <Section title="Sales Person">
-                        {isObj(sales) ? (
-                          <>
-                            <Row label="Name" value={sales.full_name} />
-                            <Row label="Email" value={sales.email} />
-                            <Row label="Phone" value={sales.phone_number} />
-                          </>
-                        ) : (
-                          <Row label="Sales Person" value={d.sales_person_id} />
-                        )}
-                      </Section>
-
-                      <Section title="Delivery Agent">
-                        {isObj(agent) ? (
-                          <>
-                            <Row label="Name" value={agent.full_name} />
-                            <Row label="Phone" value={agent.phone_number} />
-                          </>
-                        ) : (
-                          <Row label="Delivery Agent" value={d.delivery_agent_id} />
-                        )}
-                      </Section>
-
-                      {['requested', 'pending'].includes((d.status || '').toLowerCase()) ? (
+                      {!isDeliveryAgent && ['requested', 'pending'].includes((d.status || '').toLowerCase()) ? (
                         <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
                           <TouchableOpacity
                             disabled={!!updatingStatus}
@@ -566,6 +597,33 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                               <ActivityIndicator color="#fff" />
                             ) : (
                               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Approve</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
+
+                      {isDeliveryAgent && (d._id || d.id) && !['passed', 'failed'].includes((d.qc_status || '').toLowerCase()) ? (
+                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                          <TouchableOpacity
+                            disabled={!!receiving}
+                            onPress={() => receiveReturn('failed', d._id || d.id)}
+                            style={{ flex: 1, backgroundColor: '#e53935', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: receiving ? 0.7 : 1 }}
+                          >
+                            {receiving === 'failed' ? (
+                              <ActivityIndicator color="#fff" />
+                            ) : (
+                              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>QC Failed</Text>
+                            )}
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            disabled={!!receiving}
+                            onPress={() => receiveReturn('passed', d._id || d.id)}
+                            style={{ flex: 1, backgroundColor: '#43a047', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: receiving ? 0.7 : 1 }}
+                          >
+                            {receiving === 'passed' ? (
+                              <ActivityIndicator color="#fff" />
+                            ) : (
+                              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>QC Passed</Text>
                             )}
                           </TouchableOpacity>
                         </View>

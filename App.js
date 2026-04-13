@@ -264,6 +264,7 @@ function AppContent() {
         onLogout={handleLogout}
         onGoToProfile={() => setScreen('profile')}
         onGoToDeliveryList={() => setScreen('deliveryList')}
+        onGoToReturnRequest={() => setScreen('returnRequest')}
       />
     );
   }
