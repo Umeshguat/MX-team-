@@ -27,6 +27,8 @@ const STATUS_COLORS = {
   rejected: '#e53935',
   completed: '#43a047',
   pending: '#fb8c00',
+  pickup: '#FF9800',
+  received: '#4CAF50',
 };
 
 export default function ReturnRequestListScreen({ user, onGoBack }) {
@@ -576,7 +578,7 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                         <Row label="Updated" value={formatDate(d.updatedAt)} />
                       </Section>
 
-                      {!isDeliveryAgent && ['requested', 'pending'].includes((d.status || '').toLowerCase()) ? (
+                      {isDistributor && ['requested', 'pending'].includes((d.status || '').toLowerCase()) ? (
                         <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
                           <TouchableOpacity
                             disabled={!!updatingStatus}
@@ -603,7 +605,39 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                         </View>
                       ) : null}
 
-                      {isDeliveryAgent && (d._id || d.id) && !['passed', 'failed'].includes((d.qc_status || '').toLowerCase()) ? (
+                      {isDeliveryAgent && (d.status || '').toLowerCase() === 'approved' ? (
+                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                          <TouchableOpacity
+                            disabled={!!updatingStatus}
+                            onPress={() => updateStatus('picked_up')}
+                            style={{ flex: 1, backgroundColor: '#FF9800', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: updatingStatus ? 0.7 : 1 }}
+                          >
+                            {updatingStatus === 'picked_up' ? (
+                              <ActivityIndicator color="#fff" />
+                            ) : (
+                              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Pickup</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
+
+                      {isDeliveryAgent && (d.status || '').toLowerCase() === 'picked_up' ? (
+                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                          <TouchableOpacity
+                            disabled={!!updatingStatus}
+                            onPress={() => updateStatus('received')}
+                            style={{ flex: 1, backgroundColor: '#4CAF50', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: updatingStatus ? 0.7 : 1 }}
+                          >
+                            {updatingStatus === 'received' ? (
+                              <ActivityIndicator color="#fff" />
+                            ) : (
+                              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Received</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
+
+                      {isDistributor && (d._id || d.id) && (d.status || '').toLowerCase() === 'received' && !['passed', 'failed'].includes((d.qc_status || '').toLowerCase()) ? (
                         <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
                           <TouchableOpacity
                             disabled={!!receiving}
