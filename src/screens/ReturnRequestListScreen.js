@@ -146,7 +146,8 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
     setDetailLoading(true);
     try {
       const token = user && user.token ? user.token : '';
-      const response = await fetch(`${BASE_URL}/api/return-requests/${id}`, {
+      const detailEndpoint = isDeliveryAgent ? `pickup/${id}` : `${id}`;
+      const response = await fetch(`${BASE_URL}/api/return-requests/${detailEndpoint}`, {
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       });
       const result = await response.json();

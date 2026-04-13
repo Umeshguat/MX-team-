@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import * as Font from 'expo-font';
 
-LogBox.ignoreLogs(['ExpoKeepAwake']);
+LogBox.ignoreLogs(['ExpoKeepAwake', 'ExpoAsset']);
 
 const FONTS = {
   'Poppins-Regular': require('./assets/fonts/Poppins-Regular.ttf'),
