@@ -46,6 +46,7 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
   const [detail, setDetail] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(null);
   const [receiving, setReceiving] = useState(null);
+  const [qcDescription, setQcDescription] = useState('');
   const isDistributor = user && user.role === 'Distributor';
   const isDeliveryAgent = user && user.role === 'DeliveryAgent';
 
@@ -63,7 +64,7 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
         setReceiving(null);
         return;
       }
-      const payload = { qc_status: qcStatus };
+      const payload = { qc_status: qcStatus, quality_check_description: qcDescription.trim() || undefined };
       const url = `${BASE_URL}/api/return-requests/${detailId}/receive`;
       const authHeader = 'Bearer ' + token;
       console.log('Receive return →', url);
@@ -78,8 +79,10 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
       console.log('Receive return ←', response.status, result);
       if (response.ok) {
         Alert.alert('Success', result.message || `Return marked as QC ${qcStatus}`);
-        setDetail((prev) => (prev ? { ...prev, qc_status: qcStatus } : prev));
-        setItems((prev) => prev.map((it) => ((it._id || it.id) === detailId ? { ...it, qc_status: qcStatus } : it)));
+        const descVal = qcDescription.trim() || undefined;
+        setDetail((prev) => (prev ? { ...prev, quality_check_status: qcStatus, quality_check_description: descVal } : prev));
+        setItems((prev) => prev.map((it) => ((it._id || it.id) === detailId ? { ...it, quality_check_status: qcStatus, quality_check_description: descVal } : it)));
+        setQcDescription('');
       } else {
         Alert.alert('Error', `${response.status}: ${result.message || 'Failed to receive return'}`);
       }
@@ -89,7 +92,55 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
       setReceiving(null);
     }
   };
+  const [completingRefund, setCompletingRefund] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
+
+  const completeRefund = async () => {
+    const detailId = detail && (detail._id || detail.id);
+    if (!detailId) {
+      Alert.alert('Error', 'No return request selected');
+      return;
+    }
+    Alert.alert(
+      'Confirm',
+      'Complete refund and credit it to the shop wallet?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            try {
+              setCompletingRefund(true);
+              const token = user && user.token ? user.token : '';
+              if (!token) {
+                Alert.alert('Auth Error', 'No auth token found. Please log in again.');
+                setCompletingRefund(false);
+                return;
+              }
+              const url = `${BASE_URL}/api/return-requests/${detailId}/complete-refund`;
+              const response = await fetch(url, {
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+              });
+              const result = await response.json().catch(() => ({}));
+              if (response.ok) {
+                Alert.alert('Success', result.message || 'Refund completed');
+                const updatedData = result.data || {};
+                setDetail((prev) => (prev ? { ...prev, refund_status: updatedData.refund_status || 'completed' } : prev));
+                setItems((prev) => prev.map((it) => ((it._id || it.id) === detailId ? { ...it, refund_status: updatedData.refund_status || 'completed' } : it)));
+              } else {
+                Alert.alert('Error', `${response.status}: ${result.message || 'Failed to complete refund'}`);
+              }
+            } catch (e) {
+              Alert.alert('Error', e.message || 'Network error');
+            } finally {
+              setCompletingRefund(false);
+            }
+          },
+        },
+      ],
+    );
+  };
   const [returnForm, setReturnForm] = useState({ order_id: '', product_id: '', reason: '', unit: '' });
   const [submittingReturn, setSubmittingReturn] = useState(false);
   const [orderDropdownList, setOrderDropdownList] = useState([]);
@@ -143,6 +194,7 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
 
   const openDetail = async (id, cachedItem) => {
     setDetailVisible(true);
+    setQcDescription('');
     if (cachedItem) setDetail(cachedItem);
     else setDetail(null);
     setDetailLoading(true);
@@ -364,7 +416,7 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                 <Text style={{ fontSize: 14, fontWeight: '600', flex: 1, color: theme.text }} numberOfLines={1}>
                   {addr.shop_name}
                 </Text>
-              </View>
+              </View> 
             ) : null}
 
             {cityText ? (
@@ -393,9 +445,9 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
 
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
               <Text style={{ fontSize: 13, width: 75, fontWeight: '500', color: theme.textTertiary }}>QC</Text>
-              <View style={{ backgroundColor: (STATUS_COLORS[(item.qc_status || '').toLowerCase()] || theme.textTertiary) + '22', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 }}>
-                <Text style={{ color: STATUS_COLORS[(item.qc_status || '').toLowerCase()] || theme.textTertiary, fontSize: 11, fontWeight: '700', textTransform: 'capitalize' }}>
-                  {item.qc_status || '--'}
+              <View style={{ backgroundColor: (STATUS_COLORS[(item.quality_check_status || '').toLowerCase()] || theme.textTertiary) + '22', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 }}>
+                <Text style={{ color: STATUS_COLORS[(item.quality_check_status || '').toLowerCase()] || theme.textTertiary, fontSize: 11, fontWeight: '700', textTransform: 'capitalize' }}>
+                  {item.quality_check_status || '--'}
                 </Text>
               </View>
               <Text style={{ fontSize: 11, color: theme.textTertiary, marginLeft: 'auto' }}>🕒 {formatDate(item.createdAt)}</Text>
@@ -572,7 +624,8 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                       <Section title="Return Request">
                         <Row label="Reason" value={d.reason} />
                         <Row label="Quantity" value={d.unit} />
-                        <Row label="QC Status" value={d.qc_status} />
+                        <Row label="QC Status" value={d.quality_check_status} />
+                        {d.quality_check_description ? <Row label="QC Description" value={d.quality_check_description} /> : null}
                         <Row label="Refund Status" value={d.refund_status} />
                         <Row label="Created" value={formatDate(d.createdAt)} />
                         <Row label="Updated" value={formatDate(d.updatedAt)} />
@@ -605,19 +658,34 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                         </View>
                       ) : null}
 
-                      {isDeliveryAgent && (d.status || '').toLowerCase() === 'approved' ? (
+                      {(isDeliveryAgent || isDistributor) && (d.status || '').toLowerCase() === 'approved' ? (
                         <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-                          <TouchableOpacity
-                            disabled={!!updatingStatus}
-                            onPress={() => updateStatus('picked_up')}
-                            style={{ flex: 1, backgroundColor: '#FF9800', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: updatingStatus ? 0.7 : 1 }}
-                          >
-                            {updatingStatus === 'picked_up' ? (
-                              <ActivityIndicator color="#fff" />
-                            ) : (
-                              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Pickup</Text>
-                            )}
-                          </TouchableOpacity>
+                          {isDeliveryAgent ? (
+                            <TouchableOpacity
+                              disabled={!!updatingStatus}
+                              onPress={() => updateStatus('picked_up')}
+                              style={{ flex: 1, backgroundColor: '#FF9800', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: updatingStatus ? 0.7 : 1 }}
+                            >
+                              {updatingStatus === 'picked_up' ? (
+                                <ActivityIndicator color="#fff" />
+                              ) : (
+                                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Pickup</Text>
+                              )}
+                            </TouchableOpacity>
+                          ) : null}
+                          {isDistributor ? (
+                            <TouchableOpacity
+                              disabled={!!updatingStatus}
+                              onPress={() => updateStatus('received')}
+                              style={{ flex: 1, backgroundColor: '#4CAF50', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: updatingStatus ? 0.7 : 1 }}
+                            >
+                              {updatingStatus === 'received' ? (
+                                <ActivityIndicator color="#fff" />
+                              ) : (
+                                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Received</Text>
+                              )}
+                            </TouchableOpacity>
+                          ) : null}
                         </View>
                       ) : null}
 
@@ -637,8 +705,34 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                         </View>
                       ) : null}
 
-                      {isDistributor && (d._id || d.id) && (d.status || '').toLowerCase() === 'received' && !['passed', 'failed'].includes((d.qc_status || '').toLowerCase()) ? (
-                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                      {isDistributor && (d.refund_status || '').toLowerCase() === 'processed' ? (
+                        <View style={{ marginTop: 16 }}>
+                          <TouchableOpacity
+                            disabled={completingRefund}
+                            onPress={completeRefund}
+                            style={{ backgroundColor: '#1976d2', borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: completingRefund ? 0.7 : 1 }}
+                          >
+                            {completingRefund ? (
+                              <ActivityIndicator color="#fff" />
+                            ) : (
+                              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Complete Refund</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
+
+                      {isDistributor && (d._id || d.id) && (d.status || '').toLowerCase() === 'received' && !['passed', 'failed'].includes((d.quality_check_status || '').toLowerCase()) ? (
+                        <View style={{ marginTop: 16 }}>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary, marginBottom: 6 }}>QC Description</Text>
+                          <TextInput
+                            style={{ backgroundColor: theme.background, borderRadius: 12, padding: 12, fontSize: 14, color: theme.text, borderWidth: 1, borderColor: theme.divider, marginBottom: 12, minHeight: 60, textAlignVertical: 'top' }}
+                            placeholder="Enter quality check description..."
+                            placeholderTextColor={theme.textTertiary}
+                            value={qcDescription}
+                            onChangeText={setQcDescription}
+                            multiline
+                          />
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
                           <TouchableOpacity
                             disabled={!!receiving}
                             onPress={() => receiveReturn('failed', d._id || d.id)}
@@ -661,6 +755,7 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
                               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>QC Passed</Text>
                             )}
                           </TouchableOpacity>
+                        </View>
                         </View>
                       ) : null}
                     </View>
