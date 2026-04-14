@@ -428,21 +428,6 @@ export default function ReturnRequestListScreen({ user, onGoBack }) {
               </View>
             ) : null}
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: theme.divider }}>
-              <Text style={{ fontSize: 13, width: 75, fontWeight: '500', color: theme.textTertiary }}>Product</Text>
-              <Text style={{ fontSize: 14, fontWeight: '600', flex: 1, color: theme.text }} numberOfLines={1}>
-                {product.product_name || '--'}{product.product_code ? ` (${product.product_code})` : ''}
-              </Text>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: theme.primary, marginLeft: 8 }}>x{item.unit || '--'}</Text>
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: theme.divider }}>
-              <Text style={{ fontSize: 13, width: 75, fontWeight: '500', color: theme.textTertiary }}>Reason</Text>
-              <Text style={{ fontSize: 14, fontWeight: '600', flex: 1, color: theme.text }} numberOfLines={2}>
-                {item.reason || '--'}
-              </Text>
-            </View>
-
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
               <Text style={{ fontSize: 13, width: 75, fontWeight: '500', color: theme.textTertiary }}>QC</Text>
               <View style={{ backgroundColor: (STATUS_COLORS[(item.quality_check_status || '').toLowerCase()] || theme.textTertiary) + '22', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 }}>
