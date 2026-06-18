@@ -12,8 +12,8 @@ const lightTheme = {
   primaryLight: '#6B85FF',
   secondary: '#8B5CF6',
   accent: '#A78BFA',
-  gradient1: '#4A67FF',
-  gradient2: '#8B5CF6',
+  gradient1: '#1E3A8A',
+  gradient2: '#0891B2',
 
   // Backgrounds
   background: '#F5F7FF',
@@ -79,8 +79,8 @@ const darkTheme = {
   primaryLight: '#8BA3FF',
   secondary: '#A78BFA',
   accent: '#C4B5FD',
-  gradient1: '#4A67FF',
-  gradient2: '#8B5CF6',
+  gradient1: '#1E3A8A',
+  gradient2: '#0891B2',
 
   // Backgrounds
   background: '#0F1120',
