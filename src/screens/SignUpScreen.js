@@ -129,7 +129,7 @@ export default function SignUpScreen({ onGoToLogin }) {
       >
         {/* Top Gradient Header */}
         <LinearGradient
-          colors={[theme.gradient1, theme.gradient2]}
+          colors={['#1E3A8A', '#0891B2']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -289,7 +289,7 @@ export default function SignUpScreen({ onGoToLogin }) {
           {/* Sign Up Button */}
           <TouchableOpacity onPress={handleSignUp} activeOpacity={0.8} disabled={loading} style={loading ? styles.btnDisabled : undefined}>
             <LinearGradient
-              colors={[theme.gradient1, theme.gradient2]}
+              colors={['#1E3A8A', '#0891B2']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.gradientBtn}

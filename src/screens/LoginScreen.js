@@ -99,7 +99,7 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
 
           {/* Top Gradient Header */}
           <LinearGradient
-            colors={[theme.gradient1, theme.gradient2]}
+            colors={['#1E3A8A', '#0891B2']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.headerGradient}
@@ -180,7 +180,7 @@ export default function LoginScreen({ onGoToSignUp, onGoToForgotPassword, onLogi
               style={loading ? styles.loginBtnDisabled : undefined}
             >
               <LinearGradient
-                colors={[theme.gradient1, theme.gradient2]}
+                colors={['#1E3A8A', '#0891B2']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.signInBtn}
