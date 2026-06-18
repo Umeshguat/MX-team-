@@ -24,6 +24,7 @@ import GPSCameraScreen from '../components/GPSCameraScreen';
 import { extractKmFromImage } from '../utils/ocrHelper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import { SAFE_TOP } from '../utils/layout';
 
 var SAMPLE_EMPLOYEES = [
   { id: '1', name: 'Rahul Sharma', designation: 'Sales Executive', hq: 'Delhi', phone: '9876543210', status: 'present', checkIn: '09:15 AM', vendors: 4, allowance: 850 },
@@ -1580,7 +1581,7 @@ var s = StyleSheet.create({
 
   /* ----- Header ----- */
   header: {
-    paddingTop: 48,
+    paddingTop: SAFE_TOP + 14,
     paddingBottom: 22,
     paddingHorizontal: 22,
     borderBottomLeftRadius: 28,
@@ -2545,7 +2546,7 @@ var s = StyleSheet.create({
 
   /* ----- Map Modal ----- */
   mapHeader: {
-    paddingTop: 48,
+    paddingTop: SAFE_TOP + 14,
     paddingBottom: 18,
     paddingHorizontal: 22,
     borderBottomLeftRadius: 28,

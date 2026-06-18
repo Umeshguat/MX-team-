@@ -28,7 +28,8 @@
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "package": "com.anonymous.salesmensapp",
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "edgeToEdgeEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"

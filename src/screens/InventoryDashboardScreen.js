@@ -21,6 +21,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import { SAFE_TOP } from '../utils/layout';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 
@@ -1899,7 +1900,7 @@ const styles = StyleSheet.create({
   profileName: { fontSize: 16, fontWeight: '800' },
   profileRole: { fontSize: 12, marginTop: 2 },
   header: {
-    paddingTop: 50,
+    paddingTop: SAFE_TOP + 14,
     paddingHorizontal: 20,
     paddingBottom: 22,
     borderBottomLeftRadius: 28,
@@ -1907,7 +1908,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   subHeader: {
-    paddingTop: 50,
+    paddingTop: SAFE_TOP + 14,
     paddingHorizontal: 20,
     paddingBottom: 18,
     borderBottomLeftRadius: 28,

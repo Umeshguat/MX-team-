@@ -19,6 +19,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import { SAFE_TOP } from '../utils/layout';
 import GPSCameraScreen from '../components/GPSCameraScreen';
 
 var screenWidth = Dimensions.get('window').width;
@@ -800,7 +801,7 @@ var styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingTop: 50,
+    paddingTop: SAFE_TOP + 14,
     paddingBottom: 25,
     paddingHorizontal: 25,
     borderBottomLeftRadius: 28,

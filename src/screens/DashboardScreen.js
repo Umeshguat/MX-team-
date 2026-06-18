@@ -22,6 +22,7 @@ import GPSCameraScreen from '../components/GPSCameraScreen';
 import { extractKmFromImage } from '../utils/ocrHelper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import { SAFE_TOP } from '../utils/layout';
 import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 
 export default function DashboardScreen({ user, onLogout, vendors, onVendorsChange, onGoToProfile, onGoToAttendance, onGoToDailyAllowance, onGoToVisits, onGoToInventory }) {
@@ -1093,7 +1094,7 @@ var styles = StyleSheet.create({
 
   /* ===== HEADER ===== */
   header: {
-    paddingTop: 52,
+    paddingTop: SAFE_TOP + 14,
     paddingBottom: 18,
     paddingHorizontal: 22,
     borderBottomLeftRadius: 28,
